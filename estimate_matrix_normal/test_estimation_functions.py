@@ -50,7 +50,6 @@ def adjust_sample_to_match_sample_size_equal_to_one(matrix_normal_sample):
         matrix_normal_sample = matrix_normal_sample[0]
     return matrix_normal_sample
 
-
 def sample_matrix_normal(M, Sigma_r, Sigma_c, sample_size):
     matrix_normal_sample = matrix_normal.rvs(M, Sigma_r, Sigma_c, size=sample_size)
     matrix_normal_sample = adjust_sample_to_match_sample_size_equal_to_one(matrix_normal_sample)
@@ -221,7 +220,7 @@ def test_matrix_normal_mle_functions_after_convergence(convergence_scale=200,
                                                        proportions=[1/4, 1/3, 1/2, 1, 2, 3, 4],
                                                        sample_sizes_to_check=list(range(1, 6)),
                                                        num_runs=5,
-                                                       cov_distribution='wishart',
+                                                       cov_distribution=None,
                                                        save_folder=None):
     """
     Test matrix normal MLE functions after convergence.
@@ -243,8 +242,9 @@ def test_matrix_normal_mle_functions_after_convergence(convergence_scale=200,
         row_errors, col_errors, col_errors_fixed_u = collect_errors(sizes, sample_sizes_to_check, num_runs, cov_distribution)
         
         # Plot the results
+        cov_distribution = cov_distribution if cov_distribution else 'I'
         save_path = None
         if save_folder:
-            save_path = f"{save_folder}/different_sample_sizes_with_proportion_n_p={round(matrix_size[0]/matrix_size[1], 2)}.png"
+            save_path = f"{save_folder}/different_sample_sizes_with_proportion_n_p={round(matrix_size[0]/matrix_size[1], 2)}_distribution={cov_distribution}.png"
         
         plot_results(sizes, sample_sizes_to_check, row_errors, col_errors, col_errors_fixed_u, save_path)
