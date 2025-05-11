@@ -1,4 +1,4 @@
-from test_estimation_functions.plot_functions import *
+from run_plot_functions import *
 
 
 # Example usage
