@@ -1,4 +1,4 @@
-from import *
+from plot_functions import *
 
 
 def run_plot_error_by_proportion(save_path,
