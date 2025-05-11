@@ -1,3 +1,6 @@
+from test_estimation_functions.plot_functions import *
+
+
 # Example usage
 if __name__ == "__main__":
     test_matrix_normal_mle_functions_after_convergence(
