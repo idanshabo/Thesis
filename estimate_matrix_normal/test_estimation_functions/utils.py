@@ -3,6 +3,7 @@ from scipy.stats import matrix_normal, wishart
 import matplotlib.pyplot as plt
 import sys
 import os
+from ..estimate_matrix_normal import *
 
 
 def create_matrix_sizes_with_one_scale(proportions, scale):
