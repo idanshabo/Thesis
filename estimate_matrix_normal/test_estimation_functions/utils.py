@@ -3,6 +3,7 @@ from scipy.stats import matrix_normal, wishart
 import matplotlib.pyplot as plt
 import sys
 import os
+sys.path.append(os.path.abspath('/content/Thesis/estimate_matrix_normal'))
 from estimate_matrix_normal.estimate_matrix_normal import *
 
 
