@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 sys.path.append(os.path.abspath('/content/Thesis/estimate_matrix_normal'))
-from ..estimate_matrix_normal import *
+from estimate_matrix_normal import *
 
 
 def create_matrix_sizes_with_one_scale(proportions, scale):
