@@ -3,7 +3,7 @@ from run_plot_functions import *
 
 # Example usage
 if __name__ == "__main__":
-    save_path = '/content/drive/My Drive/Thesis/matrix normal estimation/'
+    save_path = '/content/drive/My Drive/Thesis/matrix normal estimation'
     proportions = [1/4, 1/3, 1/2, 1]
     scales = [2, 10, 50]
     convergence_scale = 20
