@@ -319,6 +319,6 @@ def plot_error_metric_multi_scale(results, metric_key, title_prefix, file_prefix
                     ax.annotate(f'p={pi}', (xi, yi), xytext=(5, 5), textcoords='offset points', fontsize=8)
 
         plt.tight_layout()
-        save_path = f'{drive_folder}{file_prefix}_proportion_{round(proportion, 2)}.png'
+        save_path = f'{drive_folder}/{file_prefix}_proportion_{round(proportion, 2)}.png'
         plt.savefig(save_path)
         plt.close(fig)
