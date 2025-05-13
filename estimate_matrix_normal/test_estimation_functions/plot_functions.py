@@ -195,7 +195,7 @@ def plot_error_by_sample_size(data, sample_sizes, proportion, run_count=5, save_
         else:
             plt.close(fig)
 
-def plot_error_by_proportion(data, sample_sizes, run_count, save_folder=None, show_plots=True):
+def plot_error_by_proportion(data, sample_sizes, run_count, save_folder=None, show_plots=False):
     """
     Plot type 3: After reached convergence - comparing error size for different proportions.
     One plot for every sample size (k), the x-axis is the proportion.
