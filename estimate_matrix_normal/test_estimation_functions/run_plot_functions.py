@@ -5,7 +5,7 @@ def run_plot_error_by_proportion(save_path,
                                  proportions=[1/4, 1/3, 1/2, 1, 2, 3, 4],
                                  convergence_scale=200,
                                  sample_sizes=list(range(1, 6)),
-                                 num_runs=5,
+                                 num_runs=10,
                                  cov_distribution=None):
     # Create matrix sizes for each proportion
     sizes_by_proportion = create_matrix_sizes_with_one_scale(proportions, convergence_scale)
