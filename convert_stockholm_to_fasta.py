@@ -1,3 +1,4 @@
+from Bio import AlignIO
 import os
 
 def convert_stockholm_to_fasta(stockholm_file_path, fasta_file_path=None):
