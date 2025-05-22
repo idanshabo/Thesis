@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from read_stockholm_file_and_pring_content import read_stockholm_file_and_print_content
 from convert_stockholm_to_fasta import convert_stockholm_to_fasta
 from create_phylogenetic_tree.run_fasttree import run_fasttree
