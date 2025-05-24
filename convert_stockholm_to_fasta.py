@@ -10,4 +10,4 @@ def convert_stockholm_to_fasta(stockholm_file_path, fasta_file_path=None):
         fasta_file_path = base_path + '.fasta'
     alignment = AlignIO.read(stockholm_file_path, "stockholm")
     AlignIO.write(alignment, fasta_file_path, "fasta")
-    print(f"Converted file in stockholm format to fasta format in path {fasta_file}")
+    print(f"Converted file in stockholm format to fasta format in path {fasta_file_path}")
