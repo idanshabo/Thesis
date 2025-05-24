@@ -1,4 +1,6 @@
 import os
+import subprocess
+
 
 def run_fasttree(fasta_file_path, output_path=None):
     """Run FastTree on protein alignment with output to chosen location"""
