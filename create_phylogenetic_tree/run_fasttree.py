@@ -1,7 +1,10 @@
+import os
+
 def run_fasttree(fasta_file_path, output_path=None):
     """Run FastTree on protein alignment with output to chosen location"""
     if not output_path:
-        output_path = fasta_file_path
+        base_path = os.path.splitext(fasta_file_path)[0].replace('.fasta', '')
+        output_path = base_path + '.tree'
     cmd = [
         'FastTree',
         '-lg',                  # LG model
