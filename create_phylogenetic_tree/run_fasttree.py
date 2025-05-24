@@ -1,11 +1,13 @@
-def run_fasttree(fasta_file, output_path):
+def run_fasttree(fasta_file_path, output_path=None):
     """Run FastTree on protein alignment with output to chosen location"""
+    if not output_path:
+        output_path = fasta_file_path
     cmd = [
         'FastTree',
         '-lg',                  # LG model
         '-gamma',              # Gamma rate categories
         '-out', output_path,   # Output to Drive
-        fasta_file
+        fasta_file_path
     ]
 
     try:
