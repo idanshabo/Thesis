@@ -23,6 +23,7 @@ def run_fasttree(fasta_file_path, output_path=None):
         print("FastTree analysis completed successfully")
         print(f"Tree saved to: {output_path}")
         print(result.stdout)
+        return(output_path)
     except subprocess.CalledProcessError as e:
         print("Error output:", e.stderr)
         print("STDOUT:", e.stdout)
