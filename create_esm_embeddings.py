@@ -15,64 +15,52 @@ def pad_sequence(sequence_tensor, pad_length=16):
     return sequence_tensor
 
 # Function to save embeddings with simple filenames
-def save_embeddings(embeddings, index, save_dir):
-    # Save embeddings with a simple filename like "prot1.pt", "prot2.pt", etc.
-    filename = os.path.join(save_dir, f"prot{index}.pt")
+def sanitize_filename(name):
+    # Remove or replace characters that are not safe in filenames
+    return re.sub(r'[^A-Za-z0-9_\-\.]', '_', name)
+
+def save_embeddings(embeddings, protein_name, save_dir):
+    safe_name = sanitize_filename(protein_name)
+    filename = os.path.join(save_dir, f"{safe_name}.pt")
     torch.save(embeddings, filename)
     print(f"Saved embeddings to {filename}")
 
 def create_esm_embeddings_from_fasta(fasta_file, model, save_dir):
     sequences = []
-    # Parse the FASTA file to get the sequences
+
+    # Parse the FASTA file to get the sequences and names
     for record in SeqIO.parse(fasta_file, "fasta"):
-        sequences.append(str(record.seq))  # Append the sequence as a string
+        protein_name = record.id  # Or record.name or record.description depending on your needs
+        sequences.append((protein_name, str(record.seq)))  # Store name with sequence
 
     # Create save directory if it doesn't exist
     os.makedirs(save_dir, exist_ok=True)
 
     # Process each sequence
-    for index, protein_sequence in enumerate(sequences, 1):  # Start numbering from 1
-        print(f"Processing sequence: {protein_sequence}")
-        # Tokenize the sequence using the model's tokenizer
-        input_ids = model._tokenize([protein_sequence])[0]  # Tokenize a list of sequences
+    for protein_name, protein_sequence in sequences:
+        print(f"Processing {protein_name}: {protein_sequence}")
 
-        # Convert to tensor and ensure proper padding
-        input_tensor = torch.tensor(input_ids).unsqueeze(0).long()  # Add batch dimension and convert to Long type
-        print(f"Input tensor shape before padding: {input_tensor.shape}")
+        # Tokenize the sequence
+        input_ids = model._tokenize([protein_sequence])[0]
+        input_tensor = torch.tensor(input_ids).unsqueeze(0).long()
 
-        # Pad the sequence to a multiple of 16 (or 32)
-        padded_input = pad_sequence(input_tensor, pad_length=16)  # Pad to 16-length
-        print(f"Input tensor shape after padding: {padded_input.shape}")
+        # Pad
+        padded_input = pad_sequence(input_tensor, pad_length=16)
 
-        # Ensure device compatibility (move model and tensor to GPU if available)
+        # Device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.to(device)
-        padded_input = padded_input.to(device)  # Move tensor to the same device as the model
+        padded_input = padded_input.to(device)
 
-        # Double-check tensor type (make sure it's LongTensor)
-        if padded_input.dtype != torch.long:
-            padded_input = padded_input.long()  # Ensure the tensor is Long type
-
-        # Forward pass through the model
+        # Inference
         with torch.no_grad():
             output = model(padded_input)
 
-        # Extract logits, embeddings, and hidden states
-        logits, embeddings, hiddens = (
-            output.sequence_logits,
-            output.embeddings,
-            output.hidden_states,
-        )
+        logits, embeddings, hiddens = output.sequence_logits, output.embeddings, output.hidden_states
 
-        # Print the shapes of the results
-        print(
-            f"Logits shape: {logits.shape}, "
-            f"Embeddings shape: {embeddings.shape}, "
-            f"Hidden states shape: {hiddens.shape}"
-        )
-
-        # Save embeddings with a simple filename like "prot1.pt", "prot2.pt", etc.
-        save_embeddings(embeddings, index, save_dir)
+        # Save with name
+        save_embeddings(embeddings, protein_name, save_dir)
+        
 
 if __name__ == "__main__":
     fasta_file = '/content/drive/MyDrive/protein_data/PF03618.fasta'
