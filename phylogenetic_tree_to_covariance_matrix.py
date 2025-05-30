@@ -30,4 +30,5 @@ def tree_to_covariance_matrix(tree_path):
 
     # Convert to DataFrame
     cov_df = pd.DataFrame(cov_matrix, index=species, columns=species)
+    print("Calculated covariance matrix successfully")
     return(cov_df)
