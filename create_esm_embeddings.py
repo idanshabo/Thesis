@@ -1,4 +1,3 @@
-pip install esm
 import torch
 import os
 from Bio import SeqIO
@@ -22,7 +21,7 @@ def save_embeddings(embeddings, index, save_dir):
     torch.save(embeddings, filename)
     print(f"Saved embeddings to {filename}")
 
-def process_fasta(fasta_file, model, save_dir):
+def create_esm_embeddings_from_fasta(fasta_file, model, save_dir):
     sequences = []
     # Parse the FASTA file to get the sequences
     for record in SeqIO.parse(fasta_file, "fasta"):
@@ -79,4 +78,4 @@ if __name__ == "__main__":
     fasta_file = '/content/drive/MyDrive/protein_data/PF03618.fasta'
     save_dir = "embeddings_output"  
     model = ESMC.from_pretrained("esmc_300m")
-    process_fasta(fasta_file, model, save_dir)
+    create_esm_embeddings_from_fasta(fasta_file, model, save_dir)
