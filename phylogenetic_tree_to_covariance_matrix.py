@@ -3,9 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 
-def tree_to_covariance_matrix(newick_file, tree_path=None):
-    if not tree_path:
-        base_path = 
+def tree_to_covariance_matrix(tree_path):
     # Load and root the tree
     tree = Tree(tree_path, format=1)
     tree.set_outgroup(tree.get_midpoint_outgroup())  # Or choose a known outgroup
