@@ -19,13 +19,13 @@ def sanitize_filename(name):
     # Remove or replace characters that are not safe in filenames
     return re.sub(r'[^A-Za-z0-9_\-\.]', '_', name)
 
-def save_embeddings(embeddings, protein_name, save_dir):
+def save_embeddings(embeddings, protein_name, output_path):
     safe_name = sanitize_filename(protein_name)
-    filename = os.path.join(save_dir, f"{safe_name}.pt")
+    filename = os.path.join(output_path, f"{safe_name}.pt")
     torch.save(embeddings, filename)
     print(f"Saved embeddings to {filename}")
 
-def create_esm_embeddings_from_fasta(fasta_file, save_dir):
+def create_esm_embeddings_from_fasta(fasta_file, output_path):
     model = ESMC.from_pretrained("esmc_300m")
     sequences = []
 
@@ -35,7 +35,7 @@ def create_esm_embeddings_from_fasta(fasta_file, save_dir):
         sequences.append((protein_name, str(record.seq)))  # Store name with sequence
 
     # Create save directory if it doesn't exist
-    os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(output_path, exist_ok=True)
 
     # Process each sequence
     for protein_name, protein_sequence in sequences:
@@ -60,10 +60,10 @@ def create_esm_embeddings_from_fasta(fasta_file, save_dir):
         logits, embeddings, hiddens = output.sequence_logits, output.embeddings, output.hidden_states
 
         # Save with name
-        save_embeddings(embeddings, protein_name, save_dir)
+        save_embeddings(embeddings, protein_name, output_path)
         
 
 if __name__ == "__main__":
     fasta_file = '/content/drive/MyDrive/protein_data/PF03618.fasta'
-    save_dir = "embeddings_output"
-    create_esm_embeddings_from_fasta(fasta_file, save_dir)
+    output_path = "embeddings_output"
+    create_esm_embeddings_from_fasta(fasta_file, output_path)
