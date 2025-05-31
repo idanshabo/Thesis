@@ -25,7 +25,8 @@ def save_embeddings(embeddings, protein_name, save_dir):
     torch.save(embeddings, filename)
     print(f"Saved embeddings to {filename}")
 
-def create_esm_embeddings_from_fasta(fasta_file, model, save_dir):
+def create_esm_embeddings_from_fasta(fasta_file, save_dir):
+    model = ESMC.from_pretrained("esmc_300m")
     sequences = []
 
     # Parse the FASTA file to get the sequences and names
@@ -64,6 +65,5 @@ def create_esm_embeddings_from_fasta(fasta_file, model, save_dir):
 
 if __name__ == "__main__":
     fasta_file = '/content/drive/MyDrive/protein_data/PF03618.fasta'
-    save_dir = "embeddings_output"  
-    model = ESMC.from_pretrained("esmc_300m")
-    create_esm_embeddings_from_fasta(fasta_file, model, save_dir)
+    save_dir = "embeddings_output"
+    create_esm_embeddings_from_fasta(fasta_file, save_dir)
