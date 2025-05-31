@@ -1,4 +1,5 @@
 from create_esm_embeddings import create_esm_embeddings_from_fasta
+import os
 
 
 def run_pipeline(MSA_file_path, output_path=None):
