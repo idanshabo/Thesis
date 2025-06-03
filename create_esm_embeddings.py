@@ -29,7 +29,7 @@ def save_embeddings(embeddings, protein_name, output_path):
     safe_name = sanitize_filename(protein_name)
     filename = os.path.join(output_path, f"{safe_name}.pt")
     torch.save(embeddings, filename)
-    print(f"Saved embeddings to {filename}")
+    print(f"Saved embeddings to {filename}\n")
 
 def create_esm_embeddings_from_fasta(fasta_file, output_path):
     model = ESMC.from_pretrained("esmc_300m")
