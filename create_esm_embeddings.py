@@ -43,7 +43,7 @@ def create_esm_embeddings_from_fasta(fasta_file, output_path):
 
         # Tokenize the sequence
         input_ids = model._tokenize([protein_sequence])[0]
-        input_tensor = torch.tensor(input_ids).unsqueeze(0).long()
+        input_tensor = input_ids.clone().detach().unsqueeze(0).long()
 
         # Pad
         padded_input = pad_sequence(input_tensor, pad_length=16)
