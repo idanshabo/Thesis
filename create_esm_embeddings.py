@@ -61,8 +61,6 @@ def create_esm_embeddings_from_fasta(fasta_file, output_path):
 
         # Inference
         with torch.no_grad():
-            print(f"[DEBUG] Type of padded_input: {type(padded_input)}")
-            print(f"[DEBUG] padded_input dtype: {padded_input.dtype}")
             output = model(padded_input)
 
         logits, embeddings, hiddens = output.sequence_logits, output.embeddings, output.hidden_states
