@@ -45,13 +45,21 @@ def create_esm_embeddings_from_fasta(fasta_file, output_path):
     # Process each sequence
     for protein_name, protein_sequence in sequences:
         print(f"Processing {protein_name}: {protein_sequence}")
-
         # Tokenize the sequence
         input_ids = model._tokenize([protein_sequence])[0]
+        
+        # Debug tokenization output
+        print("[DEBUG] input_ids type:", type(input_ids))
+        print("[DEBUG] input_ids dtype:", input_ids.dtype)
+        
         input_tensor = input_ids.clone().detach().unsqueeze(0).long()
-
+        
         # Pad
         padded_input = pad_sequence(input_tensor, pad_length=16)
+        
+        # Debug padded input
+        print("[DEBUG] padded_input dtype AFTER pad_sequence:", padded_input.dtype)
+
         
         # Device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
