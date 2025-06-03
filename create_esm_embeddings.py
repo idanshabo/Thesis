@@ -9,8 +9,13 @@ def pad_sequence(sequence_tensor, pad_length=16):
     current_length = sequence_tensor.size(1)
     if current_length % pad_length != 0:
         padding_size = pad_length - (current_length % pad_length)
-        # Pad the sequence tensor with zeros or a padding token
-        padding = torch.zeros((sequence_tensor.size(0), padding_size), device=sequence_tensor.device)
+        # Make sure padding is the same dtype as sequence_tensor
+        padding = torch.full(
+            (sequence_tensor.size(0), padding_size),
+            fill_value=0,  # or tokenizer.pad_token_id if defined
+            device=sequence_tensor.device,
+            dtype=sequence_tensor.dtype
+        )
         sequence_tensor = torch.cat([sequence_tensor, padding], dim=1)
     return sequence_tensor
 
