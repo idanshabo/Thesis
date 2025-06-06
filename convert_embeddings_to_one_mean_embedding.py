@@ -1,3 +1,7 @@
+import torch
+import os
+
+
 def convert_embeddings_to_one_mean_embedding(folder_path, output_path=None):
     if not output_path:
         output_path = os.path.join(folder_path, 'mean_protein_embeddings.pt')
