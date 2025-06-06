@@ -14,13 +14,12 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
         read_stockholm_file_and_print_content(MSA_file_path)
     fasta_file_path = convert_stockholm_to_fasta(MSA_file_path)
     phylogenetic_tree_path = run_fasttree(fasta_file_path)
-    cov_mat_path = tree_to_covariance_matrix(phylogenetic_tree_path)
+    cov_mat = tree_to_covariance_matrix(phylogenetic_tree_path)
     if not output_path:
         base_path = os.path.splitext(MSA_file_path)[0].replace('.fasta', '')
         output_path = base_path + '/embeddings_output'
     create_esm_embeddings_from_fasta(MSA_file_path, output_path)
-    mean_embeddings_output_path = convert_embeddings_to_one_mean_embedding(output_path)
-    align_embeddings_with_covariance(cov_mat_path, data_dict_path)
-    matrix_normal_estimation = matrix_normal_mle_fixed_u(X=List[np.ndarray], U: np.ndarray)
-    return mean_embeddings_output_path
-    return cov_mat
+    mean_embeddings_dict_path = convert_embeddings_to_one_mean_embedding(output_path)
+    embedding, protein_list = align_embeddings_with_covariance(cov_mat, mean_embeddings_dict_path)
+    matrix_normal_estimation = matrix_normal_mle_fixed_u(X=[embedding_matrix], U=cov_mat)
+    return matrix_normal_estimation
