@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-def align_embeddings_with_covariance(cov_matrix: pd.DataFrame, data_dict: dict):
+def align_embeddings_with_covariance(cov_matrix: pd.DataFrame, data_dict_path: str):
     """
     Aligns the order of embeddings and file names to match the order of the covariance matrix.
     
@@ -15,6 +15,7 @@ def align_embeddings_with_covariance(cov_matrix: pd.DataFrame, data_dict: dict):
     - aligned_embeddings: np.ndarray, embeddings reordered to match the covariance matrix
     - aligned_file_names: list of str, file names reordered to match the covariance matrix
     """
+    data_dict = torch.load(data_dict_path, map_location='cpu')
     cov_names = list(cov_matrix.index)
     file_names = data_dict['file_names']
     embeddings = data_dict['embeddings']
