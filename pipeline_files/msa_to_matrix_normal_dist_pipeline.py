@@ -19,6 +19,6 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
         output_path = base_path + '/embeddings_output'
     create_esm_embeddings_from_fasta(MSA_file_path, output_path)
     mean_embeddings_output_path = convert_embeddings_to_one_mean_embedding(output_path)
-    matrix_normal_estimation = matrix_normal_mle_fixed_u()
+    matrix_normal_estimation = matrix_normal_mle_fixed_u(X=List[np.ndarray], U: np.ndarray)
     return mean_embeddings_output_path
     return cov_mat
