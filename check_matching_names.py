@@ -1,5 +1,9 @@
-def check_matching_names(cov_matrix_df, embeddings, file_names):
+def check_matching_names(cov_matrix_df, data_dict_path):
     # Check if the column names of the covariance matrix match the file names in the embeddings
+    data_dict = torch.load(data_dict_path, map_location='cpu')
+    cov_names = list(cov_matrix.index)
+    file_names = data_dict['file_names']
+
     cov_columns = cov_matrix_df.columns
     embeddings_file_names = file_names
     
