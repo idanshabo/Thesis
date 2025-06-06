@@ -2,6 +2,7 @@ from ete3 import Tree
 import numpy as np
 import pandas as pd
 import os
+import re
 
 def tree_to_covariance_matrix(tree_path):
     # Load and root the tree
@@ -13,6 +14,11 @@ def tree_to_covariance_matrix(tree_path):
 
     # Get species (leaf names)
     species = [leaf.name for leaf in tree.get_leaves()]
+    
+    # Clean species names (column and row names)
+    cleaned_species = [re.sub(r'[\\/*?:"<>|]', '_', sp) for sp in species]
+    cleaned_species = [re.sub(r'\s+', '_', sp) for sp in cleaned_species]  # Optional: replace spaces with underscores
+    
     n = len(species)
 
     # Initialize the covariance matrix
@@ -28,7 +34,8 @@ def tree_to_covariance_matrix(tree_path):
                 shared_distance = root.get_distance(mrca)  # ✅ CORRECT
                 cov_matrix[i, j] = shared_distance
 
-    # Convert to DataFrame
-    cov_df = pd.DataFrame(cov_matrix, index=species, columns=species)
+    # Convert to DataFrame with cleaned species names
+    cov_df = pd.DataFrame(cov_matrix, index=cleaned_species, columns=cleaned_species)
+
     print("Calculated covariance matrix successfully")
-    return(cov_df)
+    return cov_df
