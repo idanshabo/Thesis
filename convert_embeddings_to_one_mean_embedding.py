@@ -22,6 +22,7 @@ def convert_embeddings_to_one_mean_embedding(folder_path, output_path=None):
                 mean_embedding = embedding.mean(dim=0)
                 # Store the mean vector
                 mean_embeddings.append(mean_embedding)
+                file_names.append(filename)
 
                 # Free memory
                 del embedding
@@ -31,7 +32,10 @@ def convert_embeddings_to_one_mean_embedding(folder_path, output_path=None):
     all_mean_embeddings = torch.stack(mean_embeddings)  # shape: (num_proteins, 960)
 
     # === Save to file ===
-    torch.save(all_mean_embeddings, output_path)
+    torch.save({
+        'embeddings': all_mean_embeddings,
+        'file_names': file_names
+    }, output_path)
 
     # === Done ===
     print(f"✅ Processed {len(mean_embeddings)} proteins.")
