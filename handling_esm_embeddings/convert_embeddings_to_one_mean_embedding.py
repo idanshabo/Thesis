@@ -27,7 +27,7 @@ def convert_embeddings_to_one_mean_embedding(folder_path, output_path=None):
                 mean_embedding = embedding.mean(dim=0)
                 # Store the mean vector
                 mean_embeddings.append(mean_embedding)
-                file_names.append(filename)
+                file_names.append(filename[:-3])
 
                 # Free memory
                 del embedding
