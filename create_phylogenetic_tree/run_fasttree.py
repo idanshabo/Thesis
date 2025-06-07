@@ -7,6 +7,9 @@ def run_fasttree(fasta_file_path, output_path=None):
     if not output_path:
         base_path = os.path.splitext(fasta_file_path)[0].replace('.fasta', '')
         output_path = base_path + '.tree'
+    if os.path.exists(output_path):
+        print(f"phylogenetic tree already exists in path {output_path}")
+        return(output_path)
     cmd = [
         'FastTree',
         '-lg',                  # LG model
