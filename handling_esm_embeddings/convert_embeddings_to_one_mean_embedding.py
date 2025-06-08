@@ -20,8 +20,6 @@ def convert_embeddings_to_one_mean_embedding(folder_path, output_path=None):
                 embedding = torch.load(filepath)  # assumes shape: (length, 960)
                 
                 # If it's a dict, get the actual tensor (adjust this if needed)
-                print(type(embedding))
-                print(embedding.keys() if isinstance(embedding, dict) else "Not a dict")
                 if isinstance(embedding, dict):
                     embedding = embedding["representations"][33]  # example: layer 33
                 
