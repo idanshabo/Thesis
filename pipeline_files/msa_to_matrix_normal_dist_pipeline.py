@@ -8,6 +8,7 @@ from estimate_matrix_normal.estimate_matrix_normal import matrix_normal_mle_fixe
 from align_embeddings_with_covariance import align_embeddings_with_covariance
 from check_matching_names import check_matching_names
 import os
+import torch
 
 
 def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
@@ -25,5 +26,7 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
     if not matching_names:
         return(False)
     embeddings_matrix, protein_list = align_embeddings_with_covariance(cov_mat, mean_embeddings_dict_path)
+    print(embeddings_matrix.shape)
+    print(cov_mat.shape)
     Mean_mat, V_mat = matrix_normal_mle_fixed_u(X=[embeddings_matrix], U=cov_mat)
     return Mean_mat, V_mat, cov_mat
