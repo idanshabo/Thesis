@@ -10,6 +10,8 @@ def convert_embeddings_to_one_mean_embedding(folder_path, output_path=None):
     mean_embeddings = []
     file_names = []
 
+    os.makedirs(output_path, exist_ok=True)
+    
     # === Process each .pt file one at a time ===
     for filename in os.listdir(folder_path):
         if filename.endswith('.pt'):
