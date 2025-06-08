@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import Torch
+
 
 def align_embeddings_with_covariance(cov_matrix: pd.DataFrame, data_dict_path: str):
     """
