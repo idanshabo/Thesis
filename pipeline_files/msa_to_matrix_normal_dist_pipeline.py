@@ -21,7 +21,7 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
         output_path = base_path + '/embeddings_output'
     create_esm_embeddings_from_fasta(fasta_file_path, output_path)
     mean_embeddings_dict_path = convert_embeddings_to_one_mean_embedding(output_path)
-    matching_names = check_matching_names(cov_mat, mean_embeddings_dict_path)
+    matching_names = check_matching_names(cov_matrix=cov_mat, mean_embeddings_dict_path)
     if not matching_names:
         return(False)
     embeddings_matrix, protein_list = align_embeddings_with_covariance(cov_mat, mean_embeddings_dict_path)
