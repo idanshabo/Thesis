@@ -4,13 +4,13 @@ import os
 
 def convert_embeddings_to_one_mean_embedding(folder_path, output_path=None):
     if not output_path:
-        output_path = folder_path + '/mean_embeddings_output'
-        output_path = os.path.join(output_path, 'mean_protein_embeddings.pt')
+        output_folder_path = folder_path + '/mean_embeddings_output'
+        output_path = os.path.join(output_folder_path, 'mean_protein_embeddings.pt')
     # === Storage for mean embeddings ===
     mean_embeddings = []
     file_names = []
 
-    os.makedirs(output_path, exist_ok=True)
+    os.makedirs(output_folder_path, exist_ok=True)
     
     # === Process each .pt file one at a time ===
     for filename in os.listdir(folder_path):
