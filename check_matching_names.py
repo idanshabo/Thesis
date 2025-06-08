@@ -1,3 +1,5 @@
+import torch
+
 def check_matching_names(cov_matrix_df, data_dict_path):
     # Check if the column names of the covariance matrix match the file names in the embeddings
     data_dict = torch.load(data_dict_path, map_location='cpu')
