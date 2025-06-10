@@ -260,6 +260,7 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
         # Check convergence
         V_diff = np.linalg.norm(V_plus - V_star_old)
         if V_diff < epsilon:
+            print(f"converged after {step} steps")
             break
 
         step += 1
