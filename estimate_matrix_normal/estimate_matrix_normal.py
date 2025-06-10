@@ -245,9 +245,8 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
         # Update V (simplified from eq. 3.5 since U is fixed)
         sum_term = np.zeros((p, p))
         if r == 1:
-            print(X_centered.T.shape)
-            print(np.linalg.inv(U).shape)
-            print(X_centered.shape)
+            if X_centered.ndim > 2 and X_centered.shape[0] == 1:
+                X_centered = X_centered[0]
             sum_term = X_centered.T @ np.linalg.inv(U) @ X_centered
         else:
             for k in range(r):
