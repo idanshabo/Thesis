@@ -2,7 +2,7 @@
 from Bio import Phylo
 import matplotlib.pyplot as plt
 
-def visualize_phylogenetic_tree(file_path: str, output_image_path: str = "tree_visualization.png"):
+def visualize_phylogenetic_tree(file_path: str, output_path: str = None):
     """
     Reads a phylogenetic tree from a Newick file, visualizes it using biopython and matplotlib,
     and saves the image. The visualization is customized to improve label readability.
@@ -11,17 +11,19 @@ def visualize_phylogenetic_tree(file_path: str, output_image_path: str = "tree_v
         file_path (str): The path to the input Newick file.
         output_image_path (str): The desired path for the output image file (e.g., 'my_tree.png').
     """
+    if not output_path:
+        base_path = os.path.splitext(file_path)[0].replace('.tree', '')
+        output_path = base_path + 'phylogenetic_tree_visualization.png'
+    if os.path.exists(output_path):
+        print(f"phylogenetic tree visualization already exists in path {output_path}")
+        return(output_path)
     try:
-        # Load the tree from the Newick file using biopython's read function.
-        # The 'newick' format is specified.
         tree = Phylo.read(file_path, "newick")
 
         # Create a matplotlib figure and axes with an increased size for better label spacing.
-        # The figsize is now 15x15 inches, which provides much more room.
         fig, ax = plt.subplots(figsize=(15, 15))
 
-        # We'll use a custom layout for the tree. By default, labels are horizontal.
-        # Here we add a function to rotate the labels for better readability if they are overlapping.
+        # A function to rotate the labels for better readability if they are overlapping.
         def get_label(clade):
             # We check if the clade has a name before trying to return it.
             if clade.name:
@@ -40,14 +42,8 @@ def visualize_phylogenetic_tree(file_path: str, output_image_path: str = "tree_v
                    label_fontsize=8,
                    branch_label_fontsize=6)
 
-        # You can add a title to the plot if you like.
         ax.set_title("Phylogenetic Tree", fontsize=16)
-
-        # We need to adjust the plot to make sure the labels fit.
         plt.tight_layout()
-
-        # Save the plot to the specified output file.
-        # The 'bbox_inches="tight"' argument ensures no part of the plot is cut off.
         plt.savefig(output_image_path, bbox_inches="tight")
 
         print(f"Tree visualization saved successfully to '{output_image_path}'.")
