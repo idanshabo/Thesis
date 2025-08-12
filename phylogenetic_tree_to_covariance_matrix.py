@@ -31,7 +31,7 @@ def tree_to_covariance_matrix(tree_path):
                 cov_matrix[i, j] = root.get_distance(sp1)
             else:
                 mrca = tree.get_common_ancestor(sp1, sp2)
-                shared_distance = root.get_distance(mrca)  # ✅ CORRECT
+                shared_distance = root.get_distance(mrca)
                 cov_matrix[i, j] = shared_distance
 
     # Convert to DataFrame with cleaned species names
