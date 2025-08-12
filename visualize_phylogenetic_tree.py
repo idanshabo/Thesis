@@ -1,4 +1,4 @@
-# Import the necessary libraries. We'll use biopython for tree parsing and matplotlib for plotting.
+# Import the necessary libraries.
 from Bio import Phylo
 import matplotlib.pyplot as plt
 
