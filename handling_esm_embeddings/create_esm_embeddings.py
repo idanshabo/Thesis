@@ -27,7 +27,7 @@ def sanitize_filename(name):
 
 def save_embeddings(embeddings, output_file):
     torch.save(embeddings, output_file)
-    print(f"Saved embeddings to {filename}\n")
+    print(f"Saved embeddings to {output_file}\n")
 
 def create_esm_embeddings_from_fasta(fasta_file, output_path):
     model = ESMC.from_pretrained("esmc_300m")
