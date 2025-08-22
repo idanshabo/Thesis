@@ -4,7 +4,9 @@ import pandas as pd
 import os
 import re
 
-def tree_to_covariance_matrix(tree_path):
+def tree_to_covariance_matrix(tree_path, output_path = None):
+    if not output_path:
+        output_path = os.
     # Load and root the tree
     tree = Tree(tree_path, format=1)
     tree.set_outgroup(tree.get_midpoint_outgroup())  # Or choose a known outgroup
@@ -36,6 +38,7 @@ def tree_to_covariance_matrix(tree_path):
 
     # Convert to DataFrame with cleaned species names
     cov_df = pd.DataFrame(cov_matrix, index=cleaned_species, columns=cleaned_species)
+    cov_df.to_csv('/content/drive/My Drive/filename.csv', index=False)
 
     print("Calculated covariance matrix successfully")
     return cov_df
