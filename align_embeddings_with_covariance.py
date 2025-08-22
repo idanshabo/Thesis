@@ -3,12 +3,12 @@ import pandas as pd
 import torch
 
 
-def align_embeddings_with_covariance(cov_matrix: pd.DataFrame, data_dict_path: str):
+def align_embeddings_with_covariance(cov_matrix_path: str, data_dict_path: str):
     """
     Aligns the order of embeddings and file names to match the order of the covariance matrix.
     
     Parameters:
-    - cov_matrix: pd.DataFrame, covariance matrix with protein names as index and columns.
+    - cov_matrix_path: path to a pd.DataFrame, covariance matrix with protein names as index and columns.
     - data_dict: dict, contains:
         - 'embeddings': np.ndarray, shape (n_proteins, embedding_dim)
         - 'file_names': list of str, length n_proteins
@@ -18,6 +18,7 @@ def align_embeddings_with_covariance(cov_matrix: pd.DataFrame, data_dict_path: s
     - aligned_file_names: list of str, file names reordered to match the covariance matrix
     """
     data_dict = torch.load(data_dict_path, map_location='cpu')
+    cov_matrix = pd.read_csv(cov_matrix_path, index_col=0)
     cov_names = list(cov_matrix.index)
     file_names = data_dict['file_names']
     embeddings = data_dict['embeddings']
