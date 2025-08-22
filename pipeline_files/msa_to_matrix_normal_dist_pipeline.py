@@ -17,18 +17,18 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
         read_stockholm_file_and_print_content(MSA_file_path)
     fasta_file_path = convert_stockholm_to_fasta(MSA_file_path)
     phylogenetic_tree_path = run_fasttree(fasta_file_path)
-    cov_mat = tree_to_covariance_matrix(phylogenetic_tree_path)
-    cov_mat = assure_cov_mat_positive_definite(cov_mat)
+    cov_mat_path = tree_to_covariance_matrix(phylogenetic_tree_path)
+    cov_mat_path = assure_cov_mat_positive_definite(cov_mat_path)
     if not output_path:
         base_path = os.path.splitext(fasta_file_path)[0].replace('.fasta', '')
         output_path = base_path + '/embeddings_output'
     create_esm_embeddings_from_fasta(fasta_file_path, output_path)
     mean_embeddings_dict_path = convert_embeddings_to_one_mean_embedding(output_path)
-    matching_names = check_matching_names(cov_mat, mean_embeddings_dict_path)
+    matching_names = check_matching_names(cov_mat_path, mean_embeddings_dict_path)
     if not matching_names:
         return(False)
-    embeddings_matrix, protein_list = align_embeddings_with_covariance(cov_mat, mean_embeddings_dict_path)
+    embeddings_matrix, protein_list = align_embeddings_with_covariance(cov_mat_path, mean_embeddings_dict_path)
     print(embeddings_matrix.shape)
-    print(cov_mat.shape)
-    Mean_mat, V_mat = matrix_normal_mle_fixed_u(X=[embeddings_matrix], U=cov_mat)
+    print(cov_mat_path.shape)
+    Mean_mat, V_mat, cov_mat = matrix_normal_mle_fixed_u(X=[embeddings_matrix], U=cov_mat_path)
     return Mean_mat, V_mat, cov_mat
