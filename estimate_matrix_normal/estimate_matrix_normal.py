@@ -171,7 +171,7 @@ def matrix_normal_mle(X: List[np.ndarray],
     return M, U_plus, V_plus
 
 def matrix_normal_mle_fixed_u(X: List[np.ndarray],
-                            U: np.ndarray,
+                            U_path: str,
                             epsilon: float = 1e-24,
                             V0: Optional[np.ndarray] = None,
                             max_iter: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
@@ -182,7 +182,7 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
     -----------
     X : List[np.ndarray]
         List of r independent n×p matrices from the matrix normal distribution
-    U : np.ndarray
+    U : str - path to a np.ndarray
         Fixed row covariance matrix (n×n)
     epsilon : float
         Convergence criterion for V (default: 1e-24)
@@ -198,6 +198,7 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
     V : np.ndarray
         Estimated column covariance matrix (p×p)
     """
+    U = pd.read_csv(U_path, index_col=0)
     # Convert list of matrices to 3D array for easier manipulation
     X_array = np.array(X)
     if X_array.ndim  == 2:
@@ -268,4 +269,4 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
             print(f"Warning: Maximum iterations ({max_iter}) reached without convergence")
             break
 
-    return M, V_plus
+    return M, V_plus, U
