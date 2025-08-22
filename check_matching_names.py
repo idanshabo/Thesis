@@ -1,9 +1,11 @@
 import torch
+import pandas as pd
+
 
 def check_matching_names(cov_matrix_path, data_dict_path):
     # Check if the column names of the covariance matrix match the file names in the embeddings
     data_dict = torch.load(data_dict_path, map_location='cpu')
-    cov_matrix = pd.read_csv(cov_matrix_path, index_col=0)
+    cov_matrix = pd.read_csv(cov_matrix_path)
     cov_names = list(cov_matrix.index)
     file_names = data_dict['file_names']
 
