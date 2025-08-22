@@ -20,8 +20,7 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
     cov_mat_path = tree_to_covariance_matrix(phylogenetic_tree_path)
     cov_mat_path = assure_cov_mat_positive_definite(cov_mat_path)
     if not output_path:
-        base_path = os.path.splitext(fasta_file_path)[0].replace('.fasta', '')
-        output_path = base_path + '/embeddings_output'
+        output_path = os.path.join(os.path.dirname(fasta_file_path), 'embeddings_output')
     create_esm_embeddings_from_fasta(fasta_file_path, output_path)
     mean_embeddings_dict_path = convert_embeddings_to_one_mean_embedding(output_path)
     matching_names = check_matching_names(cov_mat_path, mean_embeddings_dict_path)
