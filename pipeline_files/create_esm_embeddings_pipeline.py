@@ -1,5 +1,7 @@
 from handling_esm_embeddings.create_esm_embeddings import create_esm_embeddings_from_fasta
 from handling_esm_embeddings.convert_embeddings_to_one_mean_embedding import convert_embeddings_to_one_mean_embedding
+from read_stockholm_file_and_print_content import read_stockholm_file_and_print_content
+from convert_stockholm_to_fasta import convert_stockholm_to_fasta
 import os
 
 
