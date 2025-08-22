@@ -9,6 +9,6 @@ def run_pipeline(MSA_file_path, print_file_content=False):
         read_stockholm_file_and_print_content(MSA_file_path)
     fasta_file_path = convert_stockholm_to_fasta(MSA_file_path)
     phylogenetic_tree_path = run_fasttree(fasta_file_path)
-    cov_mat = tree_to_covariance_matrix(phylogenetic_tree_path)
-    cov_mat = assure_cov_mat_positive_definite(cov_mat)
-    return cov_mat
+    cov_mat_path = tree_to_covariance_matrix(phylogenetic_tree_path)
+    cov_mat_path = assure_cov_mat_positive_definite(cov_mat_path)
+    return cov_mat_path
