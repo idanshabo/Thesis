@@ -270,12 +270,14 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
         if step >= max_iter:
             print(f"Warning: Maximum iterations ({max_iter}) reached without convergence")
             break
+    
+    pfam_family = os.path.dirname(U_path).split('/')[-1]
 
     M_df = pd.DataFrame(M)
     V_plus_df = pd.DataFrame(V_plus)
     output_dir = os.path.dirname(U_path)
-    mean_output_path = output_dir + '_Mean'
-    embeddings_cov_output_path = output_dir + '_embeddings_cov_mat'                         
+    mean_output_path = output_dir + '/' + pfam_family + '_Mean'
+    embeddings_cov_output_path = output_dir + '/' + pfam_family + '_embeddings_cov_mat'                         
     M_df.to_csv(mean_output_path)
     V_plus_df.to_csv(embeddings_cov_output_path)     
     return mean_output_path, embeddings_cov_output_path, U_path
