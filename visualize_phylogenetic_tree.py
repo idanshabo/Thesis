@@ -1,52 +1,68 @@
-# Import the necessary libraries.
 from Bio import Phylo
 import matplotlib.pyplot as plt
+import os
 
-def visualize_phylogenetic_tree(file_path: str, output_path: str = None):
+def visualize_newick_tree(file_path: str, save_image: bool = True, output_image_path: str = None):
     """
     Reads a phylogenetic tree from a Newick file, visualizes it using biopython and matplotlib,
-    and saves the image. The visualization is customized to improve label readability.
+    and saves the image. The visualization is customized to improve label readability, with dynamic
+    resizing of the figure based on the number of entries in the tree.
 
     Args:
         file_path (str): The path to the input Newick file.
         output_image_path (str): The desired path for the output image file (e.g., 'my_tree.png').
     """
-    if not output_path:
-        base_path = os.path.splitext(file_path)[0].replace('.tree', '')
-        output_path = base_path + 'phylogenetic_tree_visualization.png'
-    if os.path.exists(output_path):
-        print(f"phylogenetic tree visualization already exists in path {output_path}")
-        return(output_path)
     try:
+        # Load the tree from the Newick file using biopython's read function.
         tree = Phylo.read(file_path, "newick")
 
-        # Create a matplotlib figure and axes with an increased size for better label spacing.
-        fig, ax = plt.subplots(figsize=(15, 15))
+        # Count the number of clades (entries) in the tree
+        def count_clades(clade):
+            # Count the clades in the tree
+            count = 1  # Count the current clade
+            for subclade in clade:
+                count += count_clades(subclade)
+            return count
 
-        # A function to rotate the labels for better readability if they are overlapping.
+        num_clades = count_clades(tree.root)
+
+        # Dynamically adjust figsize based on the number of clades
+        figsize = (15, num_clades / 5)  # You can adjust the scaling factor (here it's 5)
+
+        # Create a matplotlib figure and axes with a dynamically adjusted size
+        fig, ax = plt.subplots(figsize=figsize)
+
+        # Function to get the label and rotate it for better readability
         def get_label(clade):
-            # We check if the clade has a name before trying to return it.
-            if clade.name:
-                # We return a Text object with a rotation of 45 degrees.
-                return plt.text(clade.branch_length, 0, clade.name,
-                                        rotation=45, va="bottom", ha="left", fontsize=8)
-            return '' # Return an empty string if there's no name
+            # Only display labels for terminal clades (leaves)
+            if clade.is_terminal() and clade.name:
+                # Set a more suitable position for the label (adjust for vertical and horizontal position)
+                label_position = (clade.branch_length, 0)
+                
+                # If the branch is long, rotate the label for better readability
+                rotation_angle = 0
+                if len(clade.name) > 10:  # Adjust rotation condition based on label length
+                    rotation_angle = 45  # Rotate if the name is long
+                
+                return plt.text(label_position[0], label_position[1], clade.name,
+                                rotation=rotation_angle, va="bottom", ha="left", fontsize=8)
+            return ''
 
-        # Draw the tree on the axes. We've added more customization options here:
-        # - The `label_func` is a callable that returns the label for each clade.
-        # - The `label_fontsize` is set to a smaller value to help prevent overlap.
-        # - We use `branch_labels` to show branch lengths, which can be useful.
+        # Draw the tree on the axes with custom labels and branch lengths
         Phylo.draw(tree, axes=ax, do_show=False,
-                   label_func=lambda c: get_label(c),
-                   branch_labels=lambda c: f"{c.branch_length:.2f}" if c.branch_length is not None else "",
-                   label_fontsize=8,
-                   branch_label_fontsize=6)
+                   branch_labels=lambda c: f"{c.branch_length:.2f}" if c.branch_length is not None else "")
 
+        # Add a title to the plot
         ax.set_title("Phylogenetic Tree", fontsize=16)
-        plt.tight_layout()
-        plt.savefig(output_image_path, bbox_inches="tight")
 
-        print(f"Tree visualization saved successfully to '{output_image_path}'.")
+        # Adjust the plot layout
+        plt.tight_layout()
+        if not output_image_path:
+            output_image_path = os.path.dirname(file_path) + "/tree_visualization.png"
+        if save_image:
+            # Save the plot to the specified output file
+            plt.savefig(output_image_path, bbox_inches="tight")
+            print(f"Tree visualization saved successfully to '{output_image_path}'.")
 
     except FileNotFoundError:
         print(f"Error: The file '{file_path}' was not found.")
