@@ -1,4 +1,3 @@
-from assure_cov_mat_positive_definite import assure_cov_mat_positive_definite
 from read_stockholm_file_and_print_content import read_stockholm_file_and_print_content
 from convert_stockholm_to_fasta import convert_stockholm_to_fasta
 from create_phylogenetic_tree.run_fasttree import run_fasttree
@@ -10,5 +9,4 @@ def run_pipeline(MSA_file_path, print_file_content=False):
     fasta_file_path = convert_stockholm_to_fasta(MSA_file_path)
     phylogenetic_tree_path = run_fasttree(fasta_file_path)
     cov_mat_path = tree_to_covariance_matrix(phylogenetic_tree_path)
-    cov_mat_path = assure_cov_mat_positive_definite(cov_mat_path)
     return cov_mat_path
