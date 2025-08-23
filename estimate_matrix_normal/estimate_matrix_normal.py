@@ -269,5 +269,9 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
         if step >= max_iter:
             print(f"Warning: Maximum iterations ({max_iter}) reached without convergence")
             break
-
-    return M, V_plus, U
+    output_dir = os.path.dirname(U_path)
+    mean_output_path = output_dir + 'Mean'
+    embeddings_cov_output_path = output_dir + 'embeddings_cov_mat'                         
+    M.to_csv(mean_output_path)
+    V_plus.to_csv(embeddings_cov_output_path)     
+    return mean_output_path, embeddings_cov_output_path, U_path
