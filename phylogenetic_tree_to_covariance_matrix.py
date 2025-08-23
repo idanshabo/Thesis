@@ -51,7 +51,6 @@ def assure_cov_mat_positive_definite(matrix, alpha=1e-6):
     """
     Adds a small value (alpha) to the diagonal of the matrix to make it positive definite.
     """
-    matrix = pd.read_csv(path_to_matrix)    
     eigenvalues = np.linalg.eigvals(matrix)
     smallest_eigenvalue = np.min(np.real(eigenvalues)) 
 
