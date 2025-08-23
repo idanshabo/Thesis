@@ -182,7 +182,7 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
     -----------
     X : List[np.ndarray]
         List of r independent n×p matrices from the matrix normal distribution
-    U : str - path to a np.ndarray
+    U_path : str - path to a np.ndarray
         Fixed row covariance matrix (n×n)
     epsilon : float
         Convergence criterion for V (default: 1e-24)
