@@ -27,7 +27,7 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
     if not matching_names:
         return(False)
     embeddings_matrix, protein_list = align_embeddings_with_covariance(cov_mat_path, mean_embeddings_dict_path)
-    print(embeddings_matrix.shape)
-    print(cov_mat_path.shape)
+    #print(embeddings_matrix.shape)
+    #print(cov_mat_path.shape)
     Mean_mat, V_mat, cov_mat = matrix_normal_mle_fixed_u(X=[embeddings_matrix], U=cov_mat_path)
     return Mean_mat, V_mat, cov_mat
