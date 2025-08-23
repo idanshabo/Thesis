@@ -276,8 +276,8 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
     M_df = pd.DataFrame(M)
     V_plus_df = pd.DataFrame(V_plus)
     output_dir = os.path.dirname(U_path)
-    mean_output_path = output_dir + '/' + pfam_family + '_Mean'
-    embeddings_cov_output_path = output_dir + '/' + pfam_family + '_embeddings_cov_mat'                         
+    mean_output_path = output_dir + '/' + pfam_family + '_Mean.csv'
+    embeddings_cov_output_path = output_dir + '/' + pfam_family + '_embeddings_cov_mat.csv'                         
     M_df.to_csv(mean_output_path)
     V_plus_df.to_csv(embeddings_cov_output_path)     
     return mean_output_path, embeddings_cov_output_path, U_path
