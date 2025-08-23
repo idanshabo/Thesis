@@ -41,6 +41,6 @@ def tree_to_covariance_matrix(tree_path, output_path = None):
 
     # Convert to DataFrame with cleaned species names
     cov_df = pd.DataFrame(cov_matrix, index=cleaned_species, columns=cleaned_species)
-    cov_df.to_csv(output_path, index=False)
+    cov_df.to_csv(output_path, index=True)
     print("Calculated covariance matrix successfully")
     return output_path
