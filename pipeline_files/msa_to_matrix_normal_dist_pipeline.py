@@ -7,7 +7,7 @@ from handling_esm_embeddings.convert_embeddings_to_one_mean_embedding import con
 from estimate_matrix_normal.estimate_matrix_normal import matrix_normal_mle_fixed_u, matrix_normal_mle
 from align_embeddings_with_covariance import align_embeddings_with_covariance
 from check_matching_names import check_matching_names
-from assure_cov_mat_positive_definite import assure_cov_mat_positive_definite
+#from assure_cov_mat_positive_definite import assure_cov_mat_positive_definite
 import os
 import torch
 
@@ -18,7 +18,7 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
     fasta_file_path = convert_stockholm_to_fasta(MSA_file_path)
     phylogenetic_tree_path = run_fasttree(fasta_file_path)
     cov_mat_path = tree_to_covariance_matrix(phylogenetic_tree_path)
-    cov_mat_path = assure_cov_mat_positive_definite(cov_mat_path)
+    #cov_mat_path = assure_cov_mat_positive_definite(cov_mat_path)
     if not output_path:
         output_path = os.path.join(os.path.dirname(fasta_file_path), 'embeddings_output')
     create_esm_embeddings_from_fasta(fasta_file_path, output_path)
