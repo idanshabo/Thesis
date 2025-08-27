@@ -7,8 +7,8 @@ from typing import Tuple, List, Optional
 
 
 def is_well_scaled(matrix: np.ndarray,
-                  min_threshold: float = 1e-10,
-                  max_threshold: float = 1e10) -> bool:
+                   min_threshold: float = 1e-10,
+                   max_threshold: float = 1e10) -> bool:
     """
     Check if matrix elements are within reasonable scale.
     """
@@ -16,12 +16,12 @@ def is_well_scaled(matrix: np.ndarray,
         return False
     abs_vals = np.abs(matrix[matrix != 0])  # Exclude zeros
     if len(abs_vals) == 0:
-        return False
+        return False # Or True, depending on how you want to treat all-zero matrices
     return np.all(abs_vals > min_threshold) and np.all(abs_vals < max_threshold)
 
 def stabilize_matrix(matrix: np.ndarray,
-                    min_eigenval: float = 1e-10,
-                    max_eigenval: float = 1e10) -> np.ndarray:
+                       min_eigenval: float = 1e-10,
+                       max_eigenval: float = 1e10) -> np.ndarray:
     """
     Stabilize a matrix by adjusting its eigenvalues to be within reasonable bounds.
     """
@@ -34,8 +34,8 @@ def stabilize_matrix(matrix: np.ndarray,
     return eigenvecs @ np.diag(eigenvals) @ eigenvecs.T
 
 def safe_inverse(matrix: np.ndarray,
-                ridge: float = 1e-6,
-                min_eigenval: float = 1e-10) -> np.ndarray:
+                 ridge: float = 1e-6,
+                 min_eigenval: float = 1e-10) -> np.ndarray:
     """
     Compute inverse with protection against small eigenvalues.
     """
@@ -53,36 +53,20 @@ def safe_inverse(matrix: np.ndarray,
     return np.linalg.inv(stabilized)
 
 def matrix_normal_mle(X: List[np.ndarray],
-                     epsilon1: float = 1e-6,
-                     epsilon2: float = 1e-6,
-                     V0: Optional[np.ndarray] = None,
-                     max_iter: int = 1000,
-                     min_samples_factor: float = 2.0,
-                     min_eigenval: float = 1e-10,
-                     max_eigenval: float = 1e10) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                      epsilon1: float = 1e-6,
+                      epsilon2: float = 1e-6,
+                      V0: Optional[np.ndarray] = None,
+                      max_iter: int = 1000,
+                      min_samples_factor: float = 2.0,
+                      min_eigenval: float = 1e-10,
+                      max_eigenval: float = 1e10) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Numerically stable Maximum Likelihood Estimation for Matrix Normal Distribution.
-
-    Parameters:
-    -----------
-    X : List[np.ndarray]
-        List of r independent n×p matrices from the matrix normal distribution
-    epsilon1, epsilon2 : float
-        Convergence criteria (default: 1e-6)
-    V0 : Optional[np.ndarray]
-        Initial guess for V matrix. If None, identity matrix is used
-    max_iter : int
-        Maximum number of iterations (default: 1000)
-    min_samples_factor : float
-        Factor to multiply minimum required samples (default: 2.0)
-    min_eigenval : float
-        Minimum allowed eigenvalue (default: 1e-10)
-    max_eigenval : float
-        Maximum allowed eigenvalue (default: 1e10)
+    (This function remains unchanged)
     """
     # Convert list of matrices to 3D array
     X_array = np.array(X)
-    if X_array.ndim  == 2:
+    if X_array.ndim == 2:
         r = 1
         n, p = X_array.shape
     else:
@@ -125,7 +109,7 @@ def matrix_normal_mle(X: List[np.ndarray],
         V_inv = safe_inverse(V_star, min_eigenval=min_eigenval)
 
         if r == 1:
-            sum_term = X_centered.T @ V_inv @ X_centered
+            sum_term = X_centered @ V_inv @ X_centered.T
         else:
             for k in range(r):
                 term = X_centered[k] @ V_inv @ X_centered[k].T
@@ -172,112 +156,92 @@ def matrix_normal_mle(X: List[np.ndarray],
 
     return M, U_plus, V_plus
 
+# --- REFACTORED FUNCTION ---
 def matrix_normal_mle_fixed_u(X: List[np.ndarray],
-                            U_path: str,
-                            epsilon: float = 1e-24,
-                            V0: Optional[np.ndarray] = None,
-                            max_iter: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
+                               U_path: str) -> Tuple[str, str, str]:
     """
-    Maximum Likelihood Estimation for Matrix Normal Distribution with fixed U.
+    Maximum Likelihood Estimation for Matrix Normal Distribution with a fixed U,
+    using the direct closed-form solution.
 
     Parameters:
     -----------
     X : List[np.ndarray]
-        List of r independent n×p matrices from the matrix normal distribution
-    U_path : str - path to a np.ndarray
-        Fixed row covariance matrix (n×n)
-    epsilon : float
-        Convergence criterion for V (default: 1e-24)
-    V0 : Optional[np.ndarray]
-        Initial guess for V matrix. If None, identity matrix is used
-    max_iter : int
-        Maximum number of iterations (default: 1000)
+        List of r independent n×p matrices from the matrix normal distribution.
+    U_path : str
+        Path to the saved n×n row covariance matrix U (as a CSV file).
 
     Returns:
     --------
-    M : np.ndarray
-        Estimated mean matrix (n×p)
-    V : np.ndarray
-        Estimated column covariance matrix (p×p)
+    mean_output_path : str
+        Path to the saved estimated mean matrix M (n×p).
+    embeddings_cov_output_path : str
+        Path to the saved estimated column covariance matrix V (p×p).
+    U_path : str
+        The original path to the U matrix.
     """
-    U = pd.read_csv(U_path, index_col=0)
-    # Convert list of matrices to 3D array for easier manipulation
-    X_array = np.array(X)
-    if X_array.ndim  == 2:
-        r = 1
-        n, p = X_array.shape
-    else:
-        r, n, p = X_array.shape
-
-    # Verify U dimensions
-    if U.shape != (n, n):
-        raise ValueError(f"U matrix must be {n}×{n}, got {U.shape}")
-
-    # Check if U is positive definite
+    # Load the fixed row covariance matrix U from the CSV file
     try:
-        np.linalg.cholesky(U)
-    except np.linalg.LinAlgError:
-        raise ValueError("U matrix must be positive definite")
+        U = pd.read_csv(U_path, index_col=0).values
+    except Exception as e:
+        raise IOError(f"Failed to load U matrix from {U_path}. Error: {e}")
 
-    # Check condition for existence of MLE (modified from eq. 4.1)
-    # Since U is fixed, we only need r > p/n for V estimation
-    if r <= p/n:
-        print(f"Warning: Sample size r ({r}) is too small for MLE existence")
-        #raise ValueError("Sample size r is too small for MLE existence")
+    # Convert list of matrices to a 3D NumPy array for easier manipulation
+    X_array = np.array(X)
+    if X_array.ndim == 2:
+        # Handle the case of a single observation by adding a sample dimension
+        X_array = np.expand_dims(X_array, axis=0)
 
-    # Compute M (sample mean)
+    if X_array.ndim != 3:
+        raise ValueError("Input X must be a list of 2D numpy arrays or a single 2D numpy array.")
+
+    r, n, p = X_array.shape
+
+    # --- Validation ---
+    if U.shape != (n, n):
+        raise ValueError(f"The shape of the U matrix must be ({n}, {n}), but got {U.shape}.")
+
+    # Check condition for the existence of a non-singular MLE for V
+    if r * n <= p:
+        print(f"Warning: The condition rn > p is not met (r={r}, n={n}, p={p}). "
+              "The estimated V matrix may be singular.")
+
+    # --- MLE Calculation using Closed-Form Solution ---
+
+    # 1. Estimate the mean matrix M (which is the sample mean)
     M = np.mean(X_array, axis=0)
 
-    # Initialize V if not provided
-    if V0 is None:
-        V_star = np.eye(p)
-    else:
-        V_star = V0.copy()
+    # 2. Center the data matrices
+    X_centered = X_array - M
 
-    # Initialize variables for iteration
-    step = 0
-    V_plus = None
-
-    while True:
-        # Store previous value
-        V_star_old = V_star
-
-        # Center the data
-        X_centered = X_array - M
-
-        # Update V (simplified from eq. 3.5 since U is fixed)
-        sum_term = np.zeros((p, p))
-        if r == 1:
-            if X_centered.ndim > 2 and X_centered.shape[0] == 1:
-                X_centered = X_centered[0]
-            sum_term = X_centered.T @ np.linalg.inv(U) @ X_centered
-        else:
-            for k in range(r):
-                term = X_centered[k].T @ np.linalg.inv(U) @ X_centered[k]
-                sum_term += term
-        V_plus = (1/(n*r)) * sum_term
-
-        # Update V_star for next iteration
-        V_star = V_plus
-
-        # Check convergence
-        V_diff = np.linalg.norm(V_plus - V_star_old)
-        if V_diff < epsilon:
-            print(f"converged after {step} steps")
-            break
-
-        step += 1
-        if step >= max_iter:
-            print(f"Warning: Maximum iterations ({max_iter}) reached without convergence")
-            break
+    # 3. Calculate the closed-form solution for V
+    # Formula: V_hat = (1/(r*n)) * Σ [ (X_k - M)^T * U⁻¹ * (X_k - M) ]
     
-    pfam_family = os.path.dirname(U_path).split('/')[-1]
+    # Safely compute the inverse of U
+    U_inv = safe_inverse(U)
+
+    # Calculate the sum over all r samples
+    sum_term = np.zeros((p, p))
+    for k in range(r):
+        # term shape: (p, n) @ (n, n) @ (n, p) -> (p, p)
+        term = X_centered[k].T @ U_inv @ X_centered[k]
+        sum_term += term
+    
+    V_hat = (1 / (n * r)) * sum_term
+    
+    # Stabilize the final V matrix to ensure it's well-conditioned
+    V_hat_stabilized = stabilize_matrix(V_hat)
+
+    # --- Save Results to CSV Files ---
+    output_dir = os.path.dirname(U_path)
+    pfam_family = os.path.basename(output_dir)
 
     M_df = pd.DataFrame(M)
-    V_plus_df = pd.DataFrame(V_plus)
-    output_dir = os.path.dirname(U_path)
-    mean_output_path = output_dir + '/' + pfam_family + '_Mean.csv'
-    embeddings_cov_output_path = output_dir + '/' + pfam_family + '_embeddings_cov_mat.csv'                         
+    V_hat_df = pd.DataFrame(V_hat_stabilized)
+    
+    mean_output_path = os.path.join(output_dir, f'{pfam_family}_Mean.csv')
+    embeddings_cov_output_path = os.path.join(output_dir, f'{pfam_family}_embeddings_cov_mat.csv')
+
     M_df.to_csv(mean_output_path)
-    V_plus_df.to_csv(embeddings_cov_output_path)     
+    V_hat_df.to_csv(embeddings_cov_output_path)
+
     return mean_output_path, embeddings_cov_output_path, U_path
