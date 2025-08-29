@@ -173,82 +173,117 @@ def matrix_normal_mle(X: List[np.ndarray],
     return M, U_plus, V_plus
 
 def matrix_normal_mle_fixed_u(X: List[np.ndarray],
-                               U_path: str) -> Tuple[str, str, str]:
+                            U_path: np.ndarray,
+                            epsilon: float = 1e-24,
+                            V0: Optional[np.ndarray] = None,
+                            max_iter: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Maximum Likelihood Estimation for Matrix Normal Distribution with a fixed U,
-    using the direct closed-form solution.
+    Maximum Likelihood Estimation for Matrix Normal Distribution with fixed U.
 
     Parameters:
     -----------
     X : List[np.ndarray]
-        List of r independent n×p matrices from the matrix normal distribution.
+        List of r independent n×p matrices from the matrix normal distribution
     U_path : str
         Path to the saved n×n row covariance matrix U (as a CSV file).
+    epsilon : float
+        Convergence criterion for V (default: 1e-24)
+    V0 : Optional[np.ndarray]
+        Initial guess for V matrix. If None, identity matrix is used
+    max_iter : int
+        Maximum number of iterations (default: 1000)
 
     Returns:
     --------
-    mean_output_path : str
-        Path to the saved estimated mean matrix M (n×p).
-    embeddings_cov_output_path : str
-        Path to the saved estimated column covariance matrix V (p×p).
-    U_path : str
-        The original path to the U matrix.
+    M : np.ndarray
+        Estimated mean matrix (n×p)
+    V : np.ndarray
+        Estimated column covariance matrix (p×p)
     """
-    try:
-        U = pd.read_csv(U_path, index_col=0).values
-    except Exception as e:
-        raise IOError(f"Failed to load U matrix from {U_path}. Error: {e}")
-
+    U = pd.read_csv(U_path, index_col=0).values
+    # Convert list of matrices to 3D array for easier manipulation
     X_array = np.array(X)
-    if X_array.ndim == 2:
-        X_array = np.expand_dims(X_array, axis=0)
+    if X_array.ndim  == 2:
+        r = 1
+        n, p = X_array.shape
+    else:
+        r, n, p = X_array.shape
 
-    r, n, p = X_array.shape
-
+    # Verify U dimensions
     if U.shape != (n, n):
-        raise ValueError(f"The shape of the U matrix must be ({n}, {n}), but got {U.shape}.")
+        raise ValueError(f"U matrix must be {n}×{n}, got {U.shape}")
 
-    if r * n <= p:
-        print(f"Warning: The condition rn > p is not met (r={r}, n={n}, p={p}). "
-              "The estimated V matrix may be singular.")
+    # Check if U is positive definite
+    try:
+        np.linalg.cholesky(U)
+    except np.linalg.LinAlgError:
+        raise ValueError("U matrix must be positive definite")
 
-    # --- MLE Calculation using Closed-Form Solution ---
+    # Check condition for existence of MLE (modified from eq. 4.1)
+    # Since U is fixed, we only need r > p/n for V estimation
+    if r <= p/n:
+        print(f"Warning: Sample size r ({r}) is too small for MLE existence")
+        #raise ValueError("Sample size r is too small for MLE existence")
 
-    # Step 1: Calculate the sample mean of the data.
-    M = np.mean(X_array, axis=0)
+    # Initialize V if not provided
+    if V0 is None:
+        V_star = np.eye(p)
+    else:
+        V_star = V0.copy()
 
-    # Step 2: Center the data. This is the crucial step to ensure the data has mean 0,
-    # as required by the formula. X_centered now corresponds to the 'X' in the formula's context.
-    X_centered = X_array - M
+    # Initialize variables for iteration
+    step = 0
+    V_plus = None
 
-    # Step 3: Apply the generalized formula for V_hat.
-    # V_hat = (1/(r*n)) * Σ [ X_centered_k.T * U⁻¹ * X_centered_k ]
-    
-    U_inv = safe_inverse(U)
+    if r == 1:
+        if X_array.ndim > 2 and X_array.shape[0] == 1:
+            X_array = X_array[0]
+        sum_term = X_array.T @ np.linalg.inv(U) @ X_array
 
-    # Sum the quadratic form over all r samples
-    sum_term = np.zeros((p, p))
-    for k in range(r):
-        # This is X_centered' * U_inv * X_centered for the k-th sample
-        term = X_centered[k].T @ U_inv @ X_centered[k]
-        sum_term += term
-    
-    # Normalize by (n*r) to get the final estimate
-    V_hat = (1 / (n * r)) * sum_term
-    
-    V_hat_stabilized = stabilize_matrix(V_hat)
+        V_plus = (1/n) * sum_term
+        M = np.zeros_like(X_array)
+    else:
+        # Compute M (sample mean)
+        M = np.mean(X_array, axis=0)
+        while True:
+            # Store previous value
+            V_star_old = V_star
+
+            # Center the data
+            X_centered = X_array - M
+
+            # Update V (simplified from eq. 3.5 since U is fixed)
+            sum_term = np.zeros((p, p))
+            for k in range(r):
+                term = X_centered[k].T @ np.linalg.inv(U) @ X_centered[k]
+                sum_term += term
+            V_plus = (1/(n*r)) * sum_term
+
+            # Update V_star for next iteration
+            V_star = V_plus
+
+            # Check convergence
+            V_diff = np.linalg.norm(V_plus - V_star_old)
+            if V_diff < epsilon:
+                print(f"converged after {step} steps")
+                break
+
+            step += 1
+            if step >= max_iter:
+                print(f"Warning: Maximum iterations ({max_iter}) reached without convergence")
+                break
 
     # --- Save Results to CSV Files ---
     output_dir = os.path.dirname(U_path)
     pfam_family = os.path.basename(output_dir)
 
     M_df = pd.DataFrame(M)
-    V_hat_df = pd.DataFrame(V_hat_stabilized)
+    V_hat_df = pd.DataFrame(V_star)
     
     mean_output_path = os.path.join(output_dir, f'{pfam_family}_Mean.csv')
     embeddings_cov_output_path = os.path.join(output_dir, f'{pfam_family}_embeddings_cov_mat.csv')
 
     M_df.to_csv(mean_output_path)
     V_hat_df.to_csv(embeddings_cov_output_path)
-
+    
     return mean_output_path, embeddings_cov_output_path, U_path
