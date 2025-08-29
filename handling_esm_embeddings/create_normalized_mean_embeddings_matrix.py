@@ -6,8 +6,6 @@ import os
 def normalize_matrix(matrix):
     mean = np.mean(matrix)
     std_dev = np.std(matrix)
-
-    # Step 2: Normalize the matrix
     normalized_matrix = (matrix - mean) / std_dev
     return normalized_matrix
 
@@ -15,9 +13,15 @@ def normalize_matrix(matrix):
 def create_normalized_mean_embeddings_matrix(fasta_file_path, output_path=None):
     if not output_path:
         output_path = os.path.join(os.path.dirname(fasta_file_path), 'embeddings_output')
+        normalized_mean_embeddings_output_path = output_path + '/mean_embeddings_output/normalized_mean_protein_embeddings.pt'
     create_esm_embeddings_from_fasta(fasta_file_path, output_path)
     mean_embeddings_tensor = convert_embeddings_to_one_mean_embedding(output_path)
+    file_names = mean_embeddings_tensor['file_names']
     mean_embeddings = mean_embeddings_tensor['embeddings']
     normalized_mean_embeddings = normalize_matrix(mean_embeddings)
     
-    return normalized_mean_embeddings
+    torch.save({
+        'embeddings': normalized_mean_embeddings,
+        'file_names': file_names
+    }, normalized_mean_embeddings_output_path)
+    return normalized_mean_embeddings_output_path
