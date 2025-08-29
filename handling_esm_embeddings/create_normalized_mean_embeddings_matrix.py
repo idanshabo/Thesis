@@ -2,6 +2,7 @@ from handling_esm_embeddings.create_esm_embeddings import create_esm_embeddings_
 from handling_esm_embeddings.convert_embeddings_to_one_mean_embedding import convert_embeddings_to_one_mean_embedding
 import os
 import numpy as np
+import torch
 
 
 def normalize_matrix(matrix):
