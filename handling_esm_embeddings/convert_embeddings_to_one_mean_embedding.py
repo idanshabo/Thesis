@@ -49,4 +49,4 @@ def convert_embeddings_to_one_mean_embedding(folder_path, output_path=None):
     print(f"✅ Processed {len(mean_embeddings)} proteins.")
     print(f"💾 Final tensor shape: {all_mean_embeddings.shape}")
     print(f"📁 Saved to: {output_path}")
-    return(all_mean_embeddings)
+    return(all_mean_embeddings, file_names)
