@@ -16,9 +16,7 @@ def create_normalized_mean_embeddings_matrix(fasta_file_path, output_path=None):
         normalized_mean_embeddings_output_path = output_path + '/mean_embeddings_output/normalized_mean_protein_embeddings.pt'
     
     create_esm_embeddings_from_fasta(fasta_file_path, output_path)
-    mean_embeddings_tensor = convert_embeddings_to_one_mean_embedding(output_path)
-    file_names = mean_embeddings_tensor['file_names']
-    mean_embeddings = mean_embeddings_tensor['embeddings']
+    mean_embeddings, file_names = convert_embeddings_to_one_mean_embedding(output_path)
     normalized_mean_embeddings = normalize_matrix(mean_embeddings)
     
     torch.save({
