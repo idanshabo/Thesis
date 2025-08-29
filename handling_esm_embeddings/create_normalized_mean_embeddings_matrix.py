@@ -22,7 +22,7 @@ def create_normalized_mean_embeddings_matrix(fasta_file_path, output_path=None):
     mean_embeddings_tensor = torch.load(mean_embeddings_path, map_location='cpu')
     file_names = mean_embeddings_tensor['file_names']
     mean_embeddings = mean_embeddings_tensor['embeddings']
-    normalized_mean_embeddings = normalize_matrix(mean_embeddings)
+    normalized_mean_embeddings = normalize_matrix([mean_embeddings])
     
     torch.save({
         'embeddings': normalized_mean_embeddings,
