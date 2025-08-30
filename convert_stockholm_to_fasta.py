@@ -3,6 +3,7 @@ import os
 
 def convert_stockholm_to_fasta(stockholm_file_path, fasta_file_path=None):
     """Convert Stockholm to FASTA format"""
+    print("starting to convert Stockholm to fasta/n"
     # Extract PFAM family name from the filename
     pfam_family = os.path.basename(stockholm_file_path).split('.')[0]  # Assuming PFAM name is before the first '.'
     
