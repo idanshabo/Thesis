@@ -15,7 +15,7 @@ def normalize_matrix(matrix):
 def create_normalized_mean_embeddings_matrix(fasta_file_path, output_path=None):
     if not output_path:
         output_path = os.path.join(os.path.dirname(fasta_file_path), 'embeddings_output')
-        normalized_mean_embeddings_output_path = output_path + '/mean_embeddings_output/normalized_mean_protein_embeddings.pt'
+    normalized_mean_embeddings_output_path = output_path + '/mean_embeddings_output/normalized_mean_protein_embeddings.pt'
     
     create_esm_embeddings_from_fasta(fasta_file_path, output_path)
     mean_embeddings_path = convert_embeddings_to_one_mean_embedding(output_path)
