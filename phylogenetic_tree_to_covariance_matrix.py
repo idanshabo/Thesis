@@ -5,6 +5,7 @@ import os
 import re
 
 def tree_to_covariance_matrix(tree_path, output_path = None):
+    print("starting calculating covariance matrix/n"
     if not output_path:
         base_path = os.path.splitext(tree_path)[0].replace('.tree', '')
         cov_mat_file_path = base_path + '_cov_mat.csv'
