@@ -240,7 +240,7 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
             X_array = X_array[0]
         sum_term = X_array.T @ np.linalg.inv(U) @ X_array
 
-        V_plus = (1/n) * sum_term
+        V_star = (1/n) * sum_term
         M = np.zeros_like(X_array)
     else:
         # Compute M (sample mean)
