@@ -23,7 +23,7 @@ def convert_stockholm_to_fasta(stockholm_file_path, fasta_file_path=None):
     if os.path.exists(fasta_file_path):
         print(f"fasta format already exists in path {fasta_file_path}")
         return(fasta_file_path)
-    print("starting to convert Stockholm to fasta/n"
+    print("starting to convert Stockholm to fasta/n")
     alignment = AlignIO.read(stockholm_file_path, "stockholm")
     AlignIO.write(alignment, fasta_file_path, "fasta")
     print(f"Converted file in stockholm format to fasta format in path {fasta_file_path}")
