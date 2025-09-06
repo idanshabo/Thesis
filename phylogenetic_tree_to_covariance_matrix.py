@@ -10,8 +10,12 @@ def tree_to_covariance_matrix(tree_path, output_path = None):
         cov_mat_file_path = base_path + '_cov_mat.csv'
     output_path = cov_mat_file_path
 
-    print("starting calculating covariance matrix\n")
+    if os.path.exists(output_path):
+        print(f"covariance matrix already exists in path {output_path}")
+        return(output_path)
 
+    
+    print("starting to calculate covariance matrix\n")
     # Load and root the tree
     tree = Tree(tree_path, format=1)
     tree.set_outgroup(tree.get_midpoint_outgroup())  # Or choose a known outgroup
