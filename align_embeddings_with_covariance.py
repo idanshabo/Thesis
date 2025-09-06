@@ -38,4 +38,12 @@ def align_embeddings_with_covariance(cov_matrix_path: str, data_dict_path: str):
     # Reorder embeddings and file_names
     aligned_embeddings = np.array([embeddings[name_to_index[name]] for name in cov_names])
     aligned_file_names = cov_names  # Now aligned
+
+    torch.save({
+        'embeddings': aligned_embeddings,
+        'file_names': aligned_file_names
+    }, aligned_embeddings_output_path)
+    
+    # === Done ===
+    print(f"📁 Saved aligned mean embedding matrix to: {aligned_embeddings_output_path}")
     return aligned_embeddings, aligned_file_names
