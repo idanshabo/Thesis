@@ -22,10 +22,12 @@ def align_embeddings_with_covariance(cov_matrix_path: str, data_dict_path: str):
     cov_names = list(cov_matrix.index)
     file_names = data_dict['file_names']
     embeddings = data_dict['embeddings']
+    set_file_names = set(file_names)
+    set_cov_names = set(cov_names)
 
-    if set(cov_names) != set(file_names):
-        missing_in_cov = set(file_names) - set(cov_names)
-        missing_in_files = set(cov_names) - set(file_names)
+    if set_cov_names != set_file_names:
+        missing_in_cov = set_file_names - set_cov_names
+        missing_in_files = set_cov_names - set_file_names
         raise ValueError(f"Mismatch between covariance matrix and file names:\n"
                          f"Missing in covariance matrix: {missing_in_cov}\n"
                          f"Missing in file names: {missing_in_files}")
@@ -36,5 +38,4 @@ def align_embeddings_with_covariance(cov_matrix_path: str, data_dict_path: str):
     # Reorder embeddings and file_names
     aligned_embeddings = np.array([embeddings[name_to_index[name]] for name in cov_names])
     aligned_file_names = cov_names  # Now aligned
-
     return aligned_embeddings, aligned_file_names
