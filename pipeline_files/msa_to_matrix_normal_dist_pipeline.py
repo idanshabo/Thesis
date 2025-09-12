@@ -21,5 +21,5 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
 
     normalized_mean_embeddings_path = create_normalized_mean_embeddings_matrix(fasta_file_path, output_path)
     embeddings_matrix = align_embeddings_with_covariance(cov_mat_path, normalized_mean_embeddings_path)
-    Mean_mat, V_mat, cov_mat = matrix_normal_mle_fixed_u(X=[embeddings_matrix], U_path=cov_mat_path)
-    return Mean_mat, V_mat, cov_mat
+    Mean_mat_path, V_mat_path, cov_mat_path = matrix_normal_mle_fixed_u(X=[embeddings_matrix], U_path=cov_mat_path)
+    return Mean_mat_path, V_mat_path, cov_mat_path
