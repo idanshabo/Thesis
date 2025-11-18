@@ -1,4 +1,5 @@
 from ete3 import Tree
+import os
 def find_candidate_splits(newick_path, k=1, min_support=0.9, min_prop=0.1):
     """
     Finds the top k candidate splits from a phylogenetic tree.
