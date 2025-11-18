@@ -177,7 +177,8 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
                             epsilon: float = 1e-24,
                             V0: Optional[np.ndarray] = None,
                             max_iter: int = 1000,
-                            normalized_together=False) -> Tuple[np.ndarray, np.ndarray]:
+                            normalized_together=False,
+                            name_comments=None) -> Tuple[np.ndarray, np.ndarray]:
     """
     Maximum Likelihood Estimation for Matrix Normal Distribution with fixed U.
 
@@ -278,8 +279,9 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
     output_dir = os.path.dirname(U_path)
     pfam_family = os.path.basename(output_dir)
 
-    if normalized_together:
-        pfam_family += '_normalized_together'
+    if name_comments:
+        pfam_family += name_comments
+      
 
     M_df = pd.DataFrame(M)
     V_hat_df = pd.DataFrame(V_star)
