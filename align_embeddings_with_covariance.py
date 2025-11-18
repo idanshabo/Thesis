@@ -4,7 +4,7 @@ import torch
 import os
 
 
-def align_embeddings_with_covariance(cov_matrix_path: str, data_dict_path: str):
+def align_embeddings_with_covariance(cov_matrix_path: str, data_dict_path: str, aligned_embeddings_output_path=None: str):
     """
     Aligns the order of embeddings and file names to match the order of the covariance matrix.
     
@@ -40,7 +40,8 @@ def align_embeddings_with_covariance(cov_matrix_path: str, data_dict_path: str):
     aligned_embeddings = np.array([embeddings[name_to_index[name]] for name in cov_names])
     aligned_embeddings = torch.from_numpy(aligned_embeddings)
     aligned_file_names = cov_names  # Now aligned
-    aligned_embeddings_output_path = os.path.join(os.path.dirname(data_dict_path), 'aligned_mean_protein_embeddings.pt')
+    if not aligned_embeddings_output_path:
+        aligned_embeddings_output_path = os.path.join(os.path.dirname(data_dict_path), 'aligned_mean_protein_embeddings.pt')
     torch.save({
         'embeddings': aligned_embeddings,
         'file_names': aligned_file_names
