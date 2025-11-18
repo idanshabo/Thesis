@@ -4,7 +4,7 @@ import torch
 import os
 
 
-def align_embeddings_with_covariance(cov_matrix_path: str, data_dict_path: str, aligned_embeddings_output_path=None: str):
+def align_embeddings_with_covariance(cov_matrix_path: str, data_dict_path: str, aligned_embeddings_output_path: str = None):
     """
     Aligns the order of embeddings and file names to match the order of the covariance matrix.
     
