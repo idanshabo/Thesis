@@ -1,7 +1,9 @@
 from ete3 import Tree
 import os
 import torch
-
+from estimate_matrix_normal.estimate_matrix_normal import matrix_normal_mle_fixed_u
+from align_embeddings_with_covariance import align_embeddings_with_covariance
+from utils import load_matrix_tensor, get_log_det, calculate_matrix_normal_ll, calculate_bic_matrix_normal
 
 def find_candidate_splits(newick_path, k=1, min_support=0.9, min_prop=0.1):
     """
@@ -292,3 +294,249 @@ def split_protein_embeddings(original_pt_path, split_info, output_suffix_a="_gro
     print(f"Saved Embeddings B to: {path_b} {emb_b.shape}")
 
     return path_a, path_b
+
+
+def global_standardize_embeddings(full_embeddings, embeddings_list, epsilon=1e-8):
+    """
+    Calculates the global mean (mu) and standard deviation (std) from the full dataset
+    and applies standardization (Z-score) to all matrices in the list.
+    
+    Args:
+        full_embeddings (Tensor): The complete (N_total, p) embedding tensor.
+        embeddings_list (list of Tensor): List of sub-tensors to be standardized.
+        epsilon (float): Small value to prevent division by zero for dimensions with zero variance.
+        
+    Returns:
+        list of Tensor: The globally standardized tensors.
+    """
+    print("   -> Global Standardization applied to isolate covariance structure.")
+    
+    # 1. Calculate Global Statistics
+    global_mu = torch.mean(full_embeddings, dim=0)
+    # Use torch.std with unbiased=False (population standard deviation for a complete sample)
+    global_std = torch.std(full_embeddings, dim=0, unbiased=False)
+    
+    # Ensure no division by zero
+    global_std[global_std == 0] = epsilon
+    
+    # 2. Apply Standardization to all tensors
+    standardized_list = []
+    for emb in embeddings_list:
+        # Standardization: (X - mu) / sigma
+        standardized_list.append((emb - global_mu) / global_std)
+        
+    return standardized_list
+
+
+def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, variance_explained=0.9):
+    """
+    Fits PCA on the full standardized tensor and transforms all tensors to the new, smaller dimension.
+    """
+    print(f"   -> Applying PCA to capture {variance_explained * 100:.0f}% of variance.")
+    
+    # Convert to NumPy for scikit-learn PCA
+    full_np = full_tensor_standardized.cpu().numpy()
+    
+    # 1. Fit PCA on the full data
+    pca = PCA(n_components=variance_explained)
+    pca.fit(full_np)
+    
+    p_new = pca.n_components_
+    print(f"   -> Reduced dimensionality from {full_tensor_standardized.shape[1]} to {p_new}.")
+
+    # 2. Transform the full data
+    transformed_full_np = pca.transform(full_np)
+    transformed_tensors = [torch.from_numpy(transformed_full_np).float()]
+
+    # 3. Transform the sub-tensors
+    for sub_tensor in sub_tensors_standardized:
+        sub_np = sub_tensor.cpu().numpy()
+        transformed_sub_np = pca.transform(sub_np)
+        transformed_tensors.append(torch.from_numpy(transformed_sub_np).float())
+        
+    return transformed_tensors, p_new
+
+
+def evaluate_top_splits(tree_path, cov_path, pt_path, k=5, target_pca_variance=None, standardize=True):
+    """
+    Evaluates splits using Matrix Normal MLE estimation.
+    
+    Args:
+        tree_path (str): Path to tree file.
+        cov_path (str): Path to covariance matrix.
+        pt_path (str): Path to embeddings.
+        k (int): Number of top splits to evaluate.
+        target_pca_variance (float/None): Variance to retain for PCA.
+        standardize (bool): If True, applies Global Z-score standardization. If False, uses raw aligned embeddings.
+    """
+    
+    # --- Initial Load and Dimensions ---
+    data_full = torch.load(pt_path, map_location='cpu')
+    emb_raw_full = data_full['embeddings'].float()
+    N_total, p_initial = emb_raw_full.shape
+    p_current = p_initial
+    print(f"Initial Data Dimensions: N={N_total}, p={p_initial}")
+
+    dir_out = os.path.dirname(pt_path)
+
+    # --- PHASE 1: Data Alignment and Standardization ---
+    print("\n" + "="*40)
+    print("PHASE 1: Alignment & Standardization")
+    print("="*40)
+    
+    # A. Align Global Embeddings
+    aligned_full_path = os.path.join(dir_out, "aligned_global_embeddings.pt")
+    print("Aligning Global Embeddings (ensuring name/order match U)...")
+    emb_tensor_full = align_embeddings_with_covariance(cov_path, pt_path, aligned_full_path).float()
+    
+    # B. Global Standardization (Z-score) or Bypass
+    if standardize:
+        print("Applying Global Standardization (Z-score)...")
+        # The statistics (mu/sigma) are calculated on the full set and applied back.
+        emb_standardized_full_raw, = global_standardize_embeddings(emb_tensor_full, [emb_tensor_full])
+    else:
+        print("Skipping Standardization (Using raw aligned embeddings)...")
+        emb_standardized_full_raw = emb_tensor_full
+    
+    # --- PHASE 2: Dimensionality Reduction (PCA) ---
+    if target_pca_variance is not None:
+        print("\n" + "="*40)
+        print("PHASE 2: Dimensionality Reduction (PCA)")
+        print("="*40)
+        
+        # C. PCA Transformation (Fit and Transform full data)
+        # Note: If standardize=False, PCA is applied to raw data (PCA will handle its own centering usually)
+        [emb_transformed_full_raw], p_current = pca_transform_data(
+            emb_standardized_full_raw, 
+            [], # No sub-tensors yet
+            target_pca_variance
+        )
+        print(f"New Dimension (p'): {p_current}")
+    else:
+        emb_transformed_full_raw = emb_standardized_full_raw
+
+    # --- PHASE 3: Global Baseline (H0) Estimation ---
+    print("\n" + "="*40)
+    print("PHASE 3: Global Baseline (H0)")
+    print("="*40)
+
+    # D. Run MLE for Global Model (H0)
+    print(f"Running Matrix Normal MLE for Global Model (V' size: {p_current}x{p_current})...")
+    _, v_path_full, _ = matrix_normal_mle_fixed_u(
+        X=[emb_transformed_full_raw], 
+        U_path=cov_path, 
+        name_comments='_global_H0_PCA' if target_pca_variance else '_global_H0'
+    )
+    
+    # E. Calculate LL and BIC for H0
+    u_tensor_full = load_matrix_tensor(cov_path)
+    v_tensor_full = load_matrix_tensor(v_path_full) 
+    
+    ll_global = calculate_matrix_normal_ll(N_total, p_current, u_tensor_full, v_tensor_full)
+    bic_global = calculate_bic_matrix_normal(ll_global, N_total, p_current, num_models=1)
+    
+    print(f"Global LL: {ll_global:.2f}")
+    print(f"Global BIC: {bic_global:.2f}")
+
+    # --- PHASE 4: Split Testing (H1) ---
+    print("\n" + "="*40)
+    print("PHASE 4: Split Testing (H1)")
+    print("="*40)
+    
+    # Pre-fit PCA object for re-use in the loop
+    if target_pca_variance is not None:
+        pca = PCA(n_components=target_pca_variance)
+        # Fit PCA on the data used in Phase 1 (Standardized or Raw)
+        pca.fit(emb_standardized_full_raw.cpu().numpy())
+    
+    candidates = find_candidate_splits(tree_path, k=k, min_support=0.8, min_prop=0.1)
+    results = []
+
+    for i, split in enumerate(candidates):
+        rank = i + 1
+        node_name = split.get('node_name', f'Node_{i}')
+        print(f"\n--- Candidate {rank}: {node_name} (Len: {split['length']:.4f}) ---")
+
+        suffix_a = f"_rank{rank}_subA"
+        suffix_b = f"_rank{rank}_subB"
+
+        # A. Generate Split Files
+        cov_a, cov_b = split_covariance_matrix(cov_path, split, suffix_a, suffix_b)
+        pt_a, pt_b = split_protein_embeddings(pt_path, split, suffix_a, suffix_b)
+
+        if cov_a is None:
+            print("Skipping due to alignment error.")
+            continue
+
+        # B. Align Subsets
+        aligned_path_a = os.path.join(dir_out, f"aligned{suffix_a}.pt")
+        aligned_path_b = os.path.join(dir_out, f"aligned{suffix_b}.pt")
+        
+        emb_tensor_a = align_embeddings_with_covariance(cov_a, pt_a, aligned_path_a).float()
+        emb_tensor_b = align_embeddings_with_covariance(cov_b, pt_b, aligned_path_b).float()
+
+        # C. Global Standardization of Subsets (Or Bypass)
+        if standardize:
+            # Apply global mu/sigma from Phase 1 to these subsets
+            emb_standardized_a_raw, emb_standardized_b_raw = global_standardize_embeddings(
+                emb_tensor_full,  # Global reference
+                [emb_tensor_a, emb_tensor_b]
+            )
+        else:
+            # Bypass: just use the aligned tensors
+            emb_standardized_a_raw = emb_tensor_a
+            emb_standardized_b_raw = emb_tensor_b
+
+        # D. PCA Transformation (Apply the same global fit)
+        if target_pca_variance is not None:
+            emb_transformed_a_raw = torch.from_numpy(pca.transform(emb_standardized_a_raw.cpu().numpy())).float()
+            emb_transformed_b_raw = torch.from_numpy(pca.transform(emb_standardized_b_raw.cpu().numpy())).float()
+        else:
+            emb_transformed_a_raw = emb_standardized_a_raw
+            emb_transformed_b_raw = emb_standardized_b_raw
+
+        # E. Run MLE for Subsets (H1)
+        print("   Running MLE for Sub-tree A...")
+        _, v_path_a, _ = matrix_normal_mle_fixed_u([emb_transformed_a_raw], cov_a, suffix_a)
+        
+        print("   Running MLE for Sub-tree B...")
+        _, v_path_b, _ = matrix_normal_mle_fixed_u([emb_transformed_b_raw], cov_b, suffix_b)
+
+        # F. Calculate LL and BIC for H1
+        u_tensor_a = load_matrix_tensor(cov_a)
+        u_tensor_b = load_matrix_tensor(cov_b)
+        v_tensor_a = load_matrix_tensor(v_path_a)
+        v_tensor_b = load_matrix_tensor(v_path_b)
+        
+        n_a = u_tensor_a.shape[0]
+        n_b = u_tensor_b.shape[0]
+
+        ll_a = calculate_matrix_normal_ll(n_a, p_current, u_tensor_a, v_tensor_a)
+        ll_b = calculate_matrix_normal_ll(n_b, p_current, u_tensor_b, v_tensor_b)
+        
+        ll_split = ll_a + ll_b
+        bic_split = calculate_bic_matrix_normal(ll_split, N_total, p_current, num_models=2)
+        
+        delta_bic = bic_global - bic_split
+        is_sig = bic_split < bic_global
+
+        results.append({
+            'rank': rank,
+            'node': node_name,
+            'bic': bic_split,
+            'delta': delta_bic,
+            'sig': is_sig
+        })
+        
+        print(f"   Split LL:  {ll_split:.2f}")
+        print(f"   Split BIC: {bic_split:.2f}")
+        print(f"   Delta BIC: {delta_bic:.2f} [{'SIGNIFICANT' if is_sig else 'NO'}]")
+
+    # --- 4. Summary ---
+    print("\n" + "="*40)
+    print("FINAL SUMMARY")
+    print("="*40)
+    print(f"{'Rank':<5} | {'Node':<15} | {'Delta BIC':<15} | {'Result':<10}")
+    print("-" * 40)
+    for res in results:
+        print(f"{res['rank']:<5} | {res['node']:<15} | {res['delta']:<15.2f} | {'YES' if res['sig'] else 'NO'}")
