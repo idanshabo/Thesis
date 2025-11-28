@@ -9,7 +9,7 @@ from check_matching_names import check_matching_names
 import os
 import torch
 
-from evaluate_split_options import 
+from evaluate_split_options import evaluate_top_splits
 
 
 def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
@@ -22,6 +22,5 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
         output_path = os.path.join(os.path.dirname(fasta_file_path), 'embeddings_output')
 
     normalized_mean_embeddings_path = create_normalized_mean_embeddings_matrix(fasta_file_path, output_path)
-    embeddings_matrix = align_embeddings_with_covariance(cov_mat_path, normalized_mean_embeddings_path)
-    Mean_mat_path, V_mat_path, cov_mat_path = matrix_normal_mle_fixed_u(X=[embeddings_matrix], U_path=cov_mat_path)
+    evaluate_top_splits(phylogenetic_tree_path, cov_mat_path, normalized_mean_embeddings_path, output_path=os.path.dirname(fasta_file_path), k=5, target_pca_variance=0.99, standardize=True)
     return Mean_mat_path, V_mat_path, cov_mat_path
