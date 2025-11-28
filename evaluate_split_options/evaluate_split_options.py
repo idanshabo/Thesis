@@ -157,7 +157,7 @@ def split_covariance_matrix(original_cov_path, split_info, output_suffix_a="_gro
     Splits a covariance matrix and shifts values to the new root.
     Saves output to output_dir if provided, otherwise uses original directory.
     """
-    print(f"\nProcessing Covariance Matrix: {original_cov_path}")
+    #print(f"\nProcessing Covariance Matrix: {original_cov_path}")
 
     # 1. Load
     df = pd.read_csv(original_cov_path, index_col=0)
