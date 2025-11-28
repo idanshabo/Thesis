@@ -1,105 +1,122 @@
-from Bio import SeqIO, Phylo
+from Bio import SeqIO
 import numpy as np
 import matplotlib.pyplot as plt
-import os
-import torch
-from sklearn.decomposition import PCA
+import scipy.cluster.hierarchy as sch
+import scipy.spatial.distance as ssd
 
-
-def visualize_split_msa(fasta_path, split_info, output_plot="msa_split_view.png"):
+def visualize_split_msa_sorted(fasta_path, split_info, output_plot):
     """
-    Reads a FASTA file, reorders sequences based on the split (Group A then Group B),
-    and visualizes the alignment with a horizontal dividing line.
+    Visualizes an MSA split with hierarchical clustering.
     """
     
     # 1. Load MSA
     try:
-        # We use list() to get all records into memory
         msa_records = list(SeqIO.parse(fasta_path, "fasta"))
     except FileNotFoundError:
         print(f"Error: FASTA file {fasta_path} not found.")
         return
 
-    # 2. Create dictionaries for fast access
-    # Map ID -> Sequence String
-    id_to_seq = {rec.id: str(rec.seq) for rec in msa_records}
+    # Map ID -> Sequence (Sanitized)
+    id_to_seq = {rec.id.replace('/', '_'): str(rec.seq) for rec in msa_records}
     
-    # 3. Separate records into Group A and Group B
-    group_a_ids = split_info['group_a']
-    group_b_ids = split_info['group_b']
-    
-    # Filter: Ensure we only graph sequences that exist in both the Tree and the FASTA
-    # (Sometimes tree leaf names differ slightly or one file is a subset of the other)
-    sorted_seqs = []
-    labels = []
-    
-    # Add Group A
-    count_a = 0
-    for gid in group_a_ids:
-        if gid in id_to_seq:
-            sorted_seqs.append(list(id_to_seq[gid]))
-            labels.append(f"{gid} (A)")
-            count_a += 1
-            
-    # Add Group B
-    for gid in group_b_ids:
-        if gid in id_to_seq:
-            sorted_seqs.append(list(id_to_seq[gid]))
-            labels.append(f"{gid} (B)")
+    # 2. Define Groups
+    group_a_ids = [x for x in split_info['group_a'] if x in id_to_seq]
+    group_b_ids = [x for x in split_info['group_b'] if x in id_to_seq]
 
-    if not sorted_seqs:
-        print("Error: No matching IDs found between Tree and FASTA.")
+    print(f"Loaded {len(id_to_seq)} sequences from FASTA.")
+    print(f"Matched {len(group_a_ids)} (A) and {len(group_b_ids)} (B).")
+
+    if not group_a_ids or not group_b_ids:
+        print("Error: One group is empty. Check ID matching.")
         return
 
-    # 4. Convert to Numeric Matrix for Matplotlib
-    # We need a fixed length. Assuming aligned FASTA, all lengths should be equal.
-    # If not, we truncate/pad to the length of the first sequence for visualization safety.
-    seq_len = len(sorted_seqs[0])
-    matrix = []
-    
-    # Simple color mapping for nucleotides/amino acids
-    # We hash the character to an integer for coloring
-    unique_chars = set(char for seq in sorted_seqs for char in seq)
-    char_to_int = {c: i for i, c in enumerate(sorted(unique_chars))}
-    
-    for seq in sorted_seqs:
-        # Ensure length consistency
-        trimmed_seq = seq[:seq_len] 
-        row = [char_to_int.get(c, 0) for c in trimmed_seq]
-        matrix.append(row)
-    
-    data = np.array(matrix)
+    # --- HELPER: Turn sequences into Integer Matrix ---
+    def ids_to_matrix(id_list):
+        seqs = [list(id_to_seq[i]) for i in id_list]
+        if not seqs: return np.array([]), {}, 0
+        min_len = min(len(s) for s in seqs)
+        matrix = []
+        
+        all_chars = set(char for s in seqs for char in s)
+        char_map = {c: i for i, c in enumerate(sorted(all_chars))}
+        
+        for s in seqs:
+            row = [char_map.get(c, 0) for c in s[:min_len]]
+            matrix.append(row)
+        return np.array(matrix), char_map, min_len
 
-    # 5. Plotting
-    fig, ax = plt.subplots(figsize=(12, max(4, len(sorted_seqs) * 0.3)))
-    
-    # Create a custom discrete colormap
-    # Using a "tab20" or similar large palette to ensure different bases/AAs get diff colors
-    cmap = plt.get_cmap('tab20b', len(unique_chars))
-    
-    im = ax.imshow(data, aspect='auto', cmap=cmap, interpolation='nearest')
-    
-    # 6. Draw the Split Line
-    split_y_position = count_a - 0.5
-    
-    ax.axhline(y=split_y_position, color='red', linewidth=3, linestyle='--', label="Phylogenetic Split")
+    # --- HELPER: Cluster and Sort Indices ---
+    def get_clustered_order(id_list):
+        if len(id_list) < 3: return id_list 
+        mat, _, _ = ids_to_matrix(id_list)
+        if mat.size == 0: return id_list
 
-    # 7. Formatting
-    ax.set_yticks(np.arange(len(labels)))
-    ax.set_yticklabels(labels, fontsize=8)
+        try:
+            # Ward's linkage on Hamming distance
+            dist_vec = ssd.pdist(mat, metric='hamming')
+            linkage_matrix = sch.linkage(dist_vec, method='ward')
+            dendro = sch.dendrogram(linkage_matrix, no_plot=True)
+            return [id_list[i] for i in dendro['leaves']]
+        except Exception as e:
+            print(f"Clustering warning: {e}")
+            return id_list
+
+    print("Sorting Group A...")
+    sorted_ids_a = get_clustered_order(group_a_ids)
+    print("Sorting Group B...")
+    sorted_ids_b = get_clustered_order(group_b_ids)
+
+    # 3. Combine for Plotting
+    final_ids = sorted_ids_a + sorted_ids_b
+    
+    # Create labels with (A)/(B) suffix
+    labels = [f"{i} (A)" for i in sorted_ids_a] + [f"{i} (B)" for i in sorted_ids_b]
+    
+    # Build final plot matrix
+    all_seqs_chars = set()
+    for i in final_ids:
+        all_seqs_chars.update(id_to_seq[i])
+    final_char_map = {c: i for i, c in enumerate(sorted(all_seqs_chars))}
+    
+    seq_len = len(id_to_seq[final_ids[0]])
+    plot_matrix = []
+    for i in final_ids:
+        s = id_to_seq[i][:seq_len]
+        row = [final_char_map.get(c, 0) for c in s]
+        plot_matrix.append(row)
+    plot_data = np.array(plot_matrix)
+
+    # 4. Plotting
+    # Height Calculation: 0.25 inches per sequence ensures space for every label
+    # Minimum height of 6 inches, max limit removed or set very high
+    num_seqs = len(final_ids)
+    fig_height = max(6, num_seqs * 0.25)
+    
+    fig, ax = plt.subplots(figsize=(15, fig_height))
+    
+    cmap = plt.get_cmap('tab20b', len(final_char_map))
+    im = ax.imshow(plot_data, aspect='auto', cmap=cmap, interpolation='nearest')
+    
+    # Draw Split Line
+    split_pos = len(sorted_ids_a) - 0.5
+    ax.axhline(y=split_pos, color='white', linewidth=4, linestyle='-') 
+    ax.axhline(y=split_pos, color='black', linewidth=2, linestyle='--', label='Phylogenetic Split')
+
+    # Force ALL y-ticks
+    ax.set_yticks(np.arange(num_seqs))
+    
+    # Set labels with a font size that scales slightly if there are many sequences
+    # (smaller font for massive lists, but not smaller than 6pt)
+    label_fontsize = 10 if num_seqs < 50 else 8
+    ax.set_yticklabels(labels, fontsize=label_fontsize)
+    
     ax.set_xlabel("Alignment Position")
-    ax.set_title(f"MSA Split Visualization\nSupport: {split_info['support']} | Branch Length: {split_info['length']:.4f}")
-    
-    # Optional: Add grid for readablity
-    ax.grid(False)
-    
-    # Move legend outside
-    plt.legend(loc='upper right', bbox_to_anchor=(1.0, 1.05))
+    ax.set_title(f"Re-ordered MSA View: {split_info.get('node_name', 'Split')}")
     
     plt.tight_layout()
     plt.savefig(output_plot, dpi=150)
-    print(f"Visualization saved to: {output_plot}")
-    # plt.show() # Uncomment if running locally with UI
+    print(f"Full-label visualization saved to: {output_plot}")
+    plt.close()
 
 
 def visualize_newick_tree(file_path: str, split_info=None, save_image: bool = True, output_image_path: str = None):
