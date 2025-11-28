@@ -146,8 +146,8 @@ def split_and_save_tree(original_newick_path, split_info, output_suffix_a="_grou
     tree_a.write(outfile=path_a, format=out_format)
     tree_b.write(outfile=path_b, format=out_format)
 
-    print(f"Saved Group A tree ({len(split_info['group_a'])} leaves) to: {path_a}")
-    print(f"Saved Group B tree ({len(split_info['group_b'])} leaves) to: {path_b}")
+    #print(f"Saved Group A tree ({len(split_info['group_a'])} leaves) to: {path_a}")
+    #print(f"Saved Group B tree ({len(split_info['group_b'])} leaves) to: {path_b}")
 
     return (path_a, path_b)
 
@@ -221,8 +221,8 @@ def split_covariance_matrix(original_cov_path, split_info, output_suffix_a="_gro
     cov_a.to_csv(path_a)
     cov_b.to_csv(path_b)
 
-    print(f"Saved Matrix A to: {path_a}")
-    print(f"Saved Matrix B to: {path_b}")
+    #print(f"Saved Matrix A to: {path_a}")
+    #print(f"Saved Matrix B to: {path_b}")
 
     return path_a, path_b
 
