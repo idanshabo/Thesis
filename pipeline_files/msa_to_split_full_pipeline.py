@@ -9,7 +9,12 @@ import torch
 from evaluate_split_options.evaluate_split_options import evaluate_top_splits
 
 
-def run_pipeline(MSA_file_path, print_file_content=False, output_path=None, number_of_nodes_to_evaluate=5):
+def run_pipeline(MSA_file_path, 
+                 print_file_content=False, 
+                 output_path=None, 
+                 number_of_nodes_to_evaluate=5,
+                 target_pca_variance=0.99,
+                 standardize=True):
     if print_file_content:
         read_stockholm_file_and_print_content(MSA_file_path)
     fasta_file_path = convert_stockholm_to_fasta(MSA_file_path)
@@ -24,8 +29,8 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None, numb
                                   normalized_mean_embeddings_path, 
                                   output_path=os.path.dirname(fasta_file_path), 
                                   k=number_of_nodes_to_evaluate, 
-                                  target_pca_variance=0.99, 
-                                  standardize=True)
+                                  target_pca_variance=target_pca_variance, 
+                                  standardize=standardize)
     significant_splits_output_path = os.path.join(os.path.dirname(fasta_file_path), 'significant_splits')
     files = os.listdir(significant_splits_output_path)
     if files:
