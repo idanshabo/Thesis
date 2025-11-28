@@ -6,6 +6,7 @@ from handling_esm_embeddings.create_normalized_mean_embeddings_matrix import cre
 from check_matching_names import check_matching_names
 import os
 import torch
+import json
 from evaluate_split_options.evaluate_split_options import evaluate_top_splits
 from significant_split_evaluation.visualisations import visualize_split_msa_sorted
 
