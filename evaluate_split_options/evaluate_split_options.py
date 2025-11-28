@@ -374,12 +374,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     data_full = torch.load(pt_path, map_location='cpu')
     emb_raw_full = data_full['embeddings'].float()
     
-    # [New] Attempt to get the full list of names to calculate Group B (complement) later
-    # Assuming the .pt file has a 'names', 'ids', or 'labels' key
-    all_names = data_full.get('names') or data_full.get('ids') or data_full.get('labels')
-    if all_names is None:
-        print("WARNING: Could not find 'names' list in .pt file. JSON outputs might be empty.")
-        all_names = []
+    # Getting full names list:
+    all_names = data_full.get('file_names')
     
     N_total, p_initial = emb_raw_full.shape
     p_current = p_initial
@@ -537,7 +533,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
 
         # --- G. [NEW] Save Significant Result for PDB Pipeline ---
         if is_sig:
-            print(f"   -> Saving split configuration to {output_path}...")
+            print(f"   -> Saving split configuration to {output_path} ...")
             
             # Identify Group A names (usually in 'taxa', 'leaves', or just the split list itself)
             # Adjust 'taxa' key based on what find_candidate_splits returns
