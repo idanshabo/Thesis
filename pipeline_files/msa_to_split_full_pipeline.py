@@ -26,7 +26,7 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None, numb
                                   k=number_of_nodes_to_evaluate, 
                                   target_pca_variance=0.99, 
                                   standardize=True)
-    
+    significant_splits_output_path = os.path.join(os.path.dirname(fasta_file_path), 'significant_splits')
     files = os.listdir(significant_splits_output_path)
     if files:
         for file_name in files:
