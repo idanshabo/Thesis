@@ -338,13 +338,7 @@ def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, varia
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_pca_variance=None, standardize=True):
     """
     Evaluates splits using Matrix Normal MLE estimation.
-    
-    Structure:
-    - splits_evaluations/
-        - rankX_NodeName/ (Non-significant splits stay here)
-        - significant_splits/
-            - rankY_NodeName/ (Significant splits moved here)
-                - split_rankY_NodeName.json
+    Fixes name mismatch (/) vs (_) for JSON saving.
     """
     
     # --- 0. Setup Output Directories ---
@@ -357,7 +351,9 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     # --- Initial Load and Dimensions ---
     data_full = torch.load(pt_path, map_location='cpu')
     emb_raw_full = data_full['embeddings'].float()
-    all_names = data_full.get('file_names')
+    
+    # Ensure we get the full list of names (Assuming these already use '_')
+    all_names = data_full.get('file_names') or data_full.get('names') or data_full.get('ids')
     
     N_total, p_initial = emb_raw_full.shape
     p_current = p_initial
@@ -430,6 +426,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     for i, split in enumerate(candidates):
         rank = i + 1
         node_name = split.get('node_name', f'Node_{i}')
+        
+        # Sanitize node name for folder creation
         safe_node_name = node_name.replace("/", "_").replace(" ", "")
         
         print(f"\n--- Candidate {rank}: {node_name} (Len: {split.get('length', 0):.4f}) ---")
@@ -443,6 +441,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
         suffix_b = f"_rank{rank}_subB"
 
         # A. Generate Split Files
+        # Note: split_covariance_matrix likely handles the '/' internally to find the nodes in the tree object,
+        # but outputs files. Ensure your split_covariance_matrix function handles output paths correctly.
         cov_a, cov_b = split_covariance_matrix(cov_path, split, suffix_a, suffix_b, output_dir=split_dir)
         pt_a, pt_b = split_protein_embeddings(pt_path, split, suffix_a, suffix_b, output_dir=split_dir)
 
@@ -505,30 +505,37 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
             # 1. Define new path
             new_split_dir = os.path.join(sig_splits_dir, split_folder_name)
             
-            # 2. Move the directory
-            # If the destination already exists (from a previous run), remove it first or shutil.move might fail/nest it
+            # 2. Move the directory (Clean up destination if it exists)
             if os.path.exists(new_split_dir):
                 shutil.rmtree(new_split_dir)
             shutil.move(split_dir, new_split_dir)
             
-            # 3. Update split_dir variable so the JSON is saved in the new location
+            # 3. Update split_dir variable
             split_dir = new_split_dir
             
-            # 4. Generate JSON
-            group_a_names = split.get('taxa') or split.get('leaves') or split.get('group_a')
+            # 4. Generate JSON (WITH FIX)
+            raw_group_a = split.get('taxa') or split.get('leaves') or split.get('group_a')
             
-            if group_a_names and len(all_names) > 0:
+            if raw_group_a and all_names and len(all_names) > 0:
+                # === FIX: Normalize tree names to match embedding names ===
+                # Convert '/' to '_' in the tree leaves
+                group_a_names = [name.replace("/", "_") for name in raw_group_a]
+                
+                # Create Set for fast subtraction
                 set_a = set(group_a_names)
+                
+                # Calculate B (All names - A)
+                # This works now because both set_a and all_names use '_'
                 group_b_names = [x for x in all_names if x not in set_a]
                 
                 split_data_out = {
                     "rank": rank,
-                    "node_name": node_name,
+                    "node_name": node_name, # Keep original node name for reference
                     "support": split.get('support', 0.0),
                     "delta_bic": delta_bic,
-                    "group_a": list(group_a_names),
-                    "group_b": group_b_names,
-                    "folder_path": split_dir # This now points to 'significant_splits/rankX...'
+                    "group_a": group_a_names, # Saved with '_'
+                    "group_b": group_b_names, # Saved with '_'
+                    "folder_path": split_dir
                 }
                 
                 json_filename = f"split_rank{rank}_{safe_node_name}.json"
