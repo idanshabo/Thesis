@@ -42,8 +42,8 @@ def run_pipeline(MSA_file_path,
             
             # 3. Find the JSON file inside this folder
             sub_files = os.listdir(folder_path)
-            json_files = [f for f in sub_files if f.endswith('.json')][0]
-            json_file_path = os.path.join(folder_path, json_file_name)
+            json_file = [f for f in sub_files if f.endswith('.json')][0]
+            json_file_path = os.path.join(folder_path, json_file)
             with open(json_file_path, 'r') as f:
               split_info = json.load(f)
             viz_dir = os.path.join(folder_path, "visualization")
