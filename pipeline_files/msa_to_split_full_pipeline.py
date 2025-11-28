@@ -19,11 +19,10 @@ def run_pipeline(MSA_file_path, print_file_content=False, output_path=None, numb
         output_path = os.path.join(os.path.dirname(fasta_file_path), 'embeddings_output')
     
     normalized_mean_embeddings_path = create_normalized_mean_embeddings_matrix(fasta_file_path, output_path)
-    significant_splits_output_path = os.path.join(os.path.dirname(fasta_file_path), 'significant_splits')
     results = evaluate_top_splits(phylogenetic_tree_path, 
                                   cov_mat_path, 
                                   normalized_mean_embeddings_path, 
-                                  output_path=significant_splits_output_path, 
+                                  output_path=os.path.dirname(fasta_file_path), 
                                   k=number_of_nodes_to_evaluate, 
                                   target_pca_variance=0.99, 
                                   standardize=True)
