@@ -7,7 +7,7 @@ from check_matching_names import check_matching_names
 import os
 import torch
 from evaluate_split_options.evaluate_split_options import evaluate_top_splits
-
+from significant_split_evaluation.visualisations import visualize_split_msa_sorted
 
 def run_pipeline(MSA_file_path, 
                  print_file_content=False, 
@@ -32,10 +32,23 @@ def run_pipeline(MSA_file_path,
                                   target_pca_variance=target_pca_variance, 
                                   standardize=standardize)
     significant_splits_output_path = os.path.join(os.path.dirname(fasta_file_path), 'significant_splits')
-    files = os.listdir(significant_splits_output_path)
-    if files:
-        for file_name in files:
-            file_path = os.path.join(significant_splits_output_path, file_name)
-            print("Processing:", file_path)
+    items = os.listdir(significant_splits_output_path)
+    
+    for folder_name in items:
+        folder_path = os.path.join(significant_splits_output_path, folder_name)
+        
+        # 2. Check if the item is actually a folder
+        if os.path.isdir(folder_path):
+            
+            # 3. Find the JSON file inside this folder
+            sub_files = os.listdir(folder_path)
+            json_files = [f for f in sub_files if f.endswith('.json')][0]
+            json_file_path = os.path.join(folder_path, json_file_name)
+            with open(json_file_path, 'r') as f:
+              split_info = json.load(f)
+            viz_dir = os.path.join(folder_path, "visualization")
+            os.makedirs(viz_dir, exist_ok=True)
+            specific_output_plot = os.path.join(viz_dir, "ordered_split_MSA.png")
+            visualize_split_msa_sorted(fasta_file_path, split_info, specific_output_plot)
             # your code here
     return results
