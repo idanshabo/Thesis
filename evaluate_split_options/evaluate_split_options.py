@@ -241,7 +241,7 @@ def split_protein_embeddings(original_pt_path, split_info, output_suffix_a="_gro
     full_tensor = data['embeddings']
     full_names = data['file_names'] # These already have '/' replaced by '_'
 
-    print(f"Original Tensor Shape: {full_tensor.shape}")
+    #print(f"Original Tensor Shape: {full_tensor.shape}")
 
     # 2. Create a lookup map for speed: Name -> Index
     # This makes finding indices O(1) instead of O(N)
@@ -266,7 +266,7 @@ def split_protein_embeddings(original_pt_path, split_info, output_suffix_a="_gro
             else:
                 missing_count += 1
 
-        print(f"   [{group_label}] Found {len(indices)} embeddings. (Missing/Mismatch: {missing_count})")
+        #print(f"   [{group_label}] Found {len(indices)} embeddings. (Missing/Mismatch: {missing_count})")
         return torch.tensor(indices, dtype=torch.long), found_names
 
     # 4. Get indices for both groups
@@ -294,8 +294,8 @@ def split_protein_embeddings(original_pt_path, split_info, output_suffix_a="_gro
     torch.save(out_data_a, path_a)
     torch.save(out_data_b, path_b)
 
-    print(f"Saved Embeddings A to: {path_a} {emb_a.shape}")
-    print(f"Saved Embeddings B to: {path_b} {emb_b.shape}")
+    #print(f"Saved Embeddings A to: {path_a} {emb_a.shape}")
+    #print(f"Saved Embeddings B to: {path_b} {emb_b.shape}")
 
     return path_a, path_b
 
