@@ -1,9 +1,13 @@
 from ete3 import Tree
 import os
 import torch
+import json
+import pandas as pd
+from sklearn.decomposition import PCA
 from estimate_matrix_normal.estimate_matrix_normal import matrix_normal_mle_fixed_u
 from align_embeddings_with_covariance import align_embeddings_with_covariance
 from utils import load_matrix_tensor, get_log_det, calculate_matrix_normal_ll, calculate_bic_matrix_normal
+
 
 def find_candidate_splits(newick_path, k=1, min_support=0.9, min_prop=0.1):
     """
@@ -359,20 +363,24 @@ def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, varia
 
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_pca_variance=None, standardize=True):
     """
-    Evaluates splits using Matrix Normal MLE estimation.
-    
-    Args:
-        tree_path (str): Path to tree file.
-        cov_path (str): Path to covariance matrix.
-        pt_path (str): Path to embeddings.
-        k (int): Number of top splits to evaluate.
-        target_pca_variance (float/None): Variance to retain for PCA.
-        standardize (bool): If True, applies Global Z-score standardization. If False, uses raw aligned embeddings.
+    Evaluates splits using Matrix Normal MLE estimation and saves significant splits
+    for downstream structural analysis.
     """
     
+    # --- 0. Setup Output Directory ---
+    os.makedirs(output_path, exist_ok=True)
+
     # --- Initial Load and Dimensions ---
     data_full = torch.load(pt_path, map_location='cpu')
     emb_raw_full = data_full['embeddings'].float()
+    
+    # [New] Attempt to get the full list of names to calculate Group B (complement) later
+    # Assuming the .pt file has a 'names', 'ids', or 'labels' key
+    all_names = data_full.get('names') or data_full.get('ids') or data_full.get('labels')
+    if all_names is None:
+        print("WARNING: Could not find 'names' list in .pt file. JSON outputs might be empty.")
+        all_names = []
+    
     N_total, p_initial = emb_raw_full.shape
     p_current = p_initial
     print(f"Initial Data Dimensions: N={N_total}, p={p_initial}")
@@ -392,7 +400,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     # B. Global Standardization (Z-score) or Bypass
     if standardize:
         print("Applying Global Standardization (Z-score)...")
-        # The statistics (mu/sigma) are calculated on the full set and applied back.
         emb_standardized_full_raw, = global_standardize_embeddings(emb_tensor_full, [emb_tensor_full])
     else:
         print("Skipping Standardization (Using raw aligned embeddings)...")
@@ -404,11 +411,9 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
         print("PHASE 2: Dimensionality Reduction (PCA)")
         print("="*40)
         
-        # C. PCA Transformation (Fit and Transform full data)
-        # Note: If standardize=False, PCA is applied to raw data (PCA will handle its own centering usually)
         [emb_transformed_full_raw], p_current = pca_transform_data(
             emb_standardized_full_raw, 
-            [], # No sub-tensors yet
+            [], 
             target_pca_variance
         )
         print(f"New Dimension (p'): {p_current}")
@@ -428,7 +433,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
         name_comments='_global_H0_PCA' if target_pca_variance else '_global_H0'
     )
     
-    # E. Calculate LL and BIC for H0
     u_tensor_full = load_matrix_tensor(cov_path)
     v_tensor_full = load_matrix_tensor(v_path_full) 
     
@@ -443,10 +447,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     print("PHASE 4: Split Testing (H1)")
     print("="*40)
     
-    # Pre-fit PCA object for re-use in the loop
     if target_pca_variance is not None:
         pca = PCA(n_components=target_pca_variance)
-        # Fit PCA on the data used in Phase 1 (Standardized or Raw)
         pca.fit(emb_standardized_full_raw.cpu().numpy())
     
     candidates = find_candidate_splits(tree_path, k=k, min_support=0.8, min_prop=0.1)
@@ -455,7 +457,10 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     for i, split in enumerate(candidates):
         rank = i + 1
         node_name = split.get('node_name', f'Node_{i}')
-        print(f"\n--- Candidate {rank}: {node_name} (Len: {split['length']:.4f}) ---")
+        # Clean node name for filenames
+        safe_node_name = node_name.replace("/", "_").replace(" ", "")
+        
+        print(f"\n--- Candidate {rank}: {node_name} (Len: {split.get('length', 0):.4f}) ---")
 
         suffix_a = f"_rank{rank}_subA"
         suffix_b = f"_rank{rank}_subB"
@@ -475,19 +480,17 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
         emb_tensor_a = align_embeddings_with_covariance(cov_a, pt_a, aligned_path_a).float()
         emb_tensor_b = align_embeddings_with_covariance(cov_b, pt_b, aligned_path_b).float()
 
-        # C. Global Standardization of Subsets (Or Bypass)
+        # C. Global Standardization of Subsets
         if standardize:
-            # Apply global mu/sigma from Phase 1 to these subsets
             emb_standardized_a_raw, emb_standardized_b_raw = global_standardize_embeddings(
-                emb_tensor_full,  # Global reference
+                emb_tensor_full, 
                 [emb_tensor_a, emb_tensor_b]
             )
         else:
-            # Bypass: just use the aligned tensors
             emb_standardized_a_raw = emb_tensor_a
             emb_standardized_b_raw = emb_tensor_b
 
-        # D. PCA Transformation (Apply the same global fit)
+        # D. PCA Transformation
         if target_pca_variance is not None:
             emb_transformed_a_raw = torch.from_numpy(pca.transform(emb_standardized_a_raw.cpu().numpy())).float()
             emb_transformed_b_raw = torch.from_numpy(pca.transform(emb_standardized_b_raw.cpu().numpy())).float()
@@ -495,7 +498,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
             emb_transformed_a_raw = emb_standardized_a_raw
             emb_transformed_b_raw = emb_standardized_b_raw
 
-        # E. Run MLE for Subsets (H1)
+        # E. Run MLE for Subsets
         print("   Running MLE for Sub-tree A...")
         _, v_path_a, _ = matrix_normal_mle_fixed_u([emb_transformed_a_raw], cov_a, suffix_a)
         
@@ -532,6 +535,38 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
         print(f"   Split BIC: {bic_split:.2f}")
         print(f"   Delta BIC: {delta_bic:.2f} [{'SIGNIFICANT' if is_sig else 'NO'}]")
 
+        # --- G. [NEW] Save Significant Result for PDB Pipeline ---
+        if is_sig:
+            print(f"   -> Saving split configuration to {output_path}...")
+            
+            # Identify Group A names (usually in 'taxa', 'leaves', or just the split list itself)
+            # Adjust 'taxa' key based on what find_candidate_splits returns
+            group_a_names = split.get('taxa') or split.get('leaves') or split.get('group_a')
+            
+            if group_a_names and len(all_names) > 0:
+                # Calculate Group B (Complement of A)
+                set_a = set(group_a_names)
+                group_b_names = [x for x in all_names if x not in set_a]
+                
+                # Create the data dictionary for the PDB script
+                split_data_out = {
+                    "rank": rank,
+                    "node_name": node_name,
+                    "support": split.get('support', 0.0),
+                    "delta_bic": delta_bic,
+                    "group_a": list(group_a_names),
+                    "group_b": group_b_names
+                }
+                
+                # Save JSON
+                json_filename = f"split_rank{rank}_{safe_node_name}.json"
+                json_path = os.path.join(output_path, json_filename)
+                
+                with open(json_path, 'w') as f:
+                    json.dump(split_data_out, f, indent=4)
+            else:
+                print("   [!] Warning: Could not extract leaf names to save JSON.")
+
     # --- 4. Summary ---
     print("\n" + "="*40)
     print("FINAL SUMMARY")
@@ -540,3 +575,5 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     print("-" * 40)
     for res in results:
         print(f"{res['rank']:<5} | {res['node']:<15} | {res['delta']:<15.2f} | {'YES' if res['sig'] else 'NO'}")
+
+    return results
