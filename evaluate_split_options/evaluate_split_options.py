@@ -152,13 +152,12 @@ def split_and_save_tree(original_newick_path, split_info, output_suffix_a="_grou
     return (path_a, path_b)
 
 
-def split_covariance_matrix(original_cov_path, split_info, output_suffix_a="_group_a", output_suffix_b="_group_b"):
+def split_covariance_matrix(original_cov_path, split_info, output_suffix_a="_group_a", output_suffix_b="_group_b", output_dir=None):
     """
-    Splits a covariance matrix and shifts values to the new root,
-    BUT preserves original scale (no normalization).
-    Includes ID alignment (slash vs underscore) fix.
+    Splits a covariance matrix and shifts values to the new root.
+    Saves output to output_dir if provided, otherwise uses original directory.
     """
-    print(f"\nProcessing Covariance Matrix (Including phylogenetic tree shift): {original_cov_path}")
+    print(f"\nProcessing Covariance Matrix: {original_cov_path}")
 
     # 1. Load
     df = pd.read_csv(original_cov_path, index_col=0)
@@ -183,119 +182,93 @@ def split_covariance_matrix(original_cov_path, split_info, output_suffix_a="_gro
     ids_b = get_valid_ids(split_info['group_b'], df.index)
 
     if len(ids_a) == 0 or len(ids_b) == 0:
-        raise ValueError("Critical Error: 0 matches found after ID alignment.")
+        print("Error: 0 matches found after ID alignment.")
+        return None, None
 
-    # 4. Function to Process Sub-Matrix (Shift Only)
-    def process_submatrix(full_df, subset_ids, group_name):
-        # A. Slice
+    # 4. Function to Process Sub-Matrix
+    def process_submatrix(full_df, subset_ids):
         sub_df = full_df.loc[subset_ids, subset_ids].copy()
-
-        # B. Find the Shift Value
-        # The minimum value in the block corresponds to the shared path
-        # from the Old Root to the split node.
         shift_val = sub_df.min().min()
-
-        #print(f"   [{group_name}] Subtracting background distance: {shift_val:.6f}")
-
-        # C. Apply Shift
         sub_df = sub_df - shift_val
-
-        # D. Clean up floating point noise
-        # Sometimes subtraction leaves -0.00000001; we set those to 0.0
         sub_df[sub_df < 0] = 0.0
-
         return sub_df
 
     # 5. Process both matrices
-    cov_a = process_submatrix(df, ids_a, "Group A")
-    cov_b = process_submatrix(df, ids_b, "Group B")
+    cov_a = process_submatrix(df, ids_a)
+    cov_b = process_submatrix(df, ids_b)
 
-    # 6. Save
-    dirname = os.path.dirname(original_cov_path)
+    # 6. Determine Output Paths
     basename = os.path.basename(original_cov_path)
     name, ext = os.path.splitext(basename)
 
-    path_a = os.path.join(dirname, f"{name}{output_suffix_a}{ext}")
-    path_b = os.path.join(dirname, f"{name}{output_suffix_b}{ext}")
+    # Logic: Use output_dir if provided, else use original directory
+    if output_dir:
+        save_dir = output_dir
+    else:
+        save_dir = os.path.dirname(original_cov_path)
+
+    path_a = os.path.join(save_dir, f"{name}{output_suffix_a}{ext}")
+    path_b = os.path.join(save_dir, f"{name}{output_suffix_b}{ext}")
 
     cov_a.to_csv(path_a)
     cov_b.to_csv(path_b)
 
-    #print(f"Saved Matrix A to: {path_a}")
-    #print(f"Saved Matrix B to: {path_b}")
-
     return path_a, path_b
 
 
-def split_protein_embeddings(original_pt_path, split_info, output_suffix_a="_group_a", output_suffix_b="_group_b"):
+def split_protein_embeddings(original_pt_path, split_info, output_suffix_a="_group_a", output_suffix_b="_group_b", output_dir=None):
     """
     Splits a PyTorch embedding file into two subsets based on tree split info.
-    Handles the specific structure: {'embeddings': tensor, 'file_names': list}.
+    Saves output to output_dir if provided.
     """
-    #print(f"\nProcessing Embeddings: {original_pt_path}")
-
     # 1. Load the original .pt file
-    # map_location='cpu' ensures it loads even if you don't have a GPU active right now
     data = torch.load(original_pt_path, map_location='cpu')
 
     full_tensor = data['embeddings']
-    full_names = data['file_names'] # These already have '/' replaced by '_'
+    full_names = data['file_names'] 
 
-    #print(f"Original Tensor Shape: {full_tensor.shape}")
-
-    # 2. Create a lookup map for speed: Name -> Index
-    # This makes finding indices O(1) instead of O(N)
+    # 2. Create lookup
     name_to_idx = {name: i for i, name in enumerate(full_names)}
 
-    # 3. Helper to find indices for a specific group
-    def get_indices_and_names(leaves_set, group_label):
+    # 3. Helper to find indices
+    def get_indices_and_names(leaves_set):
         indices = []
         found_names = []
-
-        missing_count = 0
-
         for leaf in leaves_set:
-            # Normalize the tree leaf name to match the embedding file format
-            # The user stated the PT file has '_' instead of '/'
             clean_name = str(leaf).strip().replace('/', '_')
-
             if clean_name in name_to_idx:
-                idx = name_to_idx[clean_name]
-                indices.append(idx)
+                indices.append(name_to_idx[clean_name])
                 found_names.append(clean_name)
-            else:
-                missing_count += 1
-
-        #print(f"   [{group_label}] Found {len(indices)} embeddings. (Missing/Mismatch: {missing_count})")
         return torch.tensor(indices, dtype=torch.long), found_names
 
-    # 4. Get indices for both groups
-    idx_a, names_a = get_indices_and_names(split_info['group_a'], "Group A")
-    idx_b, names_b = get_indices_and_names(split_info['group_b'], "Group B")
+    # 4. Get indices
+    idx_a, names_a = get_indices_and_names(split_info['group_a'])
+    idx_b, names_b = get_indices_and_names(split_info['group_b'])
 
-    # 5. Slice the Tensor
-    # tensor[indices] selects specific rows efficiently
+    # 5. Slice Tensor
     emb_a = full_tensor[idx_a]
     emb_b = full_tensor[idx_b]
 
-    # 6. Prepare Output Dictionaries
+    # 6. Prepare Output
     out_data_a = {'embeddings': emb_a, 'file_names': names_a}
     out_data_b = {'embeddings': emb_b, 'file_names': names_b}
 
-    # 7. Generate Paths
-    dirname = os.path.dirname(original_pt_path)
+    # 7. Determine Output Paths
     basename = os.path.basename(original_pt_path)
     name, ext = os.path.splitext(basename)
 
-    path_a = os.path.join(dirname, f"{name}{output_suffix_a}{ext}")
-    path_b = os.path.join(dirname, f"{name}{output_suffix_b}{ext}")
+    # Logic: Use output_dir if provided, else use original directory
+    if output_dir:
+        save_dir = output_dir
+    else:
+        save_dir = os.path.dirname(original_pt_path)
+
+    path_a = os.path.join(save_dir, f"{name}{output_suffix_a}{ext}")
+    path_b = os.path.join(save_dir, f"{name}{output_suffix_b}{ext}")
 
     # 8. Save
     torch.save(out_data_a, path_a)
     torch.save(out_data_b, path_b)
-
-    #print(f"Saved Embeddings A to: {path_a} {emb_a.shape}")
-    #print(f"Saved Embeddings B to: {path_b} {emb_b.shape}")
 
     return path_a, path_b
 
