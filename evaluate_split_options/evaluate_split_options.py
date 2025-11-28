@@ -357,7 +357,7 @@ def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, varia
     return transformed_tensors, p_new
 
 
-def evaluate_top_splits(tree_path, cov_path, pt_path, k=5, target_pca_variance=None, standardize=True):
+def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_pca_variance=None, standardize=True):
     """
     Evaluates splits using Matrix Normal MLE estimation.
     
