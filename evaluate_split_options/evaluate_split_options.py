@@ -3,6 +3,7 @@ import os
 import torch
 import json
 import pandas as pd
+import shutil
 from sklearn.decomposition import PCA
 from estimate_matrix_normal.estimate_matrix_normal import matrix_normal_mle_fixed_u
 from align_embeddings_with_covariance import align_embeddings_with_covariance
@@ -336,20 +337,26 @@ def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, varia
 
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_pca_variance=None, standardize=True):
     """
-    Evaluates splits using Matrix Normal MLE estimation and saves significant splits
-    into organized sub-folders for downstream structural analysis.
+    Evaluates splits using Matrix Normal MLE estimation.
+    
+    Structure:
+    - splits_evaluations/
+        - rankX_NodeName/ (Non-significant splits stay here)
+        - significant_splits/
+            - rankY_NodeName/ (Significant splits moved here)
+                - split_rankY_NodeName.json
     """
     
-    # --- 0. Setup Output Directory ---
-    # Create the base folder for all evaluations
+    # --- 0. Setup Output Directories ---
     base_eval_dir = os.path.join(output_path, "splits_evaluations")
+    sig_splits_dir = os.path.join(base_eval_dir, "significant_splits")
+    
     os.makedirs(base_eval_dir, exist_ok=True)
+    os.makedirs(sig_splits_dir, exist_ok=True)
 
     # --- Initial Load and Dimensions ---
     data_full = torch.load(pt_path, map_location='cpu')
     emb_raw_full = data_full['embeddings'].float()
-    
-    # Getting full names list:
     all_names = data_full.get('file_names')
     
     N_total, p_initial = emb_raw_full.shape
@@ -363,12 +370,10 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     print("PHASE 1: Alignment & Standardization")
     print("="*40)
     
-    # A. Align Global Embeddings
     aligned_full_path = os.path.join(dir_out, "aligned_global_embeddings.pt")
-    print("Aligning Global Embeddings (ensuring name/order match U)...")
+    # Assuming helper functions are available in scope
     emb_tensor_full = align_embeddings_with_covariance(cov_path, pt_path, aligned_full_path).float()
     
-    # B. Global Standardization (Z-score) or Bypass
     if standardize:
         print("Applying Global Standardization (Z-score)...")
         emb_standardized_full_raw, = global_standardize_embeddings(emb_tensor_full, [emb_tensor_full])
@@ -383,9 +388,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
         print("="*40)
         
         [emb_transformed_full_raw], p_current = pca_transform_data(
-            emb_standardized_full_raw, 
-            [], 
-            target_pca_variance
+            emb_standardized_full_raw, [], target_pca_variance
         )
         print(f"New Dimension (p'): {p_current}")
     else:
@@ -396,13 +399,11 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     print("PHASE 3: Global Baseline (H0)")
     print("="*40)
 
-    # D. Run MLE for Global Model (H0)
-    print(f"Running Matrix Normal MLE for Global Model (V' size: {p_current}x{p_current})...")
+    print(f"Running Matrix Normal MLE for Global Model...")
     _, v_path_full, _ = matrix_normal_mle_fixed_u(
         X=[emb_transformed_full_raw], 
         U_path=cov_path, 
         name_comments='_global_H0_PCA' if target_pca_variance else '_global_H0'
-        # Note: Global files usually stay in the main dir, or you can add output_dir=base_eval_dir here
     )
     
     u_tensor_full = load_matrix_tensor(cov_path)
@@ -429,22 +430,19 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     for i, split in enumerate(candidates):
         rank = i + 1
         node_name = split.get('node_name', f'Node_{i}')
-        # Clean node name for filenames/foldernames
         safe_node_name = node_name.replace("/", "_").replace(" ", "")
         
         print(f"\n--- Candidate {rank}: {node_name} (Len: {split.get('length', 0):.4f}) ---")
 
-        # --- NEW: Create Sub-Directory for this Split ---
+        # 1. Create Initial Sub-Directory (in general evaluations folder)
         split_folder_name = f"rank{rank}_{safe_node_name}"
         split_dir = os.path.join(base_eval_dir, split_folder_name)
         os.makedirs(split_dir, exist_ok=True)
-        # -----------------------------------------------
 
         suffix_a = f"_rank{rank}_subA"
         suffix_b = f"_rank{rank}_subB"
 
-        # A. Generate Split Files (Passing output_dir=split_dir)
-        # Ensure your helper functions use this directory to save the U matrices and .pt files
+        # A. Generate Split Files
         cov_a, cov_b = split_covariance_matrix(cov_path, split, suffix_a, suffix_b, output_dir=split_dir)
         pt_a, pt_b = split_protein_embeddings(pt_path, split, suffix_a, suffix_b, output_dir=split_dir)
 
@@ -452,45 +450,40 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
             print("Skipping due to alignment error.")
             continue
 
-        # B. Align Subsets (Saving aligned files into split_dir)
+        # B. Align Subsets
         aligned_path_a = os.path.join(split_dir, f"aligned{suffix_a}.pt")
         aligned_path_b = os.path.join(split_dir, f"aligned{suffix_b}.pt")
         
         emb_tensor_a = align_embeddings_with_covariance(cov_a, pt_a, aligned_path_a).float()
         emb_tensor_b = align_embeddings_with_covariance(cov_b, pt_b, aligned_path_b).float()
 
-        # C. Global Standardization of Subsets
+        # C. Standardization
         if standardize:
             emb_standardized_a_raw, emb_standardized_b_raw = global_standardize_embeddings(
-                emb_tensor_full, 
-                [emb_tensor_a, emb_tensor_b]
+                emb_tensor_full, [emb_tensor_a, emb_tensor_b]
             )
         else:
-            emb_standardized_a_raw = emb_tensor_a
-            emb_standardized_b_raw = emb_tensor_b
+            emb_standardized_a_raw, emb_standardized_b_raw = emb_tensor_a, emb_tensor_b
 
-        # D. PCA Transformation
+        # D. PCA
         if target_pca_variance is not None:
             emb_transformed_a_raw = torch.from_numpy(pca.transform(emb_standardized_a_raw.cpu().numpy())).float()
             emb_transformed_b_raw = torch.from_numpy(pca.transform(emb_standardized_b_raw.cpu().numpy())).float()
         else:
-            emb_transformed_a_raw = emb_standardized_a_raw
-            emb_transformed_b_raw = emb_standardized_b_raw
+            emb_transformed_a_raw, emb_transformed_b_raw = emb_standardized_a_raw, emb_standardized_b_raw
 
-        # E. Run MLE for Subsets (Saving V matrices into split_dir)
+        # E. MLE
         print("   Running MLE for Sub-trees")
-        # Ensure matrix_normal_mle_fixed_u uses output_dir
         _, v_path_a, _ = matrix_normal_mle_fixed_u([emb_transformed_a_raw], cov_a, suffix_a, output_dir=split_dir)
         _, v_path_b, _ = matrix_normal_mle_fixed_u([emb_transformed_b_raw], cov_b, suffix_b, output_dir=split_dir)
 
-        # F. Calculate LL and BIC for H1
+        # F. Calculate BIC
         u_tensor_a = load_matrix_tensor(cov_a)
         u_tensor_b = load_matrix_tensor(cov_b)
         v_tensor_a = load_matrix_tensor(v_path_a)
         v_tensor_b = load_matrix_tensor(v_path_b)
         
-        n_a = u_tensor_a.shape[0]
-        n_b = u_tensor_b.shape[0]
+        n_a, n_b = u_tensor_a.shape[0], u_tensor_b.shape[0]
 
         ll_a = calculate_matrix_normal_ll(n_a, p_current, u_tensor_a, v_tensor_a)
         ll_b = calculate_matrix_normal_ll(n_b, p_current, u_tensor_b, v_tensor_b)
@@ -500,24 +493,28 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
         
         delta_bic = bic_global - bic_split
         is_sig = bic_split < bic_global
-
-        results.append({
-            'rank': rank,
-            'node': node_name,
-            'bic': bic_split,
-            'delta': delta_bic,
-            'sig': is_sig,
-            'folder': split_dir # Useful to keep track of where files are
-        })
         
         print(f"   Split LL:  {ll_split:.2f}")
         print(f"   Split BIC: {bic_split:.2f}")
         print(f"   Delta BIC: {delta_bic:.2f} [{'SIGNIFICANT' if is_sig else 'NO'}]")
 
-        # --- G. Save Result JSON into the specific split folder ---
+        # --- G. Handle Significance (Move Folder & Save JSON) ---
         if is_sig:
-            print(f"   -> Saving significant split configuration to {split_dir} ...")
+            print(f"   -> SIGNIFICANT! Moving folder to: {sig_splits_dir}")
             
+            # 1. Define new path
+            new_split_dir = os.path.join(sig_splits_dir, split_folder_name)
+            
+            # 2. Move the directory
+            # If the destination already exists (from a previous run), remove it first or shutil.move might fail/nest it
+            if os.path.exists(new_split_dir):
+                shutil.rmtree(new_split_dir)
+            shutil.move(split_dir, new_split_dir)
+            
+            # 3. Update split_dir variable so the JSON is saved in the new location
+            split_dir = new_split_dir
+            
+            # 4. Generate JSON
             group_a_names = split.get('taxa') or split.get('leaves') or split.get('group_a')
             
             if group_a_names and len(all_names) > 0:
@@ -531,17 +528,26 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
                     "delta_bic": delta_bic,
                     "group_a": list(group_a_names),
                     "group_b": group_b_names,
-                    "folder_path": split_dir
+                    "folder_path": split_dir # This now points to 'significant_splits/rankX...'
                 }
                 
                 json_filename = f"split_rank{rank}_{safe_node_name}.json"
-                # Updated to save inside the split_dir
                 json_path = os.path.join(split_dir, json_filename)
                 
                 with open(json_path, 'w') as f:
                     json.dump(split_data_out, f, indent=4)
+                print(f"   -> JSON saved to {json_path}")
             else:
                 print("   [!] Warning: Could not extract leaf names to save JSON.")
+
+        results.append({
+            'rank': rank,
+            'node': node_name,
+            'bic': bic_split,
+            'delta': delta_bic,
+            'sig': is_sig,
+            'folder': split_dir 
+        })
 
     # --- 4. Summary ---
     print("\n" + "="*40)
