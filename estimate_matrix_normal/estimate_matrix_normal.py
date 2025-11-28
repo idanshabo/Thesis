@@ -173,12 +173,13 @@ def matrix_normal_mle(X: List[np.ndarray],
     return M, U_plus, V_plus
 
 def matrix_normal_mle_fixed_u(X: List[np.ndarray],
-                            U_path: np.ndarray,
+                            U_path: str,
                             epsilon: float = 1e-24,
                             V0: Optional[np.ndarray] = None,
                             max_iter: int = 1000,
                             normalized_together=False,
-                            name_comments=None) -> Tuple[np.ndarray, np.ndarray]:
+                            name_comments=None,
+                            output_dir=None) -> Tuple[str, str, str]:
     """
     Maximum Likelihood Estimation for Matrix Normal Distribution with fixed U.
 
@@ -194,15 +195,20 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
         Initial guess for V matrix. If None, identity matrix is used
     max_iter : int
         Maximum number of iterations (default: 1000)
+    output_dir : str, optional
+        Directory to save outputs. If None, saves to the directory of U_path.
 
     Returns:
     --------
-    M : np.ndarray
-        Estimated mean matrix (n×p)
-    V : np.ndarray
-        Estimated column covariance matrix (p×p)
+    mean_path : str
+        Path to the saved estimated mean matrix CSV
+    v_path : str
+        Path to the saved estimated column covariance matrix (V) CSV
+    u_path : str
+        Returns the input U_path for convenience
     """
     U = pd.read_csv(U_path, index_col=0).values
+    
     # Convert list of matrices to 3D array for easier manipulation
     X_array = np.array(X)
     if X_array.ndim  == 2:
@@ -221,11 +227,9 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
     except np.linalg.LinAlgError:
         raise ValueError("U matrix must be positive definite")
 
-    # Check condition for existence of MLE (modified from eq. 4.1)
-    # Since U is fixed, we only need r > p/n for V estimation
+    # Check condition for existence of MLE
     if r <= p/n:
         print(f"Warning: Sample size r ({r}) is too small for MLE existence")
-        #raise ValueError("Sample size r is too small for MLE existence")
 
     # Initialize V if not provided
     if V0 is None:
@@ -267,7 +271,7 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
             # Check convergence
             V_diff = np.linalg.norm(V_plus - V_star_old)
             if V_diff < epsilon:
-                print(f"converged after {step} steps")
+                # print(f"converged after {step} steps")
                 break
 
             step += 1
@@ -276,13 +280,20 @@ def matrix_normal_mle_fixed_u(X: List[np.ndarray],
                 break
 
     # --- Save Results to CSV Files ---
-    output_dir = os.path.dirname(U_path)
+    
+    # 1. Determine Output Directory
+    if output_dir is None:
+        output_dir = os.path.dirname(U_path)
+    
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # 2. Determine File Prefix (Family Name)
+    # Using the directory name as the prefix ensures consistency within the split folder
     pfam_family = os.path.basename(output_dir)
 
     if name_comments:
         pfam_family += name_comments
       
-
     M_df = pd.DataFrame(M)
     V_hat_df = pd.DataFrame(V_star)
     
