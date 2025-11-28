@@ -517,8 +517,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
             raw_group_a = split.get('taxa') or split.get('leaves') or split.get('group_a')
             
             if raw_group_a and all_names and len(all_names) > 0:
-                # === FIX: Normalize tree names to match embedding names ===
-                # Convert '/' to '_' in the tree leaves
+                # === Normalize tree names to match embedding names (Convert '/' to '_' in the tree leaves) ===
                 group_a_names = [name.replace("/", "_") for name in raw_group_a]
                 
                 # Create Set for fast subtraction
