@@ -31,5 +31,5 @@ def create_normalized_mean_embeddings_matrix(fasta_file_path, output_path=None):
     }, normalized_mean_embeddings_output_path)
     
     # === Done ===
-    print(f"📁 Saved normalized mean embedding matrix to: {normalized_mean_embeddings_output_path}")
+    #print(f"📁 Saved normalized mean embedding matrix to: {normalized_mean_embeddings_output_path}")
     return normalized_mean_embeddings_output_path
