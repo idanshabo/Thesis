@@ -9,6 +9,7 @@ import torch
 import json
 from evaluate_split_options.evaluate_split_options import evaluate_top_splits
 from significant_split_evaluation.visualisations import visualize_split_msa_sorted
+from significant_split_evaluation.structures.predict_structures import process_fasta_to_structures
 
 def run_pipeline(MSA_file_path, 
                  print_file_content=False, 
@@ -52,4 +53,6 @@ def run_pipeline(MSA_file_path,
             specific_output_plot = os.path.join(viz_dir, "ordered_split_MSA.png")
             visualize_split_msa_sorted(fasta_file_path, split_info, specific_output_plot)
             # your code here
+    structures_folder = os.path.join(os.path.dirname(fasta_file_path), 'structures')
+    process_fasta_to_structures(fasta_file_path, structures_folder)
     return results
