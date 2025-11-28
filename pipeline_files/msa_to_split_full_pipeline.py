@@ -9,7 +9,7 @@ import torch
 from evaluate_split_options.evaluate_split_options import evaluate_top_splits
 
 
-def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
+def run_pipeline(MSA_file_path, print_file_content=False, output_path=None, number_of_nodes_to_evaluate=5):
     if print_file_content:
         read_stockholm_file_and_print_content(MSA_file_path)
     fasta_file_path = convert_stockholm_to_fasta(MSA_file_path)
