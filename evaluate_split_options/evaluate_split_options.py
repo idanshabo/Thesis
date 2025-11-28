@@ -158,7 +158,7 @@ def split_covariance_matrix(original_cov_path, split_info, output_suffix_a="_gro
     BUT preserves original scale (no normalization).
     Includes ID alignment (slash vs underscore) fix.
     """
-    print(f"\nProcessing Covariance Matrix (Shift Only, No Rescale): {original_cov_path}")
+    print(f"\nProcessing Covariance Matrix (Including phylogenetic tree shift): {original_cov_path}")
 
     # 1. Load
     df = pd.read_csv(original_cov_path, index_col=0)
@@ -195,7 +195,7 @@ def split_covariance_matrix(original_cov_path, split_info, output_suffix_a="_gro
         # from the Old Root to the split node.
         shift_val = sub_df.min().min()
 
-        print(f"   [{group_name}] Subtracting background distance: {shift_val:.6f}")
+        #print(f"   [{group_name}] Subtracting background distance: {shift_val:.6f}")
 
         # C. Apply Shift
         sub_df = sub_df - shift_val
@@ -232,7 +232,7 @@ def split_protein_embeddings(original_pt_path, split_info, output_suffix_a="_gro
     Splits a PyTorch embedding file into two subsets based on tree split info.
     Handles the specific structure: {'embeddings': tensor, 'file_names': list}.
     """
-    print(f"\nProcessing Embeddings: {original_pt_path}")
+    #print(f"\nProcessing Embeddings: {original_pt_path}")
 
     # 1. Load the original .pt file
     # map_location='cpu' ensures it loads even if you don't have a GPU active right now
@@ -313,7 +313,7 @@ def global_standardize_embeddings(full_embeddings, embeddings_list, epsilon=1e-8
     Returns:
         list of Tensor: The globally standardized tensors.
     """
-    print("   -> Global Standardization applied to isolate covariance structure.")
+    print("Global Standardization applied to isolate covariance structure.")
     
     # 1. Calculate Global Statistics
     global_mu = torch.mean(full_embeddings, dim=0)
@@ -495,10 +495,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
             emb_transformed_b_raw = emb_standardized_b_raw
 
         # E. Run MLE for Subsets
-        print("   Running MLE for Sub-tree A...")
+        print("   Running MLE for Sub-trees")
         _, v_path_a, _ = matrix_normal_mle_fixed_u([emb_transformed_a_raw], cov_a, suffix_a)
-        
-        print("   Running MLE for Sub-tree B...")
         _, v_path_b, _ = matrix_normal_mle_fixed_u([emb_transformed_b_raw], cov_b, suffix_b)
 
         # F. Calculate LL and BIC for H1
@@ -533,7 +531,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
 
         # --- G. [NEW] Save Significant Result for PDB Pipeline ---
         if is_sig:
-            print(f"   -> Saving split configuration to {output_path} ...")
+            print(f"   -> Saving significant split configuration to {output_path} ...")
             
             # Identify Group A names (usually in 'taxa', 'leaves', or just the split list itself)
             # Adjust 'taxa' key based on what find_candidate_splits returns
