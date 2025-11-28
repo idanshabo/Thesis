@@ -6,7 +6,7 @@ from handling_esm_embeddings.create_normalized_mean_embeddings_matrix import cre
 from check_matching_names import check_matching_names
 import os
 import torch
-from evaluate_split_options import evaluate_top_splits
+from evaluate_split_options.evaluate_split_options import evaluate_top_splits
 
 
 def run_pipeline(MSA_file_path, print_file_content=False, output_path=None):
