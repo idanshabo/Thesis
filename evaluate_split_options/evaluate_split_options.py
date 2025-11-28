@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from estimate_matrix_normal.estimate_matrix_normal import matrix_normal_mle_fixed_u
 from align_embeddings_with_covariance import align_embeddings_with_covariance
-from utils import load_matrix_tensor, get_log_det, calculate_matrix_normal_ll, calculate_bic_matrix_normal
+from evaluate_split_options.utils import load_matrix_tensor, get_log_det, calculate_matrix_normal_ll, calculate_bic_matrix_normal
 
 
 def find_candidate_splits(newick_path, k=1, min_support=0.9, min_prop=0.1):
