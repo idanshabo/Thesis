@@ -38,8 +38,9 @@ def get_structure_from_esm(sequence, output_filename, timeout=60):
         return False
 
 
-def process_fasta_to_structures(fasta_path, output_folder):
+def process_fasta_to_structures(fasta_path):
     
+    output_folder = os.path.join(os.path.dirname(fasta_file_path), 'structures')
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
