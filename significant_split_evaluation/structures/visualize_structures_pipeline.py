@@ -3,9 +3,10 @@ import random
 from Bio import SeqIO
 
 # Import the local modules
-import structure_predictor as predictor
-import structure_analysis as analyzer
-import visualization as viz
+from significant_split_evaluation.structures.structure_predictor import run_prediction_batch
+from significant_split_evaluation.structures.structure_analysis import calculate_tm_matrix
+from significant_split_evaluation.structures.visualization import plot_tm_heatmap
+
 
 def visualize_structures_pipeline(fasta_path, split_data):
     """
@@ -48,14 +49,14 @@ def visualize_structures_pipeline(fasta_path, split_data):
 
     # 3. Predict Structures
     # Skipping proteins not in final_processing_list
-    predictor.run_prediction_batch(records, output_folder, allow_list=final_processing_list)
+    run_prediction_batch(records, output_folder, allow_list=final_processing_list)
     
     # 4. Analyze
     # Filter groups to only include what we actually processed
     analysis_group_a = [x for x in split_data['group_a'] if x in final_processing_list]
     analysis_group_b = [x for x in split_data['group_b'] if x in final_processing_list]
     
-    df, stats, split_pos = analyzer.calculate_tm_matrix(analysis_group_a, analysis_group_b, output_folder)
+    df, stats, split_pos = calculate_tm_matrix(analysis_group_a, analysis_group_b, output_folder)
     
     # 5. Visualize
-    viz.plot_tm_heatmap(df, stats, split_pos, output_folder)
+    plot_tm_heatmap(df, stats, split_pos, output_folder)
