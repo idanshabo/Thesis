@@ -3,7 +3,6 @@ import re
 import time
 import requests
 
-
 def get_structure_from_esm(sequence, output_filename, timeout=60):
     """
     Fetches predicted 3D structure from ESMFold API.
@@ -14,10 +13,8 @@ def get_structure_from_esm(sequence, output_filename, timeout=60):
     clean_seq = re.sub(r'[^A-Z]', '', raw_seq)
     clean_seq = re.sub(r'[BJOUZ]', 'X', clean_seq)
     
-    if len(clean_seq) == 0:
-        return False
-    if len(clean_seq) > 400: 
-        return False
+    if len(clean_seq) == 0: return False
+    if len(clean_seq) > 400: return False
 
     try:
         response = requests.post(url, data=clean_seq, timeout=timeout)
@@ -33,27 +30,26 @@ def get_structure_from_esm(sequence, output_filename, timeout=60):
         print(f"    [Exception: {e}]", end=" ")
         return False
 
-def process_fasta_to_structures(records, output_folder, allow_list=None):
+def run_prediction_batch(records, output_folder, allow_list=None):
     """
-    Iterates through SeqRecords. 
-    If allow_list is provided, ONLY processes IDs in that list.
+    Main loop for processing structures. 
+    allow_list: If provided, only IDs in this list are processed.
     """
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    # Filter records if a specific list is provided (Sampling Logic)
+    # Filter records based on allow_list
     if allow_list is not None:
         target_records = [r for r in records if r.id in allow_list]
-        print(f"--- Sampling Mode Active ---")
-        print(f"Processing {len(target_records)} selected proteins out of {len(records)} total.")
+        print(f"--- Prediction Mode: Sampling ({len(target_records)} proteins) ---")
     else:
         target_records = records
-        print(f"Processing all {len(target_records)} proteins.")
+        print(f"--- Prediction Mode: Full Batch ({len(target_records)} proteins) ---")
 
     total_seqs = len(target_records)
     failed_records = []
 
-    # 1. MAIN LOOP
+    # 1. Main Pass
     for i, record in enumerate(target_records):
         safe_id = record.id.replace("/", "_")
         output_path = os.path.join(output_folder, f"{safe_id}.pdb")
@@ -73,14 +69,17 @@ def process_fasta_to_structures(records, output_folder, allow_list=None):
             print("FAILED.")
             failed_records.append(record)
 
-    # 2. RETRY LOOP
-    if len(failed_records) > 0:
+    # 2. Retry Pass
+    if failed_records:
         print(f"\n--- Retrying {len(failed_records)} failed sequences ---")
         for i, record in enumerate(failed_records):
             safe_id = record.id.replace("/", "_")
             output_path = os.path.join(output_folder, f"{safe_id}.pdb")
+            
             print(f"[Retry {i+1}] {safe_id}...", end=" ")
+            # Increased timeout for retries
             success = get_structure_from_esm(record.seq, output_path, timeout=120)
+            
             if success:
                 print("Recovered!")
                 time.sleep(1)
