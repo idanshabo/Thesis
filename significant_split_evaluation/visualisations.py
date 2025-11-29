@@ -1,10 +1,11 @@
+import os
 from Bio import SeqIO
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.cluster.hierarchy as sch
 import scipy.spatial.distance as ssd
 
-def visualize_split_msa_sorted(fasta_path, split_info, output_plot):
+def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
     """
     Visualizes an MSA split with hierarchical clustering.
     """
@@ -112,7 +113,10 @@ def visualize_split_msa_sorted(fasta_path, split_info, output_plot):
     
     ax.set_xlabel("Alignment Position")
     ax.set_title(f"Re-ordered MSA View: {split_info.get('node_name', 'Split')}")
-    
+
+    viz_dir = os.path.join(sig_split_folder, "visualization")
+    os.makedirs(viz_dir, exist_ok=True)
+    output_plot = os.path.join(viz_dir, "ordered_split_MSA.png")
     plt.tight_layout()
     plt.savefig(output_plot, dpi=150)
     print(f"Full-label visualization saved to: {output_plot}")
