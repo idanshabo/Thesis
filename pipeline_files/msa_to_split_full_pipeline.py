@@ -7,9 +7,12 @@ from check_matching_names import check_matching_names
 import os
 import torch
 import json
+from Bio import SeqIO
 from evaluate_split_options.evaluate_split_options import evaluate_top_splits
 from significant_split_evaluation.visualisations import visualize_split_msa_sorted
-from significant_split_evaluation.structures.predict_structures import process_fasta_to_structures
+from significant_split_evaluation.handle_splits_evaluation import get_split_info
+from significant_split_evaluation.structures.visualize_structures_pipeline import visualize_structures_pipeline
+
 
 def run_pipeline(MSA_file_path, 
                  print_file_content=False, 
@@ -34,25 +37,11 @@ def run_pipeline(MSA_file_path,
                                   target_pca_variance=target_pca_variance, 
                                   standardize=standardize)
     significant_splits_output_path = os.path.join(os.path.dirname(fasta_file_path), 'splits_evaluations', 'significant_splits')
-    items = os.listdir(significant_splits_output_path)
-    
-    for folder_name in items:
-        folder_path = os.path.join(significant_splits_output_path, folder_name)
-        
-        # 2. Check if the item is actually a folder
-        if os.path.isdir(folder_path):
-            
-            # 3. Find the JSON file inside this folder
-            sub_files = os.listdir(folder_path)
-            json_file = [f for f in sub_files if f.endswith('.json')][0]
-            json_file_path = os.path.join(folder_path, json_file)
-            with open(json_file_path, 'r') as f:
-              split_info = json.load(f)
-            viz_dir = os.path.join(folder_path, "visualization")
-            os.makedirs(viz_dir, exist_ok=True)
-            specific_output_plot = os.path.join(viz_dir, "ordered_split_MSA.png")
-            visualize_split_msa_sorted(fasta_file_path, split_info, specific_output_plot)
-            # your code here
-    structures_folder = os.path.join(os.path.dirname(fasta_file_path), 'structures')
-    process_fasta_to_structures(fasta_file_path, structures_folder)
+    sig_splits = os.listdir(significant_splits_output_path)
+    if sig_splits:        
+      for folder_name in sig_splits:
+          folder_path = os.path.join(significant_splits_output_path, folder_name)
+          split_info = get_split_info(folder_path)
+          visualize_split_msa_sorted(fasta_file_path, split_info, folder_path)
+          visualize_structures_pipeline(fasta_file_path, split_info)
     return results
