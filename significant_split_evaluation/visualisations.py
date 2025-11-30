@@ -394,4 +394,5 @@ def plot_split_covariance(cov_matrix_path, split_info, sig_split_folder):
     os.makedirs(viz_dir, exist_ok=True)
     output_path = os.path.join(viz_dir, "proteins_covariance_plot.png")
     plt.savefig(output_path, dpi=300)
+    plt.close()
     print(f"Proteins Covariance Plot saved to {output_path}")
