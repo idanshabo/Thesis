@@ -279,6 +279,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     """
     Evaluates splits using Matrix Normal MLE estimation.
     Fixes name mismatch (/) vs (_) for JSON saving.
+    Saves Predicted Embedding Covariance (V) matrices to CSV.
     """
     
     # --- 0. Setup Output Directories ---
@@ -292,7 +293,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     data_full = torch.load(pt_path, map_location='cpu')
     emb_raw_full = data_full['embeddings'].float()
     
-    # Ensure we get the full list of names (Assuming these already use '_')
+    # Ensure we get the full list of names
     all_names = data_full.get('file_names') or data_full.get('names') or data_full.get('ids')
     
     N_total, p_initial = emb_raw_full.shape
@@ -307,7 +308,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
     print("="*40)
     
     aligned_full_path = os.path.join(dir_out, "aligned_global_embeddings.pt")
-    # Assuming helper functions are available in scope
     emb_tensor_full = align_embeddings_with_covariance(cov_path, pt_path, aligned_full_path).float()
     
     if standardize:
@@ -372,7 +372,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
         
         print(f"\n--- Candidate {rank}: {node_name} (Len: {split.get('length', 0):.4f}) ---")
 
-        # 1. Create Initial Sub-Directory (in general evaluations folder)
+        # 1. Create Initial Sub-Directory
         split_folder_name = f"rank{rank}_{safe_node_name}"
         split_dir = os.path.join(base_eval_dir, split_folder_name)
         os.makedirs(split_dir, exist_ok=True)
@@ -381,8 +381,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
         suffix_b = f"_rank{rank}_subB"
 
         # A. Generate Split Files
-        # Note: split_covariance_matrix likely handles the '/' internally to find the nodes in the tree object,
-        # but outputs files. Ensure your split_covariance_matrix function handles output paths correctly.
         cov_a, cov_b = split_covariance_matrix(cov_path, split, suffix_a, suffix_b, output_dir=split_dir)
         pt_a, pt_b = split_protein_embeddings(pt_path, split, suffix_a, suffix_b, output_dir=split_dir)
 
@@ -417,12 +415,22 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
         _, v_path_a, _ = matrix_normal_mle_fixed_u([emb_transformed_a_raw], cov_a, suffix_a, output_dir=split_dir)
         _, v_path_b, _ = matrix_normal_mle_fixed_u([emb_transformed_b_raw], cov_b, suffix_b, output_dir=split_dir)
 
-        # F. Calculate BIC
+        # F. Calculate BIC and Save V Matrices
         u_tensor_a = load_matrix_tensor(cov_a)
         u_tensor_b = load_matrix_tensor(cov_b)
         v_tensor_a = load_matrix_tensor(v_path_a)
         v_tensor_b = load_matrix_tensor(v_path_b)
         
+        # --- NEW CODE BLOCK: SAVE EMBEDDING COVARIANCE MATRICES ---
+        v_out_a = os.path.join(split_dir, f"embedding_cov{suffix_a}.csv")
+        v_out_b = os.path.join(split_dir, f"embedding_cov{suffix_b}.csv")
+        
+        # Convert tensors to numpy and save as CSV
+        pd.DataFrame(v_tensor_a.cpu().numpy()).to_csv(v_out_a)
+        pd.DataFrame(v_tensor_b.cpu().numpy()).to_csv(v_out_b)
+        print(f"   -> Saved Embedding Covariance matrices to {split_dir}")
+        # ----------------------------------------------------------
+
         n_a, n_b = u_tensor_a.shape[0], u_tensor_b.shape[0]
 
         ll_a = calculate_matrix_normal_ll(n_a, p_current, u_tensor_a, v_tensor_a)
@@ -442,38 +450,30 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, target_p
         if is_sig:
             print(f"   -> SIGNIFICANT! Moving folder to: {sig_splits_dir}")
             
-            # 1. Define new path
             new_split_dir = os.path.join(sig_splits_dir, split_folder_name)
             
-            # 2. Move the directory (Clean up destination if it exists)
             if os.path.exists(new_split_dir):
                 shutil.rmtree(new_split_dir)
             shutil.move(split_dir, new_split_dir)
             
-            # 3. Update split_dir variable
+            # Update split_dir variable for JSON logic below
             split_dir = new_split_dir
             
-            # 4. Generate JSON (WITH FIX)
+            # Generate JSON
             raw_group_a = split.get('taxa') or split.get('leaves') or split.get('group_a')
             
             if raw_group_a and all_names and len(all_names) > 0:
-                # === Normalize tree names to match embedding names (Convert '/' to '_' in the tree leaves) ===
                 group_a_names = [name.replace("/", "_") for name in raw_group_a]
-                
-                # Create Set for fast subtraction
                 set_a = set(group_a_names)
-                
-                # Calculate B (All names - A)
-                # This works now because both set_a and all_names use '_'
                 group_b_names = [x for x in all_names if x not in set_a]
                 
                 split_data_out = {
                     "rank": rank,
-                    "node_name": node_name, # Keep original node name for reference
+                    "node_name": node_name,
                     "support": split.get('support', 0.0),
                     "delta_bic": delta_bic,
-                    "group_a": group_a_names, # Saved with '_'
-                    "group_b": group_b_names, # Saved with '_'
+                    "group_a": group_a_names,
+                    "group_b": group_b_names,
                     "folder_path": split_dir
                 }
                 
