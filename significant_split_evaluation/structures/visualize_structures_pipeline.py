@@ -16,7 +16,7 @@ def normalize_id(identifier):
     return identifier.replace("/", "_")
 
 
-def visualize_structures_pipeline(fasta_path, split_data):
+def visualize_structures_pipeline(fasta_path, split_data, plot_output_folder):
     """
     Main orchestration function.
     """
@@ -85,4 +85,4 @@ def visualize_structures_pipeline(fasta_path, split_data):
     
     df, stats, split_pos = calculate_tm_matrix(analysis_group_a, analysis_group_b, output_folder)
     
-    plot_tm_heatmap(df, stats, split_pos, output_folder)
+    plot_tm_heatmap(df, stats, split_pos, plot_output_folder)
