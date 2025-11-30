@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.cluster.hierarchy as sch
 import scipy.spatial.distance as ssd
+import seaborn as sns
+import pandas as pd
+
 
 def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
     """
@@ -300,3 +303,95 @@ def visualize_embeddings_pca(embeddings_path, split_info, output_plot="pca_split
     plt.tight_layout()
     plt.savefig(output_plot)
     print(f"PCA visualization saved to: {output_plot}")
+
+
+def plot_split_covariance(split_info, cov_matrix_path, sig_split_folder):
+    """
+    Generates a heatmap of a covariance matrix sorted by groups defined in split_info.
+
+    Parameters:
+    - split_info (dict): Dictionary containing 'group_a', 'group_b', 'node_name', and 'rank'.
+    - cov_matrix_path (str): Path to the CSV file containing the covariance matrix.
+                             Assumes the first column matches the IDs in split_info.
+    - output_file (str, optional): Path to save the resulting plot image (e.g., 'plot.png').
+    - show_plot (bool): Whether to display the plot using plt.show().
+    """
+    
+    # 1. Load the Covariance Matrix
+    try:
+        # Assuming the first column is the index (protein IDs)
+        df_cov = pd.read_csv(cov_matrix_path, index_col=0)
+    except FileNotFoundError:
+        print(f"Error: The file at {cov_matrix_path} was not found.")
+        return
+    except Exception as e:
+        print(f"Error loading file: {e}")
+        return
+
+    # 2. Extract and Validate IDs
+    # Get the raw lists from the split info
+    raw_group_a = split_info.get('group_a', [])
+    raw_group_b = split_info.get('group_b', [])
+
+    # Filter to ensure we only look for IDs that actually exist in the matrix
+    # This prevents KeyErrors if the split_info contains IDs not in the file
+    valid_group_a = [uid for uid in raw_group_a if uid in df_cov.index]
+    valid_group_b = [uid for uid in raw_group_b if uid in df_cov.index]
+
+    # Check if we have data to plot
+    if not valid_group_a and not valid_group_b:
+        print("Error: None of the IDs in split_info were found in the covariance matrix.")
+        return
+
+    # 3. Reorder the DataFrame
+    # Concatenate the lists to create the new order: Group A first, then Group B
+    ordered_ids = valid_group_a + valid_group_b
+    
+    # Subset and reorder the dataframe
+    df_ordered = df_cov.loc[ordered_ids, ordered_ids]
+
+    # 4. Plot Setup
+    plt.figure(figsize=(10, 8))
+    
+    # Draw the heatmap
+    # xticklabels and yticklabels are set to False to prevent clutter if N is large
+    sns.heatmap(df_ordered, cmap='viridis', xticklabels=False, yticklabels=False)
+
+    # 5. Add Separation Lines and Labels
+    # The split happens exactly after the last element of valid_group_a
+    split_index = len(valid_group_a)
+    total_len = len(ordered_ids)
+
+    # Draw white separation lines
+    plt.axvline(x=split_index, color='white', linewidth=2, linestyle='-')
+    plt.axhline(y=split_index, color='white', linewidth=2, linestyle='-')
+
+    # Add Group Labels (centered in their respective sections)
+    # X-axis labels (bottom)
+    if valid_group_a:
+        plt.text(split_index / 2, total_len + (total_len * 0.02), 
+                 'Group A', ha='center', va='top', fontsize=12, weight='bold')
+    if valid_group_b:
+        plt.text(split_index + (len(valid_group_b) / 2), total_len + (total_len * 0.02), 
+                 'Group B', ha='center', va='top', fontsize=12, weight='bold')
+
+    # Y-axis labels (left)
+    if valid_group_a:
+        plt.text(- (total_len * 0.02), split_index / 2, 
+                 'Group A', ha='right', va='center', rotation=90, fontsize=12, weight='bold')
+    if valid_group_b:
+        plt.text(- (total_len * 0.02), split_index + (len(valid_group_b) / 2), 
+                 'Group B', ha='right', va='center', rotation=90, fontsize=12, weight='bold')
+
+    # 6. Titles and Output
+    node_name = split_info.get('node_name', 'Unknown Node')
+    rank = split_info.get('rank', 'Unknown Rank')
+    
+    plt.title(f'Covariance Structure\nNode: {node_name} | Rank: {rank}', fontsize=14, pad=20)
+    plt.tight_layout()
+
+    viz_dir = os.path.join(sig_split_folder, "visualization")
+    os.makedirs(viz_dir, exist_ok=True)
+    output_plot = os.path.join(viz_dir, "proteins_covariance_plot.png")
+    plt.savefig(output_path, dpi=300)
+    print(f"Proteins Covariance Plot saved to {output_path}")
