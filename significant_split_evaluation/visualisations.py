@@ -8,6 +8,7 @@ import scipy.spatial.distance as ssd
 def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
     """
     Visualizes an MSA split with hierarchical clustering.
+    Handles large datasets by disabling labels and capping image size.
     """
     
     # 1. Load MSA
@@ -25,8 +26,7 @@ def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
     group_b_ids = [x for x in split_info['group_b'] if x in id_to_seq]
 
     print(f"Loaded {len(id_to_seq)} sequences from FASTA.")
-    print(f"Matched {len(group_a_ids)} (A) and {len(group_b_ids)} (B).")
-
+    
     if not group_a_ids or not group_b_ids:
         print("Error: One group is empty. Check ID matching.")
         return
@@ -53,7 +53,6 @@ def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
         if mat.size == 0: return id_list
 
         try:
-            # Ward's linkage on Hamming distance
             dist_vec = ssd.pdist(mat, metric='hamming')
             linkage_matrix = sch.linkage(dist_vec, method='ward')
             dendro = sch.dendrogram(linkage_matrix, no_plot=True)
@@ -69,8 +68,6 @@ def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
 
     # 3. Combine for Plotting
     final_ids = sorted_ids_a + sorted_ids_b
-    
-    # Create labels with (A)/(B) suffix
     labels = [f"{i} (A)" for i in sorted_ids_a] + [f"{i} (B)" for i in sorted_ids_b]
     
     # Build final plot matrix
@@ -87,39 +84,62 @@ def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
         plot_matrix.append(row)
     plot_data = np.array(plot_matrix)
 
-    # 4. Plotting
-    # Height Calculation: 0.25 inches per sequence ensures space for every label
-    # Minimum height of 6 inches, max limit removed or set very high
+    # 4. Plotting (OPTIMIZED FOR LARGE DATA)
     num_seqs = len(final_ids)
-    fig_height = max(6, num_seqs * 0.25)
     
+    # Threshold: If more than 250 sequences, switch to "Overview Mode"
+    LARGE_DATA_THRESHOLD = 250 
+    
+    if num_seqs > LARGE_DATA_THRESHOLD:
+        print(f"Large dataset detected ({num_seqs} seqs). Switching to condensed overview mode.")
+        # Fixed reasonable height for overview (e.g., 10 inches)
+        fig_height = 12
+        show_labels = False
+        dpi_val = 300 # Higher DPI for crisp lines in condensed view
+    else:
+        # Original logic for small datasets where labels are readable
+        fig_height = max(6, num_seqs * 0.25)
+        show_labels = True
+        dpi_val = 150
+
     fig, ax = plt.subplots(figsize=(15, fig_height))
     
     cmap = plt.get_cmap('tab20b', len(final_char_map))
+    
+    # aspect='auto' is CRITICAL for large data to fill the space without distortion
     im = ax.imshow(plot_data, aspect='auto', cmap=cmap, interpolation='nearest')
     
     # Draw Split Line
     split_pos = len(sorted_ids_a) - 0.5
-    ax.axhline(y=split_pos, color='white', linewidth=4, linestyle='-') 
-    ax.axhline(y=split_pos, color='black', linewidth=2, linestyle='--', label='Phylogenetic Split')
+    ax.axhline(y=split_pos, color='white', linewidth=2, linestyle='-') 
+    ax.axhline(y=split_pos, color='black', linewidth=1, linestyle='--', label='Phylogenetic Split')
 
-    # Force ALL y-ticks
-    ax.set_yticks(np.arange(num_seqs))
-    
-    # Set labels with a font size that scales slightly if there are many sequences
-    # (smaller font for massive lists, but not smaller than 6pt)
-    label_fontsize = 10 if num_seqs < 50 else 8
-    ax.set_yticklabels(labels, fontsize=label_fontsize)
-    
+    if show_labels:
+        ax.set_yticks(np.arange(num_seqs))
+        label_fontsize = 10 if num_seqs < 50 else 8
+        ax.set_yticklabels(labels, fontsize=label_fontsize)
+    else:
+        # Hide y-ticks for large data, just show boundary markers
+        ax.set_yticks([0, len(sorted_ids_a), num_seqs-1])
+        ax.set_yticklabels(["Start (A)", "Split Boundary", "End (B)"])
+        ax.tick_params(axis='y', length=0) # Hide tick marks
+
     ax.set_xlabel("Alignment Position")
-    ax.set_title(f"Re-ordered MSA View: {split_info.get('node_name', 'Split')}")
+    ax.set_title(f"Re-ordered MSA View: {split_info.get('node_name', 'Split')} (n={num_seqs})")
 
     viz_dir = os.path.join(sig_split_folder, "visualization")
     os.makedirs(viz_dir, exist_ok=True)
     output_plot = os.path.join(viz_dir, "ordered_split_MSA.png")
+    
     plt.tight_layout()
-    plt.savefig(output_plot, dpi=150)
-    print(f"Full-label visualization saved to: {output_plot}")
+    
+    # Save logic
+    try:
+        plt.savefig(output_plot, dpi=dpi_val, bbox_inches='tight')
+        print(f"Visualization saved to: {output_plot}")
+    except ValueError as e:
+        print(f"Error saving image (likely too large): {e}")
+        
     plt.close()
 
 
