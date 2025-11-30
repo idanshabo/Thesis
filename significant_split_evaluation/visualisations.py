@@ -305,7 +305,7 @@ def visualize_embeddings_pca(embeddings_path, split_info, output_plot="pca_split
     print(f"PCA visualization saved to: {output_plot}")
 
 
-def plot_split_covariance(split_info, cov_matrix_path, sig_split_folder):
+def plot_split_covariance(cov_matrix_path, split_info, sig_split_folder):
     """
     Generates a heatmap of a covariance matrix sorted by groups defined in split_info.
 
