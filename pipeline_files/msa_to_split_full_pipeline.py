@@ -43,5 +43,5 @@ def run_pipeline(MSA_file_path,
           folder_path = os.path.join(significant_splits_output_path, folder_name)
           split_info = get_split_info(folder_path)
           visualize_split_msa_sorted(fasta_file_path, split_info, folder_path)
-          visualize_structures_pipeline(fasta_file_path, split_info)
+          visualize_structures_pipeline(fasta_file_path, split_info, folder_path)
     return results
