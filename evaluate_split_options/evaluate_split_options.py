@@ -93,66 +93,6 @@ def find_candidate_splits(newick_path, k=1, min_support=0.9, min_prop=0.1):
     return candidate_splits[:k]
 
 
-def split_and_save_tree(original_newick_path, split_info, output_suffix_a="_group_a", output_suffix_b="_group_b"):
-    """
-    Splits a tree into two subtrees based on a split_info dictionary and saves them.
-
-    Uses the ete3.Tree.prune() method, which keeps only the specified leaves
-    and the minimal internal nodes needed to connect them.
-
-    Args:
-        original_newick_path (str): Path to the original Newick file.
-        split_info (dict): A dictionary from find_candidate_splits, containing
-                           {'group_a': set_of_leaves, 'group_b': set_of_leaves}.
-        output_suffix_a (str): Suffix to add to the original filename for group A's tree.
-        output_suffix_b (str): Suffix to add to the original filename for group B's tree.
-
-    Returns:
-        tuple: (path_to_tree_a, path_to_tree_b)
-    """
-    print(f"\nPerforming split based on {len(split_info['group_a'])} vs {len(split_info['group_b'])} leaves.")
-
-    # 1. Load the original tree (we need a fresh copy for pruning)
-    # Use the same format-loading logic as the finder function
-    try:
-        original_tree = Tree(original_newick_path, format=1)
-    except Exception:
-        original_tree = Tree(original_newick_path, format=0)
-
-    # We will save in format=1 to preserve support values
-    out_format = 1
-
-    # --- Create and save Tree A ---
-    tree_a = original_tree.copy()
-    # prune() keeps *only* the specified leaves and their common ancestors
-    tree_a.prune(split_info['group_a'])
-
-    # --- Create and save Tree B ---
-    tree_b = original_tree.copy()
-    tree_b.prune(split_info['group_b'])
-
-    # 2. Determine output file paths
-    dirname = os.path.dirname(original_newick_path)
-    if dirname == "": # Handle case where file is in the current directory
-        dirname = "."
-
-    basename = os.path.basename(original_newick_path)
-    name, ext = os.path.splitext(basename)
-
-    # Define paths in the same directory as the original
-    path_a = os.path.join(dirname, f"{name}{output_suffix_a}{ext}")
-    path_b = os.path.join(dirname, f"{name}{output_suffix_b}{ext}")
-
-    # 3. Save the new trees
-    tree_a.write(outfile=path_a, format=out_format)
-    tree_b.write(outfile=path_b, format=out_format)
-
-    #print(f"Saved Group A tree ({len(split_info['group_a'])} leaves) to: {path_a}")
-    #print(f"Saved Group B tree ({len(split_info['group_b'])} leaves) to: {path_b}")
-
-    return (path_a, path_b)
-
-
 def split_covariance_matrix(original_cov_path, split_info, output_suffix_a="_group_a", output_suffix_b="_group_b", output_dir=None):
     """
     Splits a covariance matrix and shifts values to the new root.
