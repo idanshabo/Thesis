@@ -522,8 +522,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, pca_min_
             'folder': split_dir 
         })
 
-        results.append({'rank': rank, 'node': node_name, 'bic': bic_split, 'delta': delta_bic, 'sig': is_sig, 'folder': split_dir})
-
     # Summary
     print("\n" + "="*40 + "\nFINAL SUMMARY\n" + "="*40)
     for res in results:
