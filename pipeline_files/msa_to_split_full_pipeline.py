@@ -20,7 +20,7 @@ def run_pipeline(MSA_file_path,
                  output_path=None, 
                  number_of_nodes_to_evaluate=5,
                  target_pca_variance=0.99,
-                 pca_min_components=100
+                 pca_min_components=100,
                  standardize=True):
     if print_file_content:
         read_stockholm_file_and_print_content(MSA_file_path)
