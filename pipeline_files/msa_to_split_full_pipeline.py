@@ -20,6 +20,7 @@ def run_pipeline(MSA_file_path,
                  output_path=None, 
                  number_of_nodes_to_evaluate=5,
                  target_pca_variance=0.99,
+                 pca_min_components=100
                  standardize=True):
     if print_file_content:
         read_stockholm_file_and_print_content(MSA_file_path)
@@ -36,6 +37,7 @@ def run_pipeline(MSA_file_path,
                                   output_path=os.path.dirname(fasta_file_path), 
                                   k=number_of_nodes_to_evaluate, 
                                   target_pca_variance=target_pca_variance, 
+                                  pca_min_components=pca_min_components,
                                   standardize=standardize)
     significant_splits_output_path = os.path.join(os.path.dirname(fasta_file_path), 'splits_evaluations', 'significant_splits')
     sig_splits = os.listdir(significant_splits_output_path)
