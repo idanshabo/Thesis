@@ -489,9 +489,38 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, pca_min_
             
             # Save JSON
             raw_group_a = split.get('taxa') or split.get('leaves') or split.get('group_a')
-            if raw_group_a and all_names:
-                 # (JSON saving logic same as previous snippet)
-                 pass
+            if raw_group_a and all_names and len(all_names) > 0:
+                group_a_names = [name.replace("/", "_") for name in raw_group_a]
+                set_a = set(group_a_names)
+                group_b_names = [x for x in all_names if x not in set_a]
+                
+                split_data_out = {
+                    "rank": rank,
+                    "node_name": node_name,
+                    "support": split.get('support', 0.0),
+                    "delta_bic": delta_bic,
+                    "group_a": group_a_names,
+                    "group_b": group_b_names,
+                    "folder_path": split_dir
+                }
+                
+                json_filename = f"split_rank{rank}_{safe_node_name}.json"
+                json_path = os.path.join(split_dir, json_filename)
+                
+                with open(json_path, 'w') as f:
+                    json.dump(split_data_out, f, indent=4)
+                print(f"   -> JSON saved to {json_path}")
+            else:
+                print("   [!] Warning: Could not extract leaf names to save JSON.")
+
+        results.append({
+            'rank': rank,
+            'node': node_name,
+            'bic': bic_split,
+            'delta': delta_bic,
+            'sig': is_sig,
+            'folder': split_dir 
+        })
 
         results.append({'rank': rank, 'node': node_name, 'bic': bic_split, 'delta': delta_bic, 'sig': is_sig, 'folder': split_dir})
 
