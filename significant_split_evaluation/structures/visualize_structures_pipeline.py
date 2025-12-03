@@ -6,6 +6,7 @@ from Bio import SeqIO
 from significant_split_evaluation.structures.structure_predictor import run_prediction_batch
 from significant_split_evaluation.structures.structure_analysis import calculate_tm_matrix
 from significant_split_evaluation.structures.visualization import plot_tm_heatmap
+from significant_split_evaluation.structures.structures_from_experiments import select_best_pdb, prepare_experimental_folder
 
 
 def normalize_id(identifier):
@@ -18,72 +19,84 @@ def normalize_id(identifier):
 
 def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder):
     """
-    Main orchestration function.
+    Orchestrates generation of two plots:
+    1. Predicted Structures (Always)
+    2. Experimental Structures (Conditional)
     """
-    output_folder = os.path.join(os.path.dirname(fasta_path), 'structures')
+    base_output = os.path.join(os.path.dirname(fasta_path), 'structures')
     
-    # 1. Parse FASTA
-    print(f"Reading FASTA: {fasta_path}")
+    # Define separate folders to keep data clean
+    dir_predicted = os.path.join(base_output, 'predicted_esm')
+    dir_experimental = os.path.join(base_output, 'experimental_pdb')
+    plot_folder = os.path.join(sig_split_folder, "visualization")
+    
+    if not os.path.exists(plot_folder):
+        os.makedirs(plot_folder)
+
+    # ---------------------------------------------------------
+    # PART 1: PREDICTED STRUCTURES (ESMFold) - ALWAYS RUN
+    # ---------------------------------------------------------
+    print("\n=== PART 1: Predicted Structures (ESMFold) ===")
+    
+    # Load FASTA
     try:
         records = list(SeqIO.parse(fasta_path, "fasta"))
     except FileNotFoundError:
-        print("Error: FASTA file not found.")
+        print("Error: FASTA not found.")
         return
 
-    id_map = {}
-    for r in records:
-        sanitized = normalize_id(r.id)
-        id_map[sanitized] = r.id # Store the original ID so we can look it up later
-
-    total_count = len(records)
+    # Sampling Logic (Same as before)
+    id_map = {normalize_id(r.id): r.id for r in records}
     
-    # 2. Strategy Logic: Full vs Sampling
-    final_processing_list = [] # Stores ORIGINAL FASTA IDs
-    
-    # Helper to find matching IDs in FASTA regardless of / or _
     def get_valid_ids(input_list):
         valid = []
         for item in input_list:
-            # Try 1: Exact match
-            if item in id_map.values():
-                valid.append(item)
-            # Try 2: Sanitized match (The Fix)
-            elif normalize_id(item) in id_map:
-                valid.append(id_map[normalize_id(item)])
+            if item in id_map.values(): valid.append(item)
+            elif normalize_id(item) in id_map: valid.append(id_map[normalize_id(item)])
         return valid
 
-    # Get valid IDs for both groups
     valid_a = get_valid_ids(split_data['group_a'])
     valid_b = get_valid_ids(split_data['group_b'])
-
-    if total_count <= 200:
-        print(f"Dataset Size: {total_count} (Small). Processing ALL.")
-        # We process everyone found in the FASTA
-        final_processing_list = list(id_map.values())
+    
+    # Process Strategy
+    if len(records) <= 200:
+        processing_list = list(id_map.values())
+        analysis_a, analysis_b = valid_a, valid_b
     else:
-        print(f"Dataset Size: {total_count} (Large). Sampling mode active.")
-        
-        # Sample from the VALID lists
+        # Sample 50 from each
         sample_a = random.sample(valid_a, min(len(valid_a), 50))
         sample_b = random.sample(valid_b, min(len(valid_b), 50))
+        processing_list = sample_a + sample_b
+        analysis_a, analysis_b = sample_a, sample_b
+
+    # 1. Predict
+    run_prediction_batch(records, dir_predicted, allow_list=processing_list)
+    
+    # 2. Matrix & Plot
+    print("Generating Predicted Heatmap...")
+    df_pred, stats_pred, split_pred = calculate_tm_matrix(analysis_a, analysis_b, dir_predicted)
+    
+    if df_pred is not None:
+        plot_tm_heatmap(df_pred, stats_pred, split_pred, plot_folder, filename="tm_score_PREDICTED.png")
+
+    # ---------------------------------------------------------
+    # PART 2: REAL STRUCTURES (Experimental) - CONDITIONAL
+    # ---------------------------------------------------------
+    print("\n=== PART 2: Experimental Structures (PDB) ===")
+    
+    # 1. Check coverage and download
+    success, exp_a_ids, exp_b_ids = prepare_experimental_folder(
+        split_data['group_a'], 
+        split_data['group_b'], 
+        dir_experimental
+    )
+    
+    if success:
+        # 2. Matrix & Plot (Only if we have enough data)
+        print("Generating Experimental Heatmap...")
+        df_exp, stats_exp, split_exp = calculate_tm_matrix(exp_a_ids, exp_b_ids, dir_experimental)
         
-        final_processing_list = sample_a + sample_b
-        print(f"Sampled: {len(sample_a)} from Group A, {len(sample_b)} from Group B.")
-
-    # 3. Predict Structures
-    # We pass 'final_processing_list' which now contains IDs exactly as they appear in the FASTA
-    run_prediction_batch(records, output_folder, allow_list=final_processing_list)
-    
-    # 4. Analyze
-    # We pass the same list to analysis. 
-    # The analysis module handles the file lookup (sanitization) internally.
-    
-    # Filter groups to only include what we actually processed (intersection)
-    processed_set = set(final_processing_list)
-    analysis_group_a = [x for x in valid_a if x in processed_set]
-    analysis_group_b = [x for x in valid_b if x in processed_set]
-    
-    df, stats, split_pos = calculate_tm_matrix(analysis_group_a, analysis_group_b, output_folder)
-
-    plot_output_folder = os.path.join(sig_split_folder, "visualization")
-    plot_tm_heatmap(df, stats, split_pos, plot_output_folder)
+        if df_exp is not None:
+            plot_tm_heatmap(df_exp, stats_exp, split_exp, plot_folder, filename="tm_score_EXPERIMENTAL.png")
+    else:
+        print("Skipping Experimental Plot (insufficient PDB coverage).")
