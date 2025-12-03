@@ -11,6 +11,45 @@ from align_embeddings_with_covariance import align_embeddings_with_covariance
 from evaluate_split_options.utils import load_matrix_tensor, get_log_det, calculate_matrix_normal_ll, calculate_bic_matrix_normal
 
 
+def calculate_jaccard(set1, set2):
+    """Calculates Jaccard Index: Intersection / Union"""
+    intersection = len(set1.intersection(set2))
+    union = len(set1.union(set2))
+    if union == 0: return 0.0
+    return intersection / union
+
+
+def is_split_redundant(current_split_sets, history_splits, threshold=0.9):
+    """
+    Checks if current split is similar to any split in history.
+    
+    Args:
+        current_split_sets (tuple): (set_a, set_b) of the current candidate.
+        history_splits (list of tuples): List of (set_a, set_b) from previous significant splits.
+        threshold (float): Similarity cutoff (0.0 to 1.0).
+        
+    Returns:
+        bool: True if redundant, False if unique.
+        str: Message explaining the match.
+    """
+    cur_a, cur_b = current_split_sets
+
+    for idx, (hist_a, hist_b) in enumerate(history_splits):
+        # Check Direct Match (A vs A)
+        sim_direct = calculate_jaccard(cur_a, hist_a)
+        
+        # Check Inverse Match (A vs B) - because {A,B} is the same split as {B,A}
+        sim_inverse = calculate_jaccard(cur_a, hist_b)
+        
+        if sim_direct >= threshold:
+            return True, f"Too similar to previous Significant Split #{idx+1} (Direct match: {sim_direct:.2%})"
+        
+        if sim_inverse >= threshold:
+            return True, f"Too similar to previous Significant Split #{idx+1} (Inverse match: {sim_inverse:.2%})"
+            
+    return False, ""
+
+
 def find_candidate_splits(newick_path, k=1, min_support=0.9, min_prop=0.1):
     """
     Finds the top k candidate splits from a phylogenetic tree.
@@ -323,10 +362,12 @@ def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, min_v
     return transformed_tensors, p_new
 
 
-def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, pca_min_variance=None, pca_min_components=None, standardize=True):
+def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, 
+                        pca_min_variance=None, pca_min_components=None, 
+                        standardize=True, similarity_threshold=0.9): # <--- Added threshold param
     """
     Evaluates splits using Matrix Normal MLE estimation.
-    Accepts both percentage and hard threshold for PCA.
+    Includes logic to skip splits that are highly similar to previously identified significant splits.
     """
     
     # --- 0. Setup Output Directories ---
@@ -363,7 +404,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, pca_min_
         emb_standardized_full_raw = emb_tensor_full
     
     # --- PHASE 2: Dimensionality Reduction (PCA) ---
-    # We pass both new arguments here
     if pca_min_variance is not None or pca_min_components is not None:
         print("\n" + "="*40)
         print("PHASE 2: Dimensionality Reduction (PCA)")
@@ -407,8 +447,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, pca_min_
     print("PHASE 4: Split Testing (H1)")
     print("="*40)
     
-    # Important: Create a PCA object using the FINAL p_current determined in Phase 2
-    # This ensures the splits are transformed exactly the same way as the global model
     pca_for_splits = None
     if pca_min_variance is not None or pca_min_components is not None:
         pca_for_splits = PCA(n_components=p_current)
@@ -416,6 +454,10 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, pca_min_
     
     candidates = find_candidate_splits(tree_path, k=k, min_support=0.8, min_prop=0.1)
     results = []
+    
+    # NEW: Store the sets of significant splits found so far
+    # Format: list of tuples -> [(set_a_1, set_b_1), (set_a_2, set_b_2), ...]
+    significant_split_history = [] 
 
     for i, split in enumerate(candidates):
         rank = i + 1
@@ -423,6 +465,17 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, pca_min_
         safe_node_name = node_name.replace("/", "_").replace(" ", "")
         
         print(f"\n--- Candidate {rank}: {node_name} (Len: {split.get('length', 0):.4f}) ---")
+
+        current_sets = (split['group_a'], split['group_b'])
+        is_redundant, reason = is_split_redundant(current_sets, significant_split_history, threshold=similarity_threshold)
+        
+        if is_redundant:
+            print(f"   [SKIP] {reason}")
+            results.append({
+                'rank': rank, 'node': node_name, 'bic': None, 'delta': 0, 
+                'sig': False, 'folder': None, 'note': 'Skipped (Redundant)'
+            })
+            continue
 
         split_folder_name = f"rank{rank}_{safe_node_name}"
         split_dir = os.path.join(base_eval_dir, split_folder_name)
@@ -449,7 +502,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, pca_min_
         else:
             emb_standardized_a_raw, emb_standardized_b_raw = emb_tensor_a, emb_tensor_b
 
-        # Apply PCA using the object fitted on global data
+        # Apply PCA
         if pca_for_splits is not None:
             emb_transformed_a_raw = torch.from_numpy(pca_for_splits.transform(emb_standardized_a_raw.cpu().numpy())).float()
             emb_transformed_b_raw = torch.from_numpy(pca_for_splits.transform(emb_standardized_b_raw.cpu().numpy())).float()
@@ -486,6 +539,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, pca_min_
             if os.path.exists(new_split_dir): shutil.rmtree(new_split_dir)
             shutil.move(split_dir, new_split_dir)
             split_dir = new_split_dir
+            
+            significant_split_history.append((split['group_a'], split['group_b']))
             
             # Save JSON
             raw_group_a = split.get('taxa') or split.get('leaves') or split.get('group_a')
@@ -525,6 +580,10 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, pca_min_
     # Summary
     print("\n" + "="*40 + "\nFINAL SUMMARY\n" + "="*40)
     for res in results:
-        print(f"{res['rank']:<5} | {res['node']:<15} | {res['delta']:<15.2f} | {'YES' if res['sig'] else 'NO'}")
+        note = res.get('note', '')
+        if note:
+            print(f"{res['rank']:<5} | {res['node']:<15} | {note}")
+        else:
+            print(f"{res['rank']:<5} | {res['node']:<15} | {res['delta']:<15.2f} | {'YES' if res['sig'] else 'NO'}")
 
     return results
