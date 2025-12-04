@@ -1,7 +1,34 @@
+import re
 import os
 import shutil
 import requests
 from Bio.PDB import PDBList
+
+
+def get_pdb_from_uniprot(uniprot_id):
+    """
+    Fetches PDB IDs linked to a UniProt ID using the UniProt API.
+    """
+    url = f"https://rest.uniprot.org/uniprotkb/{uniprot_id}.json"
+    response = requests.get(url)
+    
+    if response.status_code != 200:
+        return []
+
+    data = response.json()
+    pdb_list = []
+    
+    # Check if cross-references exist
+    if 'uniProtKBCrossReferences' in data:
+        for xref in data['uniProtKBCrossReferences']:
+            if xref['database'] == 'PDB':
+                pdb_id = xref['id']
+                # PDB entries often list resolution and method, usually helpful to keep
+                method = next((p['value'] for p in xref.get('properties', []) if p['key'] == 'Method'), "Unknown")
+                resolution = next((p['value'] for p in xref.get('properties', []) if p['key'] == 'Resolution'), "N/A")
+                pdb_list.append((pdb_id, method, resolution))
+                
+    return pdb_list
 
 
 def select_best_pdb(pdb_list):
@@ -37,6 +64,7 @@ def select_best_pdb(pdb_list):
 
     # Return the PDB ID of the top result
     return sorted_pdbs[0][0]
+
 
 def prepare_experimental_folder(group_a, group_b, output_folder):
     """
