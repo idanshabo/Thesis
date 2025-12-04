@@ -6,7 +6,7 @@ from Bio import SeqIO
 from significant_split_evaluation.structures.structure_predictor import run_prediction_batch
 from significant_split_evaluation.structures.structure_analysis import calculate_tm_matrix
 from significant_split_evaluation.structures.visualization import plot_tm_heatmap
-from significant_split_evaluation.structures.structures_from_experiments import select_best_pdb, prepare_experimental_folder
+from significant_split_evaluation.structures.structures_from_experiments import get_pdb_from_uniprot, select_best_pdb, prepare_experimental_folder
 
 
 def normalize_id(identifier):
