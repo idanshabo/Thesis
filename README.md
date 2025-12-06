@@ -52,14 +52,13 @@ from pipeline_files.msa_to_split_full_pipeline import run_pipeline
 msa_file_path = '/content/drive/MyDrive/Thesis/protein_data/PF00900.alignment.full'
 
 # Execute
-run_pipeline(
-    msa_file_path,
-    print_file_content=False,
-    output_path=None,
-    number_of_nodes_to_evaluate=15,
-    pca_min_variance=0.99,
-    pca_min_components=100,
-    standardize=True
+run_pipeline(msa_file_path,
+             print_file_content=False, # Change to True if you want to print the raw MSA content
+             output_path=None, # Change to your desired output path, default is MSA location
+             number_of_nodes_to_evaluate=15, # Max number of clusters (splits) to check
+             pca_min_variance=0.99, # Min variance for PCA to retain
+             pca_min_components=100, # Dimensionality of the embeddings to retain
+             standardize=True # Normalize data before modeling
 )
 ```
 
