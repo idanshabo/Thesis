@@ -14,6 +14,7 @@ Prerequisites:
 - GPU: Recommended for ESM embedding generation.
 
 # Execution Script (Python - google colab example)
+```
 import sys
 from google.colab import drive
 drive.mount('/content/drive')
@@ -29,6 +30,7 @@ run_pipeline(
     pca_min_components=100,          # Dimensionality of the embeddings to retain
     standardize=True                 # Normalize data before modeling
 )
+```
 
 # script outputs:
 In the location of the MSA file there will be a two folders:
