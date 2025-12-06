@@ -44,7 +44,7 @@ msa_file_path = '/content/drive/MyDrive/Thesis/protein_data/PF00900.alignment.fu
 run_pipeline(
     msa_file_path,
     print_file_content=False,        # Change to True if you want to print the raw MSA content
-    output_path=None,                # Change to your desired file path, if remains None it will output the files in the same location of the MSA file
+    output_path=None,                # Change to your desired output path, default is MSA location
     number_of_nodes_to_evaluate=15,  # Max number of clusters (splits) to check
     pca_min_variance=0.99,           # Min variance for PCA to retain
     pca_min_components=100,          # Dimensionality of the embeddings to retain
