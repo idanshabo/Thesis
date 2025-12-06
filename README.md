@@ -4,7 +4,7 @@ Author: Idan Shabo
 This repository contains a bioinformatics and machine learning pipeline designed to analyze protein families. The core objective is to identify functional sub-families (splits) within a Multiple Sequence Alignment (MSA) by distinguishing between evolutionary relatedness and functional distinctness.
 To achieve this, the pipeline combines Phylogenetics (to model evolutionary history), Protein Language Models (ESM for feature extraction), and Matrix Normal Distributions (for statistical modeling of non-i.i.d biological data).
 
-🚀 1. Quick Start: Running the Pipeline
+# 🚀 1. Quick Start: Running the Pipeline
 The pipeline is designed to be modular. Below is an example of how to run the full workflow programmatically, specifically optimized for Google Colab or a Linux environment.
 Prerequisites
 Python 3.x
@@ -15,7 +15,7 @@ Python
 import sys
 from google.colab import drive
 
-# 1. Mount Data Source
+1. Mount Data Source
 drive.mount('/content/drive')
 
 # 2. Setup Environment
