@@ -17,13 +17,30 @@ Prerequisites:
 ```
 import sys
 from google.colab import drive
+
+# 1. Mount Data Source
 drive.mount('/content/drive')
+
+# 2. Setup Environment
+# Clone the repository
 !git clone https://github.com/idanshabo/Thesis.git
+
+# Add repo to python path
 sys.path.append('/content/Thesis')
+
+# Install Python dependencies
 !pip install -r /content/Thesis/requirements.txt
+
+# Install FastTree (Required for step 1 of the pipeline)
 !apt-get install -y fasttree
+
+# 3. Import and Run
 from pipeline_files.msa_to_split_full_pipeline import run_pipeline
+
+# Define your input MSA
 msa_file_path = '/content/drive/MyDrive/Thesis/protein_data/PF00900.alignment.full'
+
+# Execute
 run_pipeline(
     msa_file_path,
     number_of_nodes_to_evaluate=15,  # Max number of clusters (splits) to check
