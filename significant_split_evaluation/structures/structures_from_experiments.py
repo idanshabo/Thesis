@@ -33,98 +33,107 @@ def get_pdb_from_uniprot(uniprot_id):
 
 def select_best_pdb(pdb_list):
     """
-    Selects the best PDB from the API list.
-    Priority: 
-    1. Method (X-ray > EM > NMR)
-    2. Resolution (Lowest number is best)
+    Selects the best PDB based on Method (X-ray > EM > NMR) and Resolution.
     """
-    if not pdb_list:
-        return None
+    if not pdb_list: return None
 
-    # Helper to clean resolution string to float
     def parse_resolution(res_str):
         try:
             if res_str == 'N/A' or res_str is None: return 999.9
             return float(str(res_str).replace('A', '').strip())
-        except ValueError:
-            return 999.9
+        except ValueError: return 999.9
 
-    # Priority map (Lower score = Better)
-    method_priority = {
-        'X-ray diffraction': 1,
-        'Electron Microscopy': 2,
-        'NMR': 3
-    }
+    method_priority = {'X-ray diffraction': 1, 'Electron Microscopy': 2, 'NMR': 3}
 
-    # Sort: Primary key = Method, Secondary key = Resolution
     sorted_pdbs = sorted(pdb_list, key=lambda x: (
         method_priority.get(x[1], 4), 
         parse_resolution(x[2])
     ))
-
-    # Return the PDB ID of the top result
     return sorted_pdbs[0][0]
 
 
 def prepare_experimental_folder(group_a, group_b, output_folder):
     """
-    Checks for PDBs for both groups. 
-    Only downloads if BOTH groups have >= 2 valid structures.
-    Returns: (bool_success, list_valid_a, list_valid_b)
+    Optimized PDB Fetcher:
+    1. Checks smaller group first.
+    2. Fails immediately if smaller group has < 2 matches.
+    3. Downloads only if BOTH groups have >= 2 matches.
     """
     pdbl = PDBList(verbose=False)
     
-    # 1. Map IDs to best PDBs
-    def find_matches(id_list):
-        valid_ids = [] # The original IDs that have a PDB
-        mappings = {}  # Map Original ID -> PDB ID
-        
+    # Internal helper to process a specific list of IDs
+    def find_matches_in_list(id_list, group_name):
+        print(f"  Checking {group_name} ({len(id_list)} sequences)...", end=" ")
+        mappings = {}
         for full_id in id_list:
-            # Assumes ID format like "A0A0X_9EURY_..." where first part is UniProt
+            # Extract UniProt ID (Assumes format Accession_Organism_...)
             uniprot_id = full_id.split('_')[0] 
             candidates = get_pdb_from_uniprot(uniprot_id)
             
             if candidates:
                 best = select_best_pdb(candidates)
                 if best:
-                    valid_ids.append(full_id)
                     mappings[full_id] = best
-        return valid_ids, mappings
+        
+        print(f"Found {len(mappings)} structures.")
+        return mappings
 
-    print("  Checking Group A for PDBs...")
-    valid_a, map_a = find_matches(group_a)
-    print("  Checking Group B for PDBs...")
-    valid_b, map_b = find_matches(group_b)
+    # --- Step 1: Determine Execution Order (Smaller First) ---
+    if len(group_a) <= len(group_b):
+        primary_list, primary_name = group_a, "Group A"
+        secondary_list, secondary_name = group_b, "Group B"
+        is_a_first = True
+    else:
+        primary_list, primary_name = group_b, "Group B"
+        secondary_list, secondary_name = group_a, "Group A"
+        is_a_first = False
 
-    # 2. Check Constraints (At least 2 in each group)
-    if len(valid_a) < 2 or len(valid_b) < 2:
-        print(f"  Skipping Experimental Plot. Found: Group A={len(valid_a)}, Group B={len(valid_b)} (Need >=2 each)")
+    # --- Step 2: Check Primary (Smaller) Group ---
+    primary_map = find_matches_in_list(primary_list, primary_name)
+    
+    if len(primary_map) < 2:
+        print(f"  Stopping: {primary_name} has insufficient structures (<2).")
         return False, [], []
 
-    # 3. Download Files
+    # --- Step 3: Check Secondary (Larger) Group ---
+    secondary_map = find_matches_in_list(secondary_list, secondary_name)
+    
+    if len(secondary_map) < 2:
+        print(f"  Stopping: {secondary_name} has insufficient structures (<2).")
+        return False, [], []
+
+    # --- Step 4: Reassign to A and B for clarity ---
+    # We need to ensure we return the lists in the correct order (A, B) for the pipeline
+    if is_a_first:
+        map_a, map_b = primary_map, secondary_map
+    else:
+        map_a, map_b = secondary_map, primary_map
+
+    # --- Step 5: Download Files ---
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
         
     all_mappings = {**map_a, **map_b}
-    print(f"  Downloading {len(all_mappings)} experimental PDB structures...")
+    print(f"  Criteria met. Downloading {len(all_mappings)} experimental PDB structures...")
 
     for original_id, pdb_id in all_mappings.items():
-        # We save the file as the Original/Safe ID so the matrix calculator recognizes it
         safe_id = original_id.replace("/", "_")
         target_path = os.path.join(output_folder, f"{safe_id}.pdb")
 
         if not os.path.exists(target_path):
             try:
-                # Retrieve (downloads to format pdbXXXX.ent)
+                # Retrieve file (BioPython downloads to pdir/pdbXXXX.ent)
                 downloaded = pdbl.retrieve_pdb_file(pdb_id, file_format='pdb', pdir=output_folder)
+                
+                # Rename .ent to .pdb and use the ID our pipeline expects
                 if os.path.exists(downloaded):
-                    # Rename to match our pipeline's expected ID
                     shutil.move(downloaded, target_path)
             except Exception as e:
                 print(f"    Failed to download {pdb_id}: {e}")
 
-    # Cleanup 'obsolete' folder if BioPython created it
+    # Cleanup junk
     if os.path.exists(os.path.join(output_folder, "obsolete")):
         shutil.rmtree(os.path.join(output_folder, "obsolete"))
 
-    return True, valid_a, valid_b
+    # Return the keys (the IDs) so the matrix calculator knows what to load
+    return True, list(map_a.keys()), list(map_b.keys())
