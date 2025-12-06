@@ -1,7 +1,17 @@
 # 🧬 Protein Family Splitting via Matrix Normal Models & ESM Embeddings
 Author: Idan Shabo
 
-This is the corrected README. I have restructured the pipeline explanation to strictly follow the logic you provided: MSA $\to$ Tree $\to$ Phylogenetic Covariance $\to$ ESM/PCA $\to$ Matrix Normal Modeling.🧬 Thesis Pipeline: Protein Family Analysis via Matrix Normal ModelsAuthor: Idan ShaboThis repository contains a bioinformatics and machine learning pipeline designed to analyze protein families. The core objective is to identify functional sub-families (splits) within a Multiple Sequence Alignment (MSA) by distinguishing between evolutionary relatedness and functional distinctness.To achieve this, the pipeline combines Phylogenetics (to model evolutionary history), Protein Language Models (ESM for feature extraction), and Matrix Normal Distributions (for statistical modeling of non-i.i.d biological data).🚀 1. Quick Start: Running the PipelineThe pipeline is designed to be modular. Below is an example of how to run the full workflow programmatically, specifically optimized for Google Colab or a Linux environment.PrerequisitesPython 3.xFastTree: Must be installed and in your system PATH (apt-get install fasttree).GPU: Recommended for ESM embedding generation.
+This repository contains a bioinformatics and machine learning pipeline designed to analyze protein families. The core objective is to identify functional sub-families (splits) within a Multiple Sequence Alignment (MSA) by distinguishing between evolutionary relatedness and functional distinctness.
+
+To achieve this, the pipeline combines Phylogenetics (to model evolutionary history), Protein Language Models (ESM for feature extraction), and Matrix Normal Distributions (for statistical modeling of non-i.i.d biological data).
+
+# 🚀 1. Quick Start: Running the Pipeline
+The pipeline is designed to be modular. Below is an example of how to run the full workflow programmatically, specifically optimized for Google Colab or a Linux environment.
+
+Prerequisites:
+- Python 3.x
+- FastTree: Must be installed and in your system PATH (apt-get install fasttree).
+- GPU: Recommended for ESM embedding generation.
 
 # Execution Script (Python - google colab example)
 import sys
