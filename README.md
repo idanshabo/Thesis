@@ -99,3 +99,9 @@ During execution, the pipeline prints many logs to help the user understand whic
 - labels: The assigned cluster ID for each protein sequence.
 - bic_history: A record of scores for all evaluated $k$ values (useful for plotting the "elbow" curve).
 - covariance_matrix: The computed phylogenetic covariance used in the model.
+
+### 4. Repository Structure
+
+- [pipeline_files/](pipeline_files/): Contains the core logic scripts (`msa_to_split_full_pipeline.py`).
+- [convert_stockholm_to_fasta.py](convert_stockholm_to_fasta.py): Helper script for format conversion.
+- [requirements.txt](requirements.txt): Python dependencies.
