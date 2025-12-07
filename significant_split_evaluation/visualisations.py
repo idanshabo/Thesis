@@ -450,6 +450,7 @@ def load_matrix(data):
             raise
     return data
 
+
 def plot_variance_spectrum_helper(ax, cov_matrix, label, color=None):
     """
     Helper: Plots the diagonal (Variances) on a log scale.
@@ -461,46 +462,59 @@ def plot_variance_spectrum_helper(ax, cov_matrix, label, color=None):
     ax.plot(variances, label=label, marker='.', markersize=2, alpha=0.7, color=color)
     ax.set_yscale('log')
 
+    
 def run_variance_analysis(folder_path):
     """
-    Automatically deduces all file paths from the folder_path and runs the analysis.
-    Expected Structure: .../{ProteinID}/splits_evaluations/significant_splits/{SplitName}/
+    Automatically deduces paths based on the specific folder structure provided.
     """
-    # --- 1. Path Deduction ---
-    clean_path = folder_path.rstrip(os.sep)
-    split_name = os.path.basename(clean_path) # e.g., "rank5_0.960"
-    split_num = split_name.split("_")[0]
-    
-    # Navigate up 3 levels to find the Protein ID root folder
-    # Level 0: .../rank5_0.960
-    # Level 1: .../significant_splits
-    # Level 2: .../splits_evaluations
-    # Level 3: .../PF03869 (Protein Root)
-    
-    sig_splits_dir = os.path.dirname(clean_path)
-    splits_eval_dir = os.path.dirname(sig_splits_dir)
-    protein_outputs_dir = os.path.dirname(splits_eval_dir)
-    protein_root_dir = os.path.dirname(protein_outputs_dir)
+    # Standardize path format
+    folder_path = os.path.normpath(folder_path)
 
-    #PF03869_calculations_dir = 
-    protein_id = os.path.basename(protein_root_dir) # e.g., "PF03869_calculations"
+    # --- 1. Path Deduction ---
+    
+    # Extract Split Name (e.g., "rank5") directly from the folder name
+    split_name = os.path.basename(folder_path)
+
+    # Navigate up to find the Protein Output directory
+    # Current: .../{pf}_outputs/splits_evaluations/significant_splits/{split}
+    sig_splits_dir = os.path.dirname(folder_path)
+    splits_eval_dir = os.path.dirname(sig_splits_dir)
+    protein_outputs_dir = os.path.dirname(splits_eval_dir) # This ends in {pf}_outputs
+    
+    # Extract Protein ID by stripping "_outputs"
+    # e.g., "PF07361_outputs" -> "PF07361"
+    dir_name = os.path.basename(protein_outputs_dir)
+    protein_id = dir_name.replace("_outputs", "")
     
     print(f"Detected Protein ID: {protein_id}")
+    print(f"Detected Split Name: {split_name}")
+
+    # Navigate to the parallel 'calculations' directory
+    # Root is one level up from protein_outputs_dir
+    protein_data_root = os.path.dirname(protein_outputs_dir)
     
-    # Construct paths
+    # NOTE: Using 'calcultions' (sic) as per your actual path string. 
+    # Change to 'calculations' if that was just a typo in your text.
+    calc_dir = os.path.join(protein_data_root, f"{protein_id}_calcultions")
+    
+    # Define Full File Paths
     full_cov_name = f"{protein_id}_global_H0_PCA_embeddings_cov_mat.csv"
-    full_cov_path = os.path.join(protein_root_dir, full_cov_name)
+    full_cov_path = os.path.join(calc_dir, full_cov_name)
     
-    child1_path = os.path.join(clean_path, f"{split_name}_{split_num}_subA_embeddings_cov_mat.csv")
-    child2_path = os.path.join(clean_path, f"{split_name}_{split_num}_subB_embeddings_cov_mat.csv")
+    child1_path = os.path.join(folder_path, f"{split_name}_subA_embeddings_cov_mat.csv")
+    child2_path = os.path.join(folder_path, f"{split_name}_subB_embeddings_cov_mat.csv")
     
     # Visualization Output
-    viz_dir = os.path.join(clean_path, "visualization")
+    viz_dir = os.path.join(folder_path, "visualization")
     output_path = os.path.join(viz_dir, "variance_spectrum.png")
 
-    print(f"Full Cov Path deduced as: {full_cov_path}")
+    print(f"Global Cov Path: {full_cov_path}")
+    print(f"Child A Path:    {child1_path}")
 
     # --- 2. Setup & Load ---
+    if not os.path.exists(full_cov_path):
+        raise FileNotFoundError(f"Could not find global matrix at: {full_cov_path}")
+
     if not os.path.exists(viz_dir):
         os.makedirs(viz_dir)
 
