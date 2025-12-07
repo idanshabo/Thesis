@@ -28,7 +28,7 @@ def run_pipeline(MSA_file_path,
 
     # --- 1. Setup Directories ---
     base_dir = os.path.dirname(os.path.abspath(MSA_file_path))
-    family_name = os.path.splitext(os.path.basename(MSA_file_path))[0]
+    family_name = filename.split('.')[0]
 
     calc_dir = os.path.join(base_dir, f"{family_name}_calculations")
     out_dir = os.path.join(base_dir, f"{family_name}_outputs")
