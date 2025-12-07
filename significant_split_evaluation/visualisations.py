@@ -9,7 +9,7 @@ import pandas as pd
 from scipy.cluster.hierarchy import linkage, leaves_list
 from scipy.spatial.distance import pdist
 from matplotlib.patches import Rectangle
-
+from itertools import groupby
 
 
 def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
@@ -309,81 +309,97 @@ def visualize_embeddings_pca(embeddings_path, split_info, output_plot="pca_split
     print(f"PCA visualization saved to: {output_plot}")
 
 
-def plot_split_covariance(ordered_matrix_path, split_info, sig_split_folder):
-"""
-    Plots the matrix using sns.heatmap for precise layout control.
+def get_group_intervals(ordered_ids, group_a_set, group_b_set):
+    """
+    Scans the ordered list and identifies contiguous blocks.
+    Returns list of tuples: (Label 'A'/'B', StartIndex, EndIndex)
+    """
+    labels = []
+    for uid in ordered_ids:
+        if uid in group_a_set: labels.append('A')
+        elif uid in group_b_set: labels.append('B')
+        else: labels.append('X') # 'X' = Not in either group (if partial split)
+        
+    intervals = []
+    current_idx = 0
+    
+    # Identify contiguous blocks (e.g. A-A-A -> B-B -> A-A)
+    for label, group in groupby(labels):
+        length = len(list(group))
+        end_idx = current_idx + length
+        intervals.append((label, current_idx, end_idx))
+        current_idx = end_idx
+        
+    return intervals
+
+def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder):
+    """
+    Plots the covariance matrix (preserving input order).
+    Draws dashed lines at the boundaries between Group A and Group B.
     """
     # 1. Load Data
     try:
-        df_ordered = pd.read_csv(ordered_matrix_path, index_col=0)
+        df_cov = pd.read_csv(ordered_cov_path, index_col=0)
     except Exception as e:
         print(f"Error loading matrix: {e}")
         return
 
-    # 2. Map Colors
+    # 2. Identify Blocks
     group_a_ids = set(split_info.get('group_a', []))
     group_b_ids = set(split_info.get('group_b', []))
     
-    # Map colors
-    color_map = {'A': '#e74c3c', 'B': '#3498db', 'None': '#f0f0f0'}
-    row_colors = []
-    for uid in df_ordered.index:
-        if uid in group_a_ids: row_colors.append(color_map['A'])
-        elif uid in group_b_ids: row_colors.append(color_map['B'])
-        else: row_colors.append(color_map['None'])
+    # Calculate where the boundaries are in the CURRENT order
+    intervals = get_group_intervals(df_cov.index, group_a_ids, group_b_ids)
 
-    # 3. Plot Setup (Standard Figure)
-    # Using a constrained layout to minimize whitespace automatically
-    fig, ax = plt.subplots(figsize=(10, 10), constrained_layout=True)
+    # 3. Setup Plot
+    plt.figure(figsize=(10, 10))
+    ax = plt.gca()
     
-    # 4. Draw Heatmap
-    # Note: We don't pass row_colors here. We draw them manually for better control.
-    sns.heatmap(df_ordered, ax=ax, cmap='viridis', cbar=True,
-                xticklabels=False, yticklabels=False, square=True)
+    # Draw Heatmap
+    sns.heatmap(df_cov, cmap='viridis', cbar=True, 
+                xticklabels=False, yticklabels=False, square=True, ax=ax)
 
-    # 5. Add the "Split" Tracks Manually
-    # This gives us the side-bars without the clustermap overhead
-    
-    # Add colored strips to the Left (Y-axis)
-    # We use axis coordinates: x=0 is left edge, x=1 is right edge
-    # transform=ax.get_yaxis_transform() makes x be in axes coords, y in data coords
-    for i, color in enumerate(row_colors):
-        # Draw a small rectangle to the left of the Y-axis
-        rect = Rectangle((-0.03, i), 0.03, 1, 
-                         color=color, transform=ax.get_yaxis_transform(), 
-                         clip_on=False, linewidth=0)
-        ax.add_patch(rect)
+    # 4. Add Dashed Lines and Labels
+    # We iterate through the blocks we found
+    for label, start, end in intervals:
         
-    # Add colored strips to the Top (X-axis)
-    for i, color in enumerate(row_colors):
-        # Draw a small rectangle above the X-axis
-        rect = Rectangle((i, 1.01), 1, 0.03, 
-                         color=color, transform=ax.get_xaxis_transform(), 
-                         clip_on=False, linewidth=0)
-        ax.add_patch(rect)
+        # A. Draw Lines at the END of the block (Separators)
+        # We don't draw a line at the very end of the matrix
+        if end < len(df_cov.index):
+            # Use white or light grey for visibility on dark viridis
+            ax.axvline(x=end, color='white', linestyle='--', linewidth=1.5, alpha=0.9)
+            ax.axhline(y=end, color='white', linestyle='--', linewidth=1.5, alpha=0.9)
 
-    # 6. Titles and Labels
+        # B. Add Labels (Centered on the block)
+        # Only label if the block is significant (> 2% of map to avoid clutter)
+        size = end - start
+        if size > (len(df_cov.index) * 0.02):
+            center = start + (size / 2)
+            group_name = "Group A" if label == 'A' else "Group B"
+            if label == 'X': group_name = "Other"
+
+            # Top Axis Label
+            ax.text(center, -0.5, group_name, 
+                    ha='center', va='bottom', fontsize=11, fontweight='bold', rotation=45)
+            
+            # Left Axis Label
+            ax.text(-0.5, center, group_name, 
+                    ha='right', va='center', fontsize=11, fontweight='bold')
+
+    # 5. Titles and Save
     node_name = split_info.get('node_name', 'Unknown Node')
     rank = split_info.get('rank', 'Unknown Rank')
     
-    plt.title(f'Covariance Structure: {node_name}\nRank: {rank}', fontsize=16, pad=30)
+    plt.title(f'Covariance Structure: {node_name}\n(Rank: {rank})', fontsize=14, pad=30)
     
-    # Custom Legend
-    from matplotlib.lines import Line2D
-    legend_elements = [
-        Line2D([0], [0], marker='s', color='w', markerfacecolor=color_map['A'], markersize=10, label='Group A'),
-        Line2D([0], [0], marker='s', color='w', markerfacecolor=color_map['B'], markersize=10, label='Group B')
-    ]
-    ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.2, 1), title="Groups")
-
-    # 7. Save
+    # Save
     viz_dir = os.path.join(sig_split_folder, "visualization")
     os.makedirs(viz_dir, exist_ok=True)
-    output_path = os.path.join(viz_dir, "proteins_covariance_plot.png")
     
+    output_path = os.path.join(viz_dir, "covariance_with_split_lines.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
-    print(f"Overlay plot saved to {output_path}")
+    print(f"Covariance plot saved to {output_path}")
 
 
 def load_matrix(data):
