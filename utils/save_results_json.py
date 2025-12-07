@@ -23,7 +23,7 @@ class NumpyEncoder(json.JSONEncoder):
         return super(NumpyEncoder, self).default(obj)
 
 
-def save_results_json(results_file_path):
+def save_results_json(results, results_file_path):
     try:
         with open(results_file_path, 'w') as f:
             # cls=NumpyEncoder handles the conversion of float32, int64, bool_, etc.
