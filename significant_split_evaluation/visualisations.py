@@ -432,3 +432,79 @@ def plot_split_covariance(cov_matrix_path, split_info, sig_split_folder, sort_gr
     plt.savefig(output_path, dpi=300)
     plt.close()
     print(f"Proteins Covariance Plot saved to {output_path}")
+
+
+def load_matrix(data):
+    """
+    Helper: Loads data using pandas for robustness against trailing commas/empty values.
+    Returns a numpy array.
+    """
+    if isinstance(data, str):
+        print(f"Loading: {data}")
+        try:
+            # header=None assumes no column names. 
+            # If your file HAS headers, change to header=0.
+            df = pd.read_csv(data, header=None)
+            
+            # If the file has a trailing comma, pandas might create an empty last column containing NaNs.
+            # We drop columns that are entirely NaN.
+            df = df.dropna(axis=1, how='all')
+            
+            return df.values
+        except Exception as e:
+            print(f"Error loading {data}: {e}")
+            raise
+    return data
+
+def plot_variance_spectrum_helper(ax, cov_matrix, label, color=None):
+    """
+    Helper: Plots the diagonal (Variances) on a log scale.
+    """
+    # Ensure matrix is numeric (handle potential reading errors)
+    cov_matrix = np.array(cov_matrix, dtype=float)
+    
+    # Create a separate array to modify without touching the original matrix
+    variances = np.diag(cov_matrix).copy()
+    
+    # Replace 0 or negative with NaN for clean log plotting
+    variances[variances <= 0] = np.nan
+    
+    ax.plot(variances, label=label, marker='.', markersize=2, alpha=0.7, color=color)
+    ax.set_yscale('log')
+
+def save_variance_spectrum(full_cov_input, child1_cov_input, child2_cov_input, output_path):
+    """
+    Creates and saves only the Variance Spectrum (left plot) to the given output path.
+    """
+    # 1. Load inputs
+    full_cov = load_matrix(full_cov_input)
+    child1_cov = load_matrix(child1_cov_input)
+    child2_cov = load_matrix(child2_cov_input)
+
+    # 2. Ensure output directory exists
+    output_dir = os.path.dirname(output_path)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print(f"Created directory: {output_dir}")
+
+    # 3. Setup Figure
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # 4. Plot lines
+    plot_variance_spectrum_helper(ax, full_cov, "Full Model", color='black')
+    plot_variance_spectrum_helper(ax, child1_cov, "Child A", color='tab:blue')
+    plot_variance_spectrum_helper(ax, child2_cov, "Child B", color='tab:orange')
+
+    # 5. Styling
+    ax.set_xlabel("PCA Dimension", fontsize=12)
+    ax.set_ylabel("Variance (Log Scale)", fontsize=12)
+    ax.set_title("Variance Spectrum (Eigenvalues)", fontsize=14)
+    ax.grid(True, which="both", ls="-", alpha=0.2)
+    ax.legend(fontsize=10)
+
+    # 6. Save
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close(fig) 
+    
+    print(f"Variance spectrum saved to: {output_path}")
