@@ -16,7 +16,7 @@ def order_covariance_matrix(cov_mat_path):
     output_path = os.path.join(dir_path, new_name)    
     try:
         # 1. Load Data
-        df = pd.read_csv(input_path, index_col=0)
+        df = pd.read_csv(cov_mat_path, index_col=0)
         
         # 2. Prepare Distance Matrix
         # If df is Covariance/Correlation, we need to convert it to "distance"
