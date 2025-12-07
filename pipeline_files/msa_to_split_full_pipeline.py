@@ -71,15 +71,7 @@ def run_pipeline(MSA_file_path,
 
     # --- 4. Save Results Object (Using NumpyEncoder) ---
     results_file_path = os.path.join(out_dir, "results.json")
-    try:
-        with open(results_file_path, 'w') as f:
-            # cls=NumpyEncoder handles the conversion of float32, int64, bool_, etc.
-            json.dump(results, f, indent=4, cls=NumpyEncoder)
-    except Exception as e:
-        print(f"Error saving JSON even with Encoder: {e}")
-        # Last resort fallback
-        with open(results_file_path, 'w') as f:
-            f.write(str(results))
+    save_results_json(results_file_path)
 
     # --- 5. Visualizations ---
     significant_splits_output_path = os.path.join(out_dir, 'splits_evaluations', 'significant_splits')
