@@ -2,7 +2,7 @@ from utils.read_stockholm_file_and_print_content import read_stockholm_file_and_
 from utils.convert_stockholm_to_fasta import convert_stockholm_to_fasta
 from utils.phylogenetic_tree_to_covariance_matrix import tree_to_covariance_matrix
 from utils.check_matching_names import check_matching_names
-from utils.NumpyEncoder import NumpyEncoder
+from utils.save_results_json import save_results_json
 from create_phylogenetic_tree.run_fasttree import run_fasttree
 from handling_esm_embeddings.create_normalized_mean_embeddings_matrix import create_normalized_mean_embeddings_matrix
 import os
