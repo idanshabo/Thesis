@@ -22,15 +22,6 @@ def calculate_jaccard(set1, set2):
 def is_split_redundant(current_split_sets, history_splits, threshold=0.9):
     """
     Checks if current split is similar to any split in history.
-    
-    Args:
-        current_split_sets (tuple): (set_a, set_b) of the current candidate.
-        history_splits (list of tuples): List of (set_a, set_b) from previous significant splits.
-        threshold (float): Similarity cutoff (0.0 to 1.0).
-        
-    Returns:
-        bool: True if redundant, False if unique.
-        str: Message explaining the match.
     """
     cur_a, cur_b = current_split_sets
 
@@ -53,23 +44,6 @@ def is_split_redundant(current_split_sets, history_splits, threshold=0.9):
 def find_candidate_splits(newick_path, k=1, min_support=0.9, min_prop=0.1):
     """
     Finds the top k candidate splits from a phylogenetic tree.
-
-    A "candidate split" is defined as an internal branch with high statistical
-    support. The function sorts candidates by branch length, so the top
-    candidates represent the deepest, most significant divergences.
-
-    Args:
-        newick_path (str): Path to the Newick tree file (e.g., your .tree from FastTree).
-        k (int): The number of top splits to return.
-        min_support (float): Statistical support threshold (0-1). Branches below
-                               this value will be filtered out. FastTree produces
-                               SH-like support values (0-1).
-        min_size (int): Minimum clade size. Splits that result in a group
-                          smaller than this will be filtered out.
-
-    Returns:
-        list: A list of dictionaries. Each dictionary represents one "split" and contains:
-              {'support': float, 'length': float, 'group_a': set, 'group_b': set}
     """
 
     # 1. Load the tree and set the root
@@ -112,8 +86,6 @@ def find_candidate_splits(newick_path, k=1, min_support=0.9, min_prop=0.1):
             continue
 
         # 5. Store the valid candidate split
-        # group_a is the clade defined by the current node
-        # group_b is everyone else
         group_a_leaves = clade_leaves
         group_b_leaves = all_leaves - group_a_leaves
 
@@ -138,8 +110,6 @@ def split_covariance_matrix(original_cov_path, split_info, output_suffix_a="_gro
     Splits a covariance matrix and shifts values to the new root.
     Saves output to output_dir if provided, otherwise uses original directory.
     """
-    #print(f"\nProcessing Covariance Matrix: {original_cov_path}")
-
     # 1. Load
     df = pd.read_csv(original_cov_path, index_col=0)
     df.index = df.index.astype(str)
@@ -258,14 +228,6 @@ def global_standardize_embeddings(full_embeddings, embeddings_list, epsilon=1e-8
     """
     Calculates the global mean (mu) and standard deviation (std) from the full dataset
     and applies standardization (Z-score) to all matrices in the list.
-    
-    Args:
-        full_embeddings (Tensor): The complete (N_total, p) embedding tensor.
-        embeddings_list (list of Tensor): List of sub-tensors to be standardized.
-        epsilon (float): Small value to prevent division by zero for dimensions with zero variance.
-        
-    Returns:
-        list of Tensor: The globally standardized tensors.
     """
     print("Global Standardization applied to isolate covariance structure.")
     
@@ -289,12 +251,7 @@ def global_standardize_embeddings(full_embeddings, embeddings_list, epsilon=1e-8
 def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, min_variance=None, min_components=None):
     """
     Fits PCA. If both min_variance and min_components are provided,
-    it selects the number of components that satisfies BOTH conditions
-    (i.e., max(components_for_variance, min_components)).
-
-    Args:
-        min_variance (float): Target variance (e.g., 0.9).
-        min_components (int): Hard floor for number of components (e.g., 50).
+    it selects the number of components that satisfies BOTH conditions.
     """
     # Convert to NumPy
     full_np = full_tensor_standardized.cpu().numpy()
@@ -307,7 +264,6 @@ def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, min_v
         print(f"   -> Calculating components to satisfy Variance >= {min_variance*100:.0f}% AND Count >= {min_components}...")
         
         # 1. Fit a temporary PCA on all available components to check variance profile
-        # (Limit to min(n_samples, n_features) because PCA cannot produce more components than that)
         max_possible = min(n_samples, n_features)
         pca_temp = PCA(n_components=max_possible)
         pca_temp.fit(full_np)
@@ -315,8 +271,7 @@ def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, min_v
         # 2. Calculate cumulative variance
         cumsum_var = np.cumsum(pca_temp.explained_variance_ratio_)
         
-        # 3. Find index where variance is met (np.searchsorted finds the first index >= target)
-        # We add 1 because indices are 0-based
+        # 3. Find index where variance is met
         n_needed_for_var = np.searchsorted(cumsum_var, min_variance) + 1
         
         # 4. Take the maximum of the two requirements
@@ -330,18 +285,15 @@ def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, min_v
         print(f"      - Selected: {final_n_components}")
 
     elif min_variance is not None:
-        # Standard sklearn float behavior
         final_n_components = min_variance 
         print(f"   -> Target Variance: {min_variance*100:.0f}%")
 
     elif min_components is not None:
-        # Standard sklearn int behavior
         final_n_components = min_components
         print(f"   -> Target Count: {min_components}")
         
     else:
-        # Default fallback if nothing provided (keep all)
-        final_n_components = 0.99 # or None
+        final_n_components = 0.99 
     
     # --- FINAL FIT & TRANSFORM ---
     pca = PCA(n_components=final_n_components)
@@ -364,7 +316,7 @@ def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, min_v
 
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, 
                         pca_min_variance=None, pca_min_components=None, 
-                        standardize=True, similarity_threshold=0.9): # <--- Added threshold param
+                        standardize=True, similarity_threshold=0.9):
     """
     Evaluates splits using Matrix Normal MLE estimation.
     Includes logic to skip splits that are highly similar to previously identified significant splits.
@@ -373,9 +325,12 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
     # --- 0. Setup Output Directories ---
     base_eval_dir = os.path.join(output_path, "splits_evaluations")
     sig_splits_dir = os.path.join(base_eval_dir, "significant_splits")
+    # NEW: Directory for non-significant splits
+    non_sig_splits_dir = os.path.join(base_eval_dir, "non_significant_splits")
     
     os.makedirs(base_eval_dir, exist_ok=True)
     os.makedirs(sig_splits_dir, exist_ok=True)
+    os.makedirs(non_sig_splits_dir, exist_ok=True)
 
     # --- Initial Load ---
     data_full = torch.load(pt_path, map_location='cpu')
@@ -455,8 +410,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
     candidates = find_candidate_splits(tree_path, k=k, min_support=0.8, min_prop=0.1)
     results = []
     
-    # NEW: Store the sets of significant splits found so far
-    # Format: list of tuples -> [(set_a_1, set_b_1), (set_a_2, set_b_2), ...]
     significant_split_history = [] 
 
     for i, split in enumerate(candidates):
@@ -479,17 +432,23 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
         split_folder_name = f"rank{rank}"
         split_dir = os.path.join(base_eval_dir, split_folder_name)
         os.makedirs(split_dir, exist_ok=True)
+        
+        # NEW: Create calculations folder
+        calc_dir = os.path.join(split_dir, "calculations")
+        os.makedirs(calc_dir, exist_ok=True)
 
         suffix_a = f"_rank{rank}_subA"
         suffix_b = f"_rank{rank}_subB"
 
-        cov_a, cov_b = split_covariance_matrix(cov_path, split, suffix_a, suffix_b, output_dir=split_dir)
-        pt_a, pt_b = split_protein_embeddings(pt_path, split, suffix_a, suffix_b, output_dir=split_dir)
+        # CHANGED: output_dir is now calc_dir
+        cov_a, cov_b = split_covariance_matrix(cov_path, split, suffix_a, suffix_b, output_dir=calc_dir)
+        pt_a, pt_b = split_protein_embeddings(pt_path, split, suffix_a, suffix_b, output_dir=calc_dir)
 
         if cov_a is None: continue
 
-        aligned_path_a = os.path.join(split_dir, f"aligned{suffix_a}.pt")
-        aligned_path_b = os.path.join(split_dir, f"aligned{suffix_b}.pt")
+        # CHANGED: Aligned files go to calc_dir
+        aligned_path_a = os.path.join(calc_dir, f"aligned{suffix_a}.pt")
+        aligned_path_b = os.path.join(calc_dir, f"aligned{suffix_b}.pt")
         
         emb_tensor_a = align_embeddings_with_covariance(cov_a, pt_a, aligned_path_a).float()
         emb_tensor_b = align_embeddings_with_covariance(cov_b, pt_b, aligned_path_b).float()
@@ -510,8 +469,9 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
 
         # Run MLE
         print("   Running MLE for Sub-trees")
-        _, v_path_a, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_a_raw], U_path=cov_a, name_comments="", output_dir=split_dir)
-        _, v_path_b, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_b_raw], U_path=cov_b, name_comments="", output_dir=split_dir)
+        # CHANGED: output_dir is now calc_dir
+        _, v_path_a, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_a_raw], U_path=cov_a, name_comments="", output_dir=calc_dir)
+        _, v_path_b, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_b_raw], U_path=cov_b, name_comments="", output_dir=calc_dir)
 
         # Calculate Stats
         u_tensor_a = load_matrix_tensor(cov_a)
@@ -519,9 +479,9 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
         v_tensor_a = load_matrix_tensor(v_path_a)
         v_tensor_b = load_matrix_tensor(v_path_b)
         
-        # Save embedding covariances
-        pd.DataFrame(v_tensor_a.cpu().numpy()).to_csv(os.path.join(split_dir, f"embedding_cov{suffix_a}.csv"))
-        pd.DataFrame(v_tensor_b.cpu().numpy()).to_csv(os.path.join(split_dir, f"embedding_cov{suffix_b}.csv"))
+        # CHANGED: Save embedding covariances to calc_dir
+        pd.DataFrame(v_tensor_a.cpu().numpy()).to_csv(os.path.join(calc_dir, f"embedding_cov{suffix_a}.csv"))
+        pd.DataFrame(v_tensor_b.cpu().numpy()).to_csv(os.path.join(calc_dir, f"embedding_cov{suffix_b}.csv"))
 
         ll_split = calculate_matrix_normal_ll(u_tensor_a.shape[0], p_current, u_tensor_a, v_tensor_a) + \
                    calculate_matrix_normal_ll(u_tensor_b.shape[0], p_current, u_tensor_b, v_tensor_b)
@@ -559,6 +519,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
                 }
                 
                 json_filename = f"split_rank{rank}.json"
+                # Keep JSON in the root of the split folder for easy access
                 json_path = os.path.join(split_dir, json_filename)
                 
                 with open(json_path, 'w') as f:
@@ -575,6 +536,26 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
             'sig': is_sig,
             'folder': split_dir 
         })
+
+    print("\n" + "="*40)
+    print("Moving Non-Significant Splits")
+    print("="*40)
+    for res in results:
+        # If not significant, not skipped (folder exists), and still in the base folder
+        if not res['sig'] and res['folder'] is not None:
+            # Check if it currently resides in the base eval dir (meaning it wasn't moved to significant)
+            if os.path.dirname(res['folder']) == base_eval_dir:
+                split_name = os.path.basename(res['folder'])
+                dest_path = os.path.join(non_sig_splits_dir, split_name)
+                
+                if os.path.exists(dest_path):
+                    shutil.rmtree(dest_path)
+                
+                try:
+                    shutil.move(res['folder'], dest_path)
+                    res['folder'] = dest_path # Update path in results
+                except Exception as e:
+                    print(f"Error moving {split_name} to non_significant_splits: {e}")
 
     # Summary
     print("\n" + "="*40 + "\nFINAL SUMMARY\n" + "="*40)
