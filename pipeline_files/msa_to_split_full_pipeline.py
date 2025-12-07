@@ -93,3 +93,4 @@ def run_pipeline(MSA_file_path,
                     visualize_split_msa_sorted(fasta_file_path, split_info, folder_path)
                     plot_split_covariance(cov_mat_path, split_info, folder_path)
                     visualize_structures_pipeline(fasta_file_path, split_info, folder_path)
+                    run_variance_analysis(folder_path)
