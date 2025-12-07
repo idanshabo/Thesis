@@ -466,8 +466,8 @@ def run_variance_analysis(folder_path):
     full_cov_name = f"{protein_id}_calculations_global_H0_PCA_embeddings_cov_mat.csv"
     full_cov_path = os.path.join(calc_dir, full_cov_name)
     
-    child1_path = os.path.join(folder_path, f"embedding_cov_{split_name}_subA.csv")
-    child2_path = os.path.join(folder_path, f"embedding_cov_{split_name}_subB.csv")
+    child1_path = os.path.join(folder_path, f"calculations/embedding_cov_{split_name}_subA.csv")
+    child2_path = os.path.join(folder_path, f"calculations/embedding_cov_{split_name}_subB.csv")
     
     # Visualization Output
     viz_dir = os.path.join(folder_path, "visualization")
