@@ -7,7 +7,7 @@ import numpy as np
 import shutil
 from sklearn.decomposition import PCA
 from estimate_matrix_normal.estimate_matrix_normal import matrix_normal_mle_fixed_u
-from align_embeddings_with_covariance import align_embeddings_with_covariance
+from utils.align_embeddings_with_covariance import align_embeddings_with_covariance
 from evaluate_split_options.utils import load_matrix_tensor, get_log_det, calculate_matrix_normal_ll, calculate_bic_matrix_normal
 
 
