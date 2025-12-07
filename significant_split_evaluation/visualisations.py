@@ -307,131 +307,82 @@ def visualize_embeddings_pca(embeddings_path, split_info, output_plot="pca_split
     print(f"PCA visualization saved to: {output_plot}")
 
 
-def get_clustered_order(df, ids, method='ward'):
+def plot_split_covariance(ordered_matrix_path, split_info, sig_split_folder):
     """
-    Performs hierarchical clustering on a subset of the dataframe 
-    and returns the IDs in the sorted order.
+    Loads a pre-ordered matrix and plots it with 'Group A' and 'Group B'
+    indicated by colored bars on the axes (Group A = Red, Group B = Blue).
     """
-    # If 0 or 1 item, no sorting needed
-    if len(ids) < 2:
-        return ids
-    
-    # Extract the sub-matrix for this group
-    sub_df = df.loc[ids, ids]
-    
+    # 1. Load the Pre-Ordered Matrix
     try:
-        # 1. Calculate linkage
-        # We use the sub-df itself as features. Rows with similar covariance 
-        # profiles across the group will be clustered together.
-        # 'ward' minimizes variance within clusters.
-        Z = linkage(sub_df, method=method)
-        
-        # 2. Get the order of leaves (the sorted indices)
-        ordered_indices = leaves_list(Z)
-        
-        # 3. Map back to original IDs
-        return sub_df.index[ordered_indices].tolist()
+        df_ordered = pd.read_csv(ordered_matrix_path, index_col=0)
     except Exception as e:
-        print(f"Warning: Clustering failed for group (size {len(ids)}). Keeping original order. Error: {e}")
-        return ids
-
-def plot_split_covariance(cov_matrix_path, split_info, sig_split_folder, sort_groups=True):
-    """
-    Generates a heatmap of a covariance matrix sorted by groups defined in split_info.
-    
-    Parameters:
-    - sort_groups (bool): If True, performs hierarchical clustering within Group A 
-                          and Group B independently to reveal structure.
-    """
-    
-    # 1. Load the Covariance Matrix
-    try:
-        df_cov = pd.read_csv(cov_matrix_path, index_col=0)
-    except FileNotFoundError:
-        print(f"Error: The file at {cov_matrix_path} was not found.")
-        return
-    except Exception as e:
-        print(f"Error loading file: {e}")
+        print(f"Error loading matrix: {e}")
         return
 
-    # 2. Extract and Validate IDs
-    raw_group_a = split_info.get('group_a', [])
-    raw_group_b = split_info.get('group_b', [])
-
-    valid_group_a = [uid for uid in raw_group_a if uid in df_cov.index]
-    valid_group_b = [uid for uid in raw_group_b if uid in df_cov.index]
-
-    if not valid_group_a and not valid_group_b:
-        print("Error: None of the IDs in split_info were found in the covariance matrix.")
-        return
-
-    # 3. Reorder the Groups (Clustering)
-    if sort_groups:
-        print("Clustering Group A...")
-        sorted_group_a = get_clustered_order(df_cov, valid_group_a)
-        print("Clustering Group B...")
-        sorted_group_b = get_clustered_order(df_cov, valid_group_b)
-    else:
-        sorted_group_a = valid_group_a
-        sorted_group_b = valid_group_b
-
-    # Concatenate the lists: Group A first, then Group B
-    ordered_ids = sorted_group_a + sorted_group_b
+    # 2. Parse Split Info
+    group_a_ids = set(split_info.get('group_a', []))
+    group_b_ids = set(split_info.get('group_b', []))
     
-    # Subset and reorder the dataframe
-    df_ordered = df_cov.loc[ordered_ids, ordered_ids]
-
-    # 4. Plot Setup
-    plt.figure(figsize=(10, 8))
+    # 3. Create Color Mapping (The "Overlay")
+    # We create a list of colors corresponding exactly to the dataframe's index order
+    row_colors = []
     
-    # Draw the heatmap
-    sns.heatmap(df_ordered, cmap='viridis', xticklabels=False, yticklabels=False)
-
-    # 5. Add Separation Lines and Labels
-    split_index = len(sorted_group_a)
-    total_len = len(ordered_ids)
-
-    # Draw white separation lines
-    plt.axvline(x=split_index, color='white', linewidth=2, linestyle='-')
-    plt.axhline(y=split_index, color='white', linewidth=2, linestyle='-')
-
-    # Add Group Labels
-    # X-axis labels (bottom)
-    if sorted_group_a:
-        plt.text(split_index / 2, total_len + (total_len * 0.02), 
-                 f'Group A (n={len(sorted_group_a)})', 
-                 ha='center', va='top', fontsize=12, weight='bold')
-    if sorted_group_b:
-        plt.text(split_index + (len(sorted_group_b) / 2), total_len + (total_len * 0.02), 
-                 f'Group B (n={len(sorted_group_b)})', 
-                 ha='center', va='top', fontsize=12, weight='bold')
-
-    # Y-axis labels (left)
-    if sorted_group_a:
-        plt.text(- (total_len * 0.02), split_index / 2, 
-                 'Group A', ha='right', va='center', rotation=90, fontsize=12, weight='bold')
-    if sorted_group_b:
-        plt.text(- (total_len * 0.02), split_index + (len(sorted_group_b) / 2), 
-                 'Group B', ha='right', va='center', rotation=90, fontsize=12, weight='bold')
-
-    # 6. Titles and Output
-    node_name = split_info.get('node_name', 'Unknown Node')
-    rank = split_info.get('rank', 'Unknown Rank')
+    # Define your palette
+    color_map = {
+        'A': '#e74c3c', # Red
+        'B': '#3498db', # Blue
+        'None': '#f0f0f0' # Grey (for features not in the split)
+    }
     
-    sort_status = "Clustered" if sort_groups else "Unsorted"
-    plt.title(f'Covariance Structure ({sort_status})\nNode: {node_name} | Rank: {rank}', fontsize=14, pad=20)
-    plt.tight_layout()
+    for feature_id in df_ordered.index:
+        if feature_id in group_a_ids:
+            row_colors.append(color_map['A'])
+        elif feature_id in group_b_ids:
+            row_colors.append(color_map['B'])
+        else:
+            row_colors.append(color_map['None'])
 
+    # 4. Generate Plot using Clustermap (with clustering DISABLED)
+    # We use clustermap because it handles row_colors/col_colors natively
+    plt.figure(figsize=(10, 10))
+    
+    g = sns.clustermap(
+        df_ordered,
+        
+        # CRITICAL: Disable clustering to respect the global order
+        row_cluster=False,
+        col_cluster=False,
+        
+        # Add the colored bars
+        row_colors=row_colors,
+        col_colors=row_colors,
+        
+        # Aesthetics
+        cmap="viridis",
+        xticklabels=False,
+        yticklabels=False,
+        cbar_pos=(0.02, 0.8, 0.03, 0.15) # Custom position for colorbar
+    )
+
+    # 5. Add Legend for the Groups
+    # We create a custom legend patch
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor=color_map['A'], edgecolor='w', label='Group A'),
+        Patch(facecolor=color_map['B'], edgecolor='w', label='Group B')
+    ]
+    
+    # Place legend on the current figure
+    g.ax_heatmap.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1.05, 1), title="Split Groups")
+
+    # 6. Save
     viz_dir = os.path.join(sig_split_folder, "visualization")
     os.makedirs(viz_dir, exist_ok=True)
     
-    # Updated filename to reflect sorting
-    filename = "proteins_covariance_plot_clustered.png" if sort_groups else "proteins_covariance_plot.png"
-    output_path = os.path.join(viz_dir, filename)
-    
-    plt.savefig(output_path, dpi=300)
+    output_path = os.path.join(viz_dir, "covariance_overlay_plot.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
-    print(f"Proteins Covariance Plot saved to {output_path}")
+    print(f"Overlay plot saved to {output_path}")
 
 
 def load_matrix(data):
