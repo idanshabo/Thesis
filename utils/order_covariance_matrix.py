@@ -39,3 +39,4 @@ def order_covariance_matrix(cov_mat_path, method='ward'):
         
     except Exception as e:
         print(f"Failed to order matrix: {e}")
+    return output_path
