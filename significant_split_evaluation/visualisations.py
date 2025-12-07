@@ -482,7 +482,7 @@ def run_variance_analysis(folder_path):
     protein_outputs_dir = os.path.dirname(splits_eval_dir)
     protein_root_dir = os.path.dirname(protein_outputs_dir)
 
-    PF03869_calculations_dir = 
+    #PF03869_calculations_dir = 
     protein_id = os.path.basename(protein_root_dir) # e.g., "PF03869_calculations"
     
     print(f"Detected Protein ID: {protein_id}")
