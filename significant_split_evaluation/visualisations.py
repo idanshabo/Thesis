@@ -492,10 +492,7 @@ def run_variance_analysis(folder_path):
     # Navigate to the parallel 'calculations' directory
     # Root is one level up from protein_outputs_dir
     protein_data_root = os.path.dirname(protein_outputs_dir)
-    
-    # NOTE: Using 'calcultions' (sic) as per your actual path string. 
-    # Change to 'calculations' if that was just a typo in your text.
-    calc_dir = os.path.join(protein_data_root, f"{protein_id}_calcultions")
+    calc_dir = os.path.join(protein_data_root, f"{protein_id}_calculations")
     
     # Define Full File Paths
     full_cov_name = f"{protein_id}_global_H0_PCA_embeddings_cov_mat.csv"
