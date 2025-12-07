@@ -8,6 +8,8 @@ import seaborn as sns
 import pandas as pd
 from scipy.cluster.hierarchy import linkage, leaves_list
 from scipy.spatial.distance import pdist
+from matplotlib.patches import Rectangle
+
 
 
 def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
@@ -308,78 +310,77 @@ def visualize_embeddings_pca(embeddings_path, split_info, output_plot="pca_split
 
 
 def plot_split_covariance(ordered_matrix_path, split_info, sig_split_folder):
+"""
+    Plots the matrix using sns.heatmap for precise layout control.
     """
-    Loads a pre-ordered matrix and plots it with 'Group A' and 'Group B'
-    indicated by colored bars on the axes (Group A = Red, Group B = Blue).
-    """
-    # 1. Load the Pre-Ordered Matrix
+    # 1. Load Data
     try:
         df_ordered = pd.read_csv(ordered_matrix_path, index_col=0)
     except Exception as e:
         print(f"Error loading matrix: {e}")
         return
 
-    # 2. Parse Split Info
+    # 2. Map Colors
     group_a_ids = set(split_info.get('group_a', []))
     group_b_ids = set(split_info.get('group_b', []))
     
-    # 3. Create Color Mapping (The "Overlay")
-    # We create a list of colors corresponding exactly to the dataframe's index order
+    # Map colors
+    color_map = {'A': '#e74c3c', 'B': '#3498db', 'None': '#f0f0f0'}
     row_colors = []
-    
-    # Define your palette
-    color_map = {
-        'A': '#e74c3c', # Red
-        'B': '#3498db', # Blue
-        'None': '#f0f0f0' # Grey (for features not in the split)
-    }
-    
-    for feature_id in df_ordered.index:
-        if feature_id in group_a_ids:
-            row_colors.append(color_map['A'])
-        elif feature_id in group_b_ids:
-            row_colors.append(color_map['B'])
-        else:
-            row_colors.append(color_map['None'])
+    for uid in df_ordered.index:
+        if uid in group_a_ids: row_colors.append(color_map['A'])
+        elif uid in group_b_ids: row_colors.append(color_map['B'])
+        else: row_colors.append(color_map['None'])
 
-    # 4. Generate Plot using Clustermap (with clustering DISABLED)
-    # We use clustermap because it handles row_colors/col_colors natively
-    plt.figure(figsize=(10, 10))
+    # 3. Plot Setup (Standard Figure)
+    # Using a constrained layout to minimize whitespace automatically
+    fig, ax = plt.subplots(figsize=(10, 10), constrained_layout=True)
     
-    g = sns.clustermap(
-        df_ordered,
-        
-        # CRITICAL: Disable clustering to respect the global order
-        row_cluster=False,
-        col_cluster=False,
-        
-        # Add the colored bars
-        row_colors=row_colors,
-        col_colors=row_colors,
-        
-        # Aesthetics
-        cmap="viridis",
-        xticklabels=False,
-        yticklabels=False,
-        cbar_pos=(0.02, 0.8, 0.03, 0.15) # Custom position for colorbar
-    )
+    # 4. Draw Heatmap
+    # Note: We don't pass row_colors here. We draw them manually for better control.
+    sns.heatmap(df_ordered, ax=ax, cmap='viridis', cbar=True,
+                xticklabels=False, yticklabels=False, square=True)
 
-    # 5. Add Legend for the Groups
-    # We create a custom legend patch
-    from matplotlib.patches import Patch
+    # 5. Add the "Split" Tracks Manually
+    # This gives us the side-bars without the clustermap overhead
+    
+    # Add colored strips to the Left (Y-axis)
+    # We use axis coordinates: x=0 is left edge, x=1 is right edge
+    # transform=ax.get_yaxis_transform() makes x be in axes coords, y in data coords
+    for i, color in enumerate(row_colors):
+        # Draw a small rectangle to the left of the Y-axis
+        rect = Rectangle((-0.03, i), 0.03, 1, 
+                         color=color, transform=ax.get_yaxis_transform(), 
+                         clip_on=False, linewidth=0)
+        ax.add_patch(rect)
+        
+    # Add colored strips to the Top (X-axis)
+    for i, color in enumerate(row_colors):
+        # Draw a small rectangle above the X-axis
+        rect = Rectangle((i, 1.01), 1, 0.03, 
+                         color=color, transform=ax.get_xaxis_transform(), 
+                         clip_on=False, linewidth=0)
+        ax.add_patch(rect)
+
+    # 6. Titles and Labels
+    node_name = split_info.get('node_name', 'Unknown Node')
+    rank = split_info.get('rank', 'Unknown Rank')
+    
+    plt.title(f'Covariance Structure: {node_name}\nRank: {rank}', fontsize=16, pad=30)
+    
+    # Custom Legend
+    from matplotlib.lines import Line2D
     legend_elements = [
-        Patch(facecolor=color_map['A'], edgecolor='w', label='Group A'),
-        Patch(facecolor=color_map['B'], edgecolor='w', label='Group B')
+        Line2D([0], [0], marker='s', color='w', markerfacecolor=color_map['A'], markersize=10, label='Group A'),
+        Line2D([0], [0], marker='s', color='w', markerfacecolor=color_map['B'], markersize=10, label='Group B')
     ]
-    
-    # Place legend on the current figure
-    g.ax_heatmap.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1.05, 1), title="Split Groups")
+    ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1.2, 1), title="Groups")
 
-    # 6. Save
+    # 7. Save
     viz_dir = os.path.join(sig_split_folder, "visualization")
     os.makedirs(viz_dir, exist_ok=True)
+    output_path = os.path.join(viz_dir, "proteins_covariance_plot.png")
     
-    output_path = os.path.join(viz_dir, "covariance_overlay_plot.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"Overlay plot saved to {output_path}")
