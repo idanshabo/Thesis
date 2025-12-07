@@ -28,10 +28,14 @@ def run_pipeline(MSA_file_path,
 
     # --- 1. Setup Directories ---
     base_dir = os.path.dirname(os.path.abspath(MSA_file_path))
+    
+    # Extract family name (e.g., "PF07361" from "PF07361.alignment.stockholm")
     filename = os.path.basename(MSA_file_path)
     family_name = filename.split('.')[0] 
+
     calc_dir = os.path.join(base_dir, f"{family_name}_calculations")
     out_dir = os.path.join(base_dir, f"{family_name}_outputs")
+
     os.makedirs(calc_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
 
@@ -56,7 +60,9 @@ def run_pipeline(MSA_file_path,
     shutil.move(temp_cov_path, cov_mat_path)
     
     # Embeddings
-    normalized_mean_embeddings_path = create_normalized_mean_embeddings_matrix(fasta_file_path, calc_dir)
+    # Explicitly set the subfolder path for embeddings inside the calculations directory
+    embeddings_output_dir = os.path.join(calc_dir, 'embeddings_output')
+    normalized_mean_embeddings_path = create_normalized_mean_embeddings_matrix(fasta_file_path, embeddings_output_dir)
 
     # --- 3. Evaluate Splits (Output to _outputs folder) ---
     results = evaluate_top_splits(phylogenetic_tree_path, 
@@ -68,9 +74,9 @@ def run_pipeline(MSA_file_path,
                                   pca_min_components=pca_min_components,
                                   standardize=standardize)
 
-    # --- 4. Save Results Object (Using NumpyEncoder) ---
+    # --- 4. Save Results Object ---
     results_file_path = os.path.join(out_dir, "results.json")
-    save_results_json(results_file_path)
+    save_results_json(results, results_file_path)
 
     # --- 5. Visualizations ---
     significant_splits_output_path = os.path.join(out_dir, 'splits_evaluations', 'significant_splits')
