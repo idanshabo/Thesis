@@ -510,8 +510,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
 
         # Run MLE
         print("   Running MLE for Sub-trees")
-        _, v_path_a, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_a_raw], U_path=cov_a, name_comments=suffix_a, output_dir=split_dir)
-        _, v_path_b, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_b_raw], U_path=cov_b, name_comments=suffix_b, output_dir=split_dir)
+        _, v_path_a, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_a_raw], U_path=cov_a, name_comments="", output_dir=split_dir)
+        _, v_path_b, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_b_raw], U_path=cov_b, name_comments="", output_dir=split_dir)
 
         # Calculate Stats
         u_tensor_a = load_matrix_tensor(cov_a)
