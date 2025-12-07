@@ -495,7 +495,7 @@ def run_variance_analysis(folder_path):
     calc_dir = os.path.join(protein_data_root, f"{protein_id}_calculations")
     
     # Define Full File Paths
-    full_cov_name = f"{protein_id}_global_H0_PCA_embeddings_cov_mat.csv"
+    full_cov_name = f"{protein_id}_calculations_global_H0_PCA_embeddings_cov_mat.csv"
     full_cov_path = os.path.join(calc_dir, full_cov_name)
     
     child1_path = os.path.join(folder_path, f"{split_name}_subA_embeddings_cov_mat.csv")
