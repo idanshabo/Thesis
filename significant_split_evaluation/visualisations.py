@@ -469,6 +469,7 @@ def run_variance_analysis(folder_path):
     # --- 1. Path Deduction ---
     clean_path = folder_path.rstrip(os.sep)
     split_name = os.path.basename(clean_path) # e.g., "rank5_0.960"
+    split_num = split_name.split("_")[0]
     
     # Navigate up 3 levels to find the Protein ID root folder
     # Level 0: .../rank5_0.960
@@ -478,9 +479,11 @@ def run_variance_analysis(folder_path):
     
     sig_splits_dir = os.path.dirname(clean_path)
     splits_eval_dir = os.path.dirname(sig_splits_dir)
-    protein_root_dir = os.path.dirname(splits_eval_dir)
-    
-    protein_id = os.path.basename(protein_root_dir) # e.g., "PF03869"
+    protein_outputs_dir = os.path.dirname(splits_eval_dir)
+    protein_root_dir = os.path.dirname(protein_outputs_dir)
+
+    PF03869_calculations_dir = 
+    protein_id = os.path.basename(protein_root_dir) # e.g., "PF03869_calculations"
     
     print(f"Detected Protein ID: {protein_id}")
     
@@ -488,8 +491,8 @@ def run_variance_analysis(folder_path):
     full_cov_name = f"{protein_id}_global_H0_PCA_embeddings_cov_mat.csv"
     full_cov_path = os.path.join(protein_root_dir, full_cov_name)
     
-    child1_path = os.path.join(clean_path, f"{split_name}_rank5_subA_embeddings_cov_mat.csv")
-    child2_path = os.path.join(clean_path, f"{split_name}_rank5_subB_embeddings_cov_mat.csv")
+    child1_path = os.path.join(clean_path, f"{split_name}_{split_num}_subA_embeddings_cov_mat.csv")
+    child2_path = os.path.join(clean_path, f"{split_name}_{split_num}_subB_embeddings_cov_mat.csv")
     
     # Visualization Output
     viz_dir = os.path.join(clean_path, "visualization")
