@@ -462,7 +462,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
     for i, split in enumerate(candidates):
         rank = i + 1
         node_name = split.get('node_name', f'Node_{i}')
-        safe_node_name = node_name.replace("/", "_").replace(" ", "")
         
         print(f"\n--- Candidate {rank}: {node_name} (Len: {split.get('length', 0):.4f}) ---")
 
@@ -477,7 +476,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
             })
             continue
 
-        split_folder_name = f"rank{rank}_{safe_node_name}"
+        split_folder_name = f"rank{rank}"
         split_dir = os.path.join(base_eval_dir, split_folder_name)
         os.makedirs(split_dir, exist_ok=True)
 
@@ -559,7 +558,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
                     "folder_path": split_dir
                 }
                 
-                json_filename = f"split_rank{rank}_{safe_node_name}.json"
+                json_filename = f"split_rank{rank}.json"
                 json_path = os.path.join(split_dir, json_filename)
                 
                 with open(json_path, 'w') as f:
