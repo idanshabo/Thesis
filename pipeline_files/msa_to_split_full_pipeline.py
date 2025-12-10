@@ -3,7 +3,7 @@ from utils.convert_stockholm_to_fasta import convert_stockholm_to_fasta
 from utils.phylogenetic_tree_to_covariance_matrix import tree_to_covariance_matrix
 from utils.check_matching_names import check_matching_names
 from utils.save_results_json import save_results_json
-from utils.order_covariance_matrix import order_covariance_matrix
+from utils.order_covariance_matrix import order_covariance_matrix_by_tree
 from create_phylogenetic_tree.run_fasttree import run_fasttree
 from handling_esm_embeddings.create_normalized_mean_embeddings_matrix import create_normalized_mean_embeddings_matrix
 import os
@@ -60,7 +60,7 @@ def run_pipeline(MSA_file_path,
     temp_cov_path = tree_to_covariance_matrix(phylogenetic_tree_path)
     cov_mat_path = os.path.join(calc_dir, os.path.basename(temp_cov_path))
     shutil.move(temp_cov_path, cov_mat_path)
-    cov_mat_ordered_path = order_covariance_matrix(cov_mat_path)
+    cov_mat_ordered_path = order_covariance_matrix_by_tree(cov_mat_path, phylogenetic_tree_path)
     
     # Embeddings
     # Explicitly set the subfolder path for embeddings inside the calculations directory
