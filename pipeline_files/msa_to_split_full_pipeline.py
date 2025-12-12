@@ -82,7 +82,7 @@ def run_pipeline(MSA_file_path,
     save_results_json(results, results_file_path)
 
     # --- 5. Visualizations ---
-    significant_splits_output_path = os.path.join(out_dir, 'splits_evaluations', 'significant_splits')
+    significant_splits_output_path = os.path.join(out_dir, 'significant_splits')
     
     if os.path.exists(significant_splits_output_path):
         sig_splits = os.listdir(significant_splits_output_path)
