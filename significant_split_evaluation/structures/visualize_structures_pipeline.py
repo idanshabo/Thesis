@@ -56,6 +56,7 @@ def align_covariance_to_samples(cov_path, sample_list):
 def plot_combined_panel(ordered_cov_path, df_tm, sample_list, split_point, output_folder, filename="combined_analysis.png"):
     """
     Plots filtered Covariance (Left) and TM-Score (Right) side-by-side.
+    Adds statistical annotations (Average TM scores) to the TM-score heatmap.
     """
     # 1. Prepare Covariance Data (Aligned)
     df_cov_aligned = align_covariance_to_samples(ordered_cov_path, sample_list)
@@ -77,7 +78,7 @@ def plot_combined_panel(ordered_cov_path, df_tm, sample_list, split_point, outpu
     ax1.axvline(x=split_point, color='white', linestyle='--', linewidth=1.5, alpha=0.8)
     ax1.axhline(y=split_point, color='white', linestyle='--', linewidth=1.5, alpha=0.8)
     
-    # Labels
+    # Axis Labels (Covariance)
     ax1.text(split_point/2, -0.5, "Group A", ha='center', va='bottom', fontsize=11, fontweight='bold')
     ax1.text(-0.5, split_point/2, "Group A", ha='right', va='center', fontsize=11, fontweight='bold')
     
@@ -88,22 +89,54 @@ def plot_combined_panel(ordered_cov_path, df_tm, sample_list, split_point, outpu
     ax1.set_title(f"Covariance Signal\n(Filtered to {len(df_cov_aligned)} sampled IDs)", fontsize=14, pad=10)
 
     # ==========================================
-    # RIGHT PANEL: TM Score
+    # RIGHT PANEL: TM Score with STATS
     # ==========================================
     if df_tm is not None:
         sns.heatmap(df_tm, cmap='RdYlBu_r', vmin=0, vmax=1.0, cbar=True,
                     xticklabels=False, yticklabels=False, square=True, ax=ax2)
         
-        # Draw Crosshair
+        # --- Calculate Averages ---
+        # 1. Intra-Group A (Top-Left)
+        block_a = df_tm.iloc[:split_point, :split_point]
+        avg_a = block_a.values.mean()
+
+        # 2. Intra-Group B (Bottom-Right)
+        block_b = df_tm.iloc[split_point:, split_point:]
+        avg_b = block_b.values.mean()
+
+        # 3. Inter-Group (Top-Right / Bottom-Left)
+        # We take the top-right block for calculation
+        block_inter = df_tm.iloc[:split_point, split_point:]
+        avg_inter = block_inter.values.mean()
+
+        # --- Draw Crosshair ---
         ax2.axvline(x=split_point, color='black', linestyle='--', linewidth=1.5)
         ax2.axhline(y=split_point, color='black', linestyle='--', linewidth=1.5)
         
-        # Labels
+        # --- Add Axis Labels ---
         ax2.text(split_point/2, -0.5, "Group A", ha='center', va='bottom', fontsize=11, fontweight='bold')
         ax2.text(-0.5, split_point/2, "Group A", ha='right', va='center', fontsize=11, fontweight='bold')
         
         ax2.text(center_b, -0.5, "Group B", ha='center', va='bottom', fontsize=11, fontweight='bold')
         ax2.text(-0.5, center_b, "Group B", ha='right', va='center', fontsize=11, fontweight='bold')
+
+        # --- Add STATISTICAL OVERLAYS (The Labels you asked for) ---
+        # We place text in the visual center of each block
+        
+        # 1. Label Center of Block A
+        ax2.text(split_point/2, split_point/2, f"Avg: {avg_a:.2f}", 
+                 ha='center', va='center', fontsize=14, fontweight='bold', 
+                 color='black', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+
+        # 2. Label Center of Block B
+        ax2.text(center_b, center_b, f"Avg: {avg_b:.2f}", 
+                 ha='center', va='center', fontsize=14, fontweight='bold', 
+                 color='black', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+
+        # 3. Label Center of Inter-Group (Top-Right quadrant)
+        ax2.text(center_b, split_point/2, f"Inter: {avg_inter:.2f}", 
+                 ha='center', va='center', fontsize=14, fontweight='bold', 
+                 color='black', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
 
         ax2.set_title(f"Predicted Structural Similarity (TM-Score)\n(ESMFold Prediction)", fontsize=14, pad=10)
     else:
