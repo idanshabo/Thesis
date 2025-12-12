@@ -134,9 +134,7 @@ def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
     ax.set_xlabel("Alignment Position")
     ax.set_title(f"Re-ordered MSA View: {split_info.get('node_name', 'Split')} (n={num_seqs})")
 
-    viz_dir = os.path.join(sig_split_folder, "visualization")
-    os.makedirs(viz_dir, exist_ok=True)
-    output_plot = os.path.join(viz_dir, "ordered_split_MSA.png")
+    output_plot = os.path.join(sig_split_folder, "ordered_split_MSA.png")
     
     plt.tight_layout()
     
@@ -392,11 +390,8 @@ def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder):
     
     plt.title(f'Covariance Structure: {node_name}\n(Rank: {rank})', fontsize=14, pad=30)
     
-    # Save
-    viz_dir = os.path.join(sig_split_folder, "visualization")
-    os.makedirs(viz_dir, exist_ok=True)
-    
-    output_path = os.path.join(viz_dir, "covariance_with_split_lines.png")
+    # Save   
+    output_path = os.path.join(sig_split_folder, "covariance_with_split_lines.png")
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"Covariance plot saved to {output_path}")
@@ -470,8 +465,7 @@ def run_variance_analysis(folder_path):
     child2_path = os.path.join(folder_path, f"calculations/embedding_cov_{split_name}_subB.csv")
     
     # Visualization Output
-    viz_dir = os.path.join(folder_path, "visualization")
-    output_path = os.path.join(viz_dir, "variance_spectrum.png")
+    output_path = os.path.join(folder_path, "variance_spectrum.png")
 
     print(f"Global Cov Path: {full_cov_path}")
     print(f"Child A Path:    {child1_path}")
@@ -479,9 +473,6 @@ def run_variance_analysis(folder_path):
     # --- 2. Setup & Load ---
     if not os.path.exists(full_cov_path):
         raise FileNotFoundError(f"Could not find global matrix at: {full_cov_path}")
-
-    if not os.path.exists(viz_dir):
-        os.makedirs(viz_dir)
 
     full_cov = load_matrix(full_cov_path)
     child1_cov = load_matrix(child1_path)
