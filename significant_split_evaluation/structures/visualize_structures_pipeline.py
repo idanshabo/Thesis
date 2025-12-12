@@ -20,221 +20,195 @@ def normalize_id(identifier):
     return identifier.replace("/", "_")
 
 
-def align_covariance_to_samples(cov_path, sample_list):
+def get_aligned_matrices(cov_path, tm_df, sample_list, sort_by="groups"):
     """
-    Loads the covariance matrix and re-indexes it to match the exact 
-    list of proteins used in the structure prediction.
+    Returns aligned Covariance and TM dataframes based on the requested sorting mode.
+    
+    Args:
+        sort_by (str): "groups" (default) or "covariance"
     """
+    # 1. Load Full Covariance
     try:
-        df_full = pd.read_csv(cov_path, index_col=0)
+        df_cov_full = pd.read_csv(cov_path, index_col=0)
     except Exception as e:
-        print(f"Error loading covariance matrix: {e}")
-        return None
+        print(f"Error loading covariance: {e}")
+        return None, None
 
-    aligned_ids = []
-    df_index_set = set(df_full.index)
-    df_index_map = {normalize_id(x): x for x in df_full.index}
+    # 2. Create Mapping for ID matching
+    # Map normalized_id -> original_id_in_cov_file
+    df_index_map = {normalize_id(x): x for x in df_cov_full.index}
+    df_index_set = set(df_cov_full.index)
 
-    for sample_id in sample_list:
-        if sample_id in df_index_set:
-            aligned_ids.append(sample_id)
-        elif normalize_id(sample_id) in df_index_map:
-            aligned_ids.append(df_index_map[normalize_id(sample_id)])
-        else:
-            # If sample not in covariance matrix, skip
-            pass
+    # 3. Determine the Order of IDs
+    final_order = []
+    
+    if sort_by == "groups":
+        # ORDER 1: Respect the input list (Group A then Group B)
+        # We iterate through sample_list and find their match in the covariance matrix
+        for sample_id in sample_list:
+            if sample_id in df_index_set:
+                final_order.append(sample_id)
+            elif normalize_id(sample_id) in df_index_map:
+                final_order.append(df_index_map[normalize_id(sample_id)])
+                
+    elif sort_by == "covariance":
+        # ORDER 2: Respect the Covariance CSV order
+        # We iterate through the CSV index and keep rows that exist in our sample_list
+        # This preserves the spectral/clustering order of the CSV
+        
+        # Create a quick lookup for our samples to filter the big matrix
+        sample_set_norm = {normalize_id(s) for s in sample_list}
+        
+        for cov_id in df_cov_full.index:
+            if normalize_id(cov_id) in sample_set_norm:
+                final_order.append(cov_id)
 
-    if not aligned_ids:
-        print("Warning: No overlap found between sampled structures and covariance matrix.")
-        return None
+    if not final_order:
+        print("Warning: No overlap found between samples and covariance matrix.")
+        return None, None
 
-    # Extract and Reorder: [Group A samples] -> [Group B samples]
-    df_filtered = df_full.loc[aligned_ids, aligned_ids]
-    return df_filtered
+    # 4. Reindex Both Matrices to this Order
+    # Filter Covariance
+    df_cov_aligned = df_cov_full.loc[final_order, final_order]
+    
+    # Filter/Reorder TM (need to handle normalization mapping back to TM keys)
+    # The TM matrix columns are likely the normalized IDs from the prediction step.
+    # We need to be careful to map the covariance IDs back to the keys used in tm_df.
+    
+    # Create map: Covariance_ID -> TM_DataFrame_ID
+    # (Assuming TM DF uses the normalized or original IDs from the FASTA)
+    tm_keys = []
+    valid_final_order = []
+    
+    for cov_id in final_order:
+        # Check if this ID (or its norm) exists in TM columns
+        if cov_id in tm_df.columns:
+            tm_keys.append(cov_id)
+            valid_final_order.append(cov_id)
+        elif normalize_id(cov_id) in tm_df.columns:
+            tm_keys.append(normalize_id(cov_id))
+            valid_final_order.append(cov_id)
+            
+    # Final consistency check
+    df_cov_aligned = df_cov_full.loc[valid_final_order, valid_final_order]
+    df_tm_aligned = tm_df.loc[tm_keys, tm_keys]
+    
+    return df_cov_aligned, df_tm_aligned
 
 
-def plot_combined_panel(ordered_cov_path, df_tm, sample_list, split_point, output_folder, filename="combined_analysis.png"):
+def plot_side_by_side(df_cov, df_tm, split_point, output_path, title_suffix=""):
     """
-    Plots filtered Covariance (Left) and TM-Score (Right) side-by-side.
-    Adds statistical annotations (Average TM scores) to the TM-score heatmap.
+    Generic plotter for two matrices side-by-side.
+    If split_point is provided, draws crosshairs and labels.
+    If split_point is None, draws heatmaps only (for covariance sorting).
     """
-    # 1. Prepare Covariance Data (Aligned)
-    df_cov_aligned = align_covariance_to_samples(ordered_cov_path, sample_list)
-
-    if df_cov_aligned is None:
-        print("Skipping combined plot: Covariance alignment failed.")
-        return
-
-    # 2. Setup Figure
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 10))
     
-    # ==========================================
-    # LEFT PANEL: Covariance (Filtered)
-    # ==========================================
-    sns.heatmap(df_cov_aligned, cmap='viridis', cbar=True, 
+    # --- LEFT: COVARIANCE ---
+    sns.heatmap(df_cov, cmap='viridis', cbar=True, 
                 xticklabels=False, yticklabels=False, square=True, ax=ax1)
-    
-    # Draw Crosshair
-    ax1.axvline(x=split_point, color='white', linestyle='--', linewidth=1.5, alpha=0.8)
-    ax1.axhline(y=split_point, color='white', linestyle='--', linewidth=1.5, alpha=0.8)
-    
-    # Axis Labels (Covariance)
-    ax1.text(split_point/2, -0.5, "Group A", ha='center', va='bottom', fontsize=11, fontweight='bold')
-    ax1.text(-0.5, split_point/2, "Group A", ha='right', va='center', fontsize=11, fontweight='bold')
-    
-    center_b = split_point + ((len(df_cov_aligned) - split_point) / 2)
-    ax1.text(center_b, -0.5, "Group B", ha='center', va='bottom', fontsize=11, fontweight='bold')
-    ax1.text(-0.5, center_b, "Group B", ha='right', va='center', fontsize=11, fontweight='bold')
+    ax1.set_title(f"Covariance Signal\n{title_suffix}", fontsize=14, pad=10)
 
-    ax1.set_title(f"Covariance Signal\n(Filtered to {len(df_cov_aligned)} sampled IDs)", fontsize=14, pad=10)
-
-    # ==========================================
-    # RIGHT PANEL: TM Score with STATS
-    # ==========================================
+    # --- RIGHT: TM SCORE ---
     if df_tm is not None:
         sns.heatmap(df_tm, cmap='RdYlBu_r', vmin=0, vmax=1.0, cbar=True,
                     xticklabels=False, yticklabels=False, square=True, ax=ax2)
+        ax2.set_title(f"TM-Score Structure\n{title_suffix}", fontsize=14, pad=10)
+    
+    # --- OVERLAYS (Only if split_point is active) ---
+    if split_point is not None and df_tm is not None:
+        # We only calculate stats if we have a clean split block structure
         
-        # --- Calculate Averages ---
-        # 1. Intra-Group A (Top-Left)
-        block_a = df_tm.iloc[:split_point, :split_point]
-        avg_a = block_a.values.mean()
+        # Calc Stats
+        avg_a = df_tm.iloc[:split_point, :split_point].values.mean()
+        avg_b = df_tm.iloc[split_point:, split_point:].values.mean()
+        avg_inter = df_tm.iloc[:split_point, split_point:].values.mean()
+        center_b = split_point + ((len(df_tm) - split_point) / 2)
 
-        # 2. Intra-Group B (Bottom-Right)
-        block_b = df_tm.iloc[split_point:, split_point:]
-        avg_b = block_b.values.mean()
+        # Draw Lines on Both
+        for ax in [ax1, ax2]:
+            color = 'white' if ax == ax1 else 'black'
+            ax.axvline(x=split_point, color=color, linestyle='--', linewidth=1.5, alpha=0.8)
+            ax.axhline(y=split_point, color=color, linestyle='--', linewidth=1.5, alpha=0.8)
 
-        # 3. Inter-Group (Top-Right / Bottom-Left)
-        # We take the top-right block for calculation
-        block_inter = df_tm.iloc[:split_point, split_point:]
-        avg_inter = block_inter.values.mean()
+        # Add Text Labels (Group A/B)
+        for ax, color in [(ax1, 'white'), (ax2, 'black')]:
+            ax.text(split_point/2, -0.5, "Group A", ha='center', va='bottom', fontsize=11, fontweight='bold', color=color if ax==ax1 else 'black')
+            ax.text(-0.5, split_point/2, "Group A", ha='right', va='center', fontsize=11, fontweight='bold', color=color if ax==ax1 else 'black')
+            ax.text(center_b, -0.5, "Group B", ha='center', va='bottom', fontsize=11, fontweight='bold', color=color if ax==ax1 else 'black')
+            ax.text(-0.5, center_b, "Group B", ha='right', va='center', fontsize=11, fontweight='bold', color=color if ax==ax1 else 'black')
 
-        # --- Draw Crosshair ---
-        ax2.axvline(x=split_point, color='black', linestyle='--', linewidth=1.5)
-        ax2.axhline(y=split_point, color='black', linestyle='--', linewidth=1.5)
-        
-        # --- Add Axis Labels ---
-        ax2.text(split_point/2, -0.5, "Group A", ha='center', va='bottom', fontsize=11, fontweight='bold')
-        ax2.text(-0.5, split_point/2, "Group A", ha='right', va='center', fontsize=11, fontweight='bold')
-        
-        ax2.text(center_b, -0.5, "Group B", ha='center', va='bottom', fontsize=11, fontweight='bold')
-        ax2.text(-0.5, center_b, "Group B", ha='right', va='center', fontsize=11, fontweight='bold')
-
-        # --- Add STATISTICAL OVERLAYS (The Labels you asked for) ---
-        # We place text in the visual center of each block
-        
-        # 1. Label Center of Block A
+        # Add Stats to TM Plot (Right)
         ax2.text(split_point/2, split_point/2, f"Avg: {avg_a:.2f}", 
-                 ha='center', va='center', fontsize=14, fontweight='bold', 
-                 color='black', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
-
-        # 2. Label Center of Block B
+                 ha='center', va='center', fontsize=12, fontweight='bold', 
+                 bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
         ax2.text(center_b, center_b, f"Avg: {avg_b:.2f}", 
-                 ha='center', va='center', fontsize=14, fontweight='bold', 
-                 color='black', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
-
-        # 3. Label Center of Inter-Group (Top-Right quadrant)
+                 ha='center', va='center', fontsize=12, fontweight='bold', 
+                 bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
         ax2.text(center_b, split_point/2, f"Inter: {avg_inter:.2f}", 
-                 ha='center', va='center', fontsize=14, fontweight='bold', 
-                 color='black', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
-
-        ax2.set_title(f"Predicted Structural Similarity (TM-Score)\n(ESMFold Prediction)", fontsize=14, pad=10)
-    else:
-        ax2.text(0.5, 0.5, "TM Data Missing", ha='center', va='center')
+                 ha='center', va='center', fontsize=12, fontweight='bold', 
+                 bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
 
     plt.tight_layout()
-    final_path = os.path.join(output_folder, filename)
-    plt.savefig(final_path, dpi=300)
+    plt.savefig(output_path, dpi=300)
     plt.close()
-    print(f"Combined plot saved to: {final_path}")
+    print(f"Saved: {output_path}")
 
 
-def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path):
+def plot_side_by_side(df_cov, df_tm, split_point, output_path, title_suffix=""):
     """
-    Orchestrates generation of two structure analyses:
-    1. Predicted Structures (Side-by-Side with Covariance)
-    2. Experimental Structures (Standard Heatmap)
+    Generic plotter for two matrices side-by-side.
+    If split_point is provided, draws crosshairs and labels.
+    If split_point is None, draws heatmaps only (for covariance sorting).
     """
-    base_output = os.path.join(os.path.dirname(fasta_path), 'structures')
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 10))
     
-    dir_predicted = os.path.join(base_output, 'predicted_esm')
-    dir_experimental = os.path.join(base_output, 'experimental_pdb')
-    plot_folder = os.path.join(sig_split_folder, "visualization")
-    
-    if not os.path.exists(plot_folder):
-        os.makedirs(plot_folder)
+    # --- LEFT: COVARIANCE ---
+    sns.heatmap(df_cov, cmap='viridis', cbar=True, 
+                xticklabels=False, yticklabels=False, square=True, ax=ax1)
+    ax1.set_title(f"Covariance Signal\n{title_suffix}", fontsize=14, pad=10)
 
-    # ---------------------------------------------------------
-    # PART 1: PREDICTED STRUCTURES (ESMFold) - ALWAYS RUN
-    # ---------------------------------------------------------
-    print("\n=== PART 1: Predicted Structures (ESMFold) ===")
+    # --- RIGHT: TM SCORE ---
+    if df_tm is not None:
+        sns.heatmap(df_tm, cmap='RdYlBu_r', vmin=0, vmax=1.0, cbar=True,
+                    xticklabels=False, yticklabels=False, square=True, ax=ax2)
+        ax2.set_title(f"TM-Score Structure\n{title_suffix}", fontsize=14, pad=10)
     
-    try:
-        records = list(SeqIO.parse(fasta_path, "fasta"))
-    except FileNotFoundError:
-        print("Error: FASTA not found.")
-        return
-
-    # Sampling Logic
-    id_map = {normalize_id(r.id): r.id for r in records}
-    
-    def get_valid_ids(input_list):
-        valid = []
-        for item in input_list:
-            if item in id_map.values(): valid.append(item)
-            elif normalize_id(item) in id_map: valid.append(id_map[normalize_id(item)])
-        return valid
-
-    valid_a = get_valid_ids(split_data['group_a'])
-    valid_b = get_valid_ids(split_data['group_b'])
-    
-    # Sample 50 from each
-    sample_a = random.sample(valid_a, min(len(valid_a), 50))
-    sample_b = random.sample(valid_b, min(len(valid_b), 50))
-    
-    # Combined list for calculation (Order matters: A then B)
-    processing_list = sample_a + sample_b
-    
-    # 1. Predict
-    run_prediction_batch(records, dir_predicted, allow_list=processing_list)
-    
-    # 2. Matrix
-    print("Generating Predicted Heatmap...")
-    df_pred, stats_pred, split_pred = calculate_tm_matrix(sample_a, sample_b, dir_predicted)
-    
-    # 3. PLOT SIDE-BY-SIDE (New Function)
-    if df_pred is not None:
-        split_point = len(sample_a)
-        plot_combined_panel(
-            ordered_cov_path=ordered_cov_path,
-            df_tm=df_pred,
-            sample_list=processing_list, 
-            split_point=split_point,
-            output_folder=plot_folder,
-            filename="combined_covariance_tm_prediction.png"
-        )
-
-    # ---------------------------------------------------------
-    # PART 2: REAL STRUCTURES (Experimental) - CONDITIONAL
-    # ---------------------------------------------------------
-    # RESTORED BLOCK
-    print("\n=== PART 2: Experimental Structures (PDB) ===")
-    
-    # 1. Check coverage and download
-    success, exp_a_ids, exp_b_ids = prepare_experimental_folder(
-        split_data['group_a'], 
-        split_data['group_b'], 
-        dir_experimental
-    )
-    
-    if success:
-        # 2. Matrix & Plot (Only if we have enough data)
-        print("Generating Experimental Heatmap...")
-        df_exp, stats_exp, split_exp = calculate_tm_matrix(exp_a_ids, exp_b_ids, dir_experimental)
+    # --- OVERLAYS (Only if split_point is active) ---
+    if split_point is not None and df_tm is not None:
+        # We only calculate stats if we have a clean split block structure
         
-        if df_exp is not None:
-            # We use the ORIGINAL plotter here because experimental data 
-            # is sparse and IDs often don't match the covariance matrix 1:1.
-            plot_tm_heatmap(df_exp, stats_exp, split_exp, plot_folder, filename="tm_score_EXPERIMENTAL.png")
-    else:
-        print("Skipping Experimental Plot (insufficient PDB coverage).")
+        # Calc Stats
+        avg_a = df_tm.iloc[:split_point, :split_point].values.mean()
+        avg_b = df_tm.iloc[split_point:, split_point:].values.mean()
+        avg_inter = df_tm.iloc[:split_point, split_point:].values.mean()
+        center_b = split_point + ((len(df_tm) - split_point) / 2)
+
+        # Draw Lines on Both
+        for ax in [ax1, ax2]:
+            color = 'white' if ax == ax1 else 'black'
+            ax.axvline(x=split_point, color=color, linestyle='--', linewidth=1.5, alpha=0.8)
+            ax.axhline(y=split_point, color=color, linestyle='--', linewidth=1.5, alpha=0.8)
+
+        # Add Text Labels (Group A/B)
+        for ax, color in [(ax1, 'white'), (ax2, 'black')]:
+            ax.text(split_point/2, -0.5, "Group A", ha='center', va='bottom', fontsize=11, fontweight='bold', color=color if ax==ax1 else 'black')
+            ax.text(-0.5, split_point/2, "Group A", ha='right', va='center', fontsize=11, fontweight='bold', color=color if ax==ax1 else 'black')
+            ax.text(center_b, -0.5, "Group B", ha='center', va='bottom', fontsize=11, fontweight='bold', color=color if ax==ax1 else 'black')
+            ax.text(-0.5, center_b, "Group B", ha='right', va='center', fontsize=11, fontweight='bold', color=color if ax==ax1 else 'black')
+
+        # Add Stats to TM Plot (Right)
+        ax2.text(split_point/2, split_point/2, f"Avg: {avg_a:.2f}", 
+                 ha='center', va='center', fontsize=12, fontweight='bold', 
+                 bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+        ax2.text(center_b, center_b, f"Avg: {avg_b:.2f}", 
+                 ha='center', va='center', fontsize=12, fontweight='bold', 
+                 bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+        ax2.text(center_b, split_point/2, f"Inter: {avg_inter:.2f}", 
+                 ha='center', va='center', fontsize=12, fontweight='bold', 
+                 bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300)
+    plt.close()
+    print(f"Saved: {output_path}")
