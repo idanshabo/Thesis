@@ -323,9 +323,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
     """
     
     # --- 0. Setup Output Directories ---
-    base_eval_dir = os.path.join(output_path, "splits_evaluations")
+    base_eval_dir = output_path
     sig_splits_dir = os.path.join(base_eval_dir, "significant_splits")
-    # NEW: Directory for non-significant splits
     non_sig_splits_dir = os.path.join(base_eval_dir, "non_significant_splits")
     
     os.makedirs(base_eval_dir, exist_ok=True)
