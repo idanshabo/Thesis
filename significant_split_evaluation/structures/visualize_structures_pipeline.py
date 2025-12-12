@@ -10,6 +10,7 @@ from significant_split_evaluation.structures.structure_predictor import run_pred
 from significant_split_evaluation.structures.structure_analysis import calculate_tm_matrix
 from significant_split_evaluation.structures.visualization import plot_tm_heatmap
 from significant_split_evaluation.structures.structures_from_experiments import get_pdb_from_uniprot, select_best_pdb, prepare_experimental_folder
+from significant_split_evaluation.structures.visualize_representative_structure import get_group_representative, align_and_visualize_pair
 
 
 def normalize_id(identifier):
@@ -216,6 +217,28 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     if df_pred is None or df_pred.empty:
         print("TM Matrix calculation failed. Exiting.")
         return
+        
+    if df_pred is not None and not df_pred.empty:
+        print("\n=== Generating Representative Alignment ===")
+        
+        # 1. Select the "Centroid" representative for each group
+        rep_a_id = get_group_representative(df_pred, sample_a)
+        rep_b_id = get_group_representative(df_pred, sample_b)
+        
+        if rep_a_id and rep_b_id:
+            # 2. Construct Paths (Assuming .pdb extension from your prediction step)
+            # You might need to check if your files are .pdb or .cif
+            pdb_a = os.path.join(dir_predicted, f"{rep_a_id}.pdb")
+            pdb_b = os.path.join(dir_predicted, f"{rep_b_id}.pdb")
+            
+            # 3. Define Output Path
+            align_output = os.path.join(plot_folder, "representative_structural_alignment")
+            
+            # 4. Run Visualization
+            if os.path.exists(pdb_a) and os.path.exists(pdb_b):
+                align_and_visualize_pair(pdb_a, pdb_b, align_output)
+            else:
+                print(f"Could not find PDB files for representatives: {rep_a_id}, {rep_b_id}")
 
     # --- PART 2: PLOT 1 - ORDERED BY GROUPS ---
     print("Generating Plot 1: Ordered by Groups...")
