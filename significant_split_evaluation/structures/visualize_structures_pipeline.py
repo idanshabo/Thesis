@@ -222,14 +222,18 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
         print("\n=== Generating Representative Alignment ===")
         
         # 1. Select the "Centroid" representative for each group
+        # Note: These IDs come from the dataframe index/columns
         rep_a_id = get_group_representative(df_pred, sample_a)
         rep_b_id = get_group_representative(df_pred, sample_b)
         
         if rep_a_id and rep_b_id:
-            # 2. Construct Paths (Assuming .pdb extension from your prediction step)
-            # You might need to check if your files are .pdb or .cif
-            pdb_a = os.path.join(dir_predicted, f"{rep_a_id}.pdb")
-            pdb_b = os.path.join(dir_predicted, f"{rep_b_id}.pdb")
+            # 2. Construct Paths using normalize_id
+            # This ensures '0A967AWS5_9FLAO/1-48' becomes '0A967AWS5_9FLAO_1-48'
+            norm_a_id = normalize_id(rep_a_id)
+            norm_b_id = normalize_id(rep_b_id)
+            
+            pdb_a = os.path.join(dir_predicted, f"{norm_a_id}.pdb")
+            pdb_b = os.path.join(dir_predicted, f"{norm_b_id}.pdb")
             
             # 3. Define Output Path
             align_output = os.path.join(plot_folder, "representative_structural_alignment")
@@ -238,7 +242,7 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
             if os.path.exists(pdb_a) and os.path.exists(pdb_b):
                 align_and_visualize_pair(pdb_a, pdb_b, align_output)
             else:
-                print(f"Could not find PDB files for representatives: {rep_a_id}, {rep_b_id}")
+                print(f"Could not find PDB files:\nExpected: {pdb_a}\nExpected: {pdb_b}")
 
     # --- PART 2: PLOT 1 - ORDERED BY GROUPS ---
     print("Generating Plot 1: Ordered by Groups...")
