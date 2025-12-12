@@ -177,10 +177,6 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     base_output = os.path.join(os.path.dirname(fasta_path), 'structures')
     dir_predicted = os.path.join(base_output, 'predicted_esm')
     dir_experimental = os.path.join(base_output, 'experimental_pdb')
-    plot_folder = os.path.join(sig_split_folder, "visualization")
-    
-    if not os.path.exists(plot_folder):
-        os.makedirs(plot_folder)
 
     # --- PART 1: PREPARATION ---
     print("\n=== Running Structural Pipeline ===")
@@ -236,7 +232,7 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
             pdb_b = os.path.join(dir_predicted, f"{norm_b_id}.pdb")
             
             # 3. Define Output Path
-            align_output = os.path.join(plot_folder, "representative_structural_alignment")
+            align_output = os.path.join(sig_split_folder, "representative_structural_alignment")
             
             # 4. Run Visualization
             if os.path.exists(pdb_a) and os.path.exists(pdb_b):
@@ -255,7 +251,7 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
             df_tm=tm_grp,
             group_a_ids=sample_a,
             group_b_ids=sample_b,
-            output_path=os.path.join(plot_folder, "combined_ordered_by_groups.png"),
+            output_path=os.path.join(sig_split_folder, "combined_ordered_by_groups.png"),
             title_suffix="(Ordered by Split Group)"
         )
 
@@ -270,7 +266,7 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
             df_tm=tm_ord,
             group_a_ids=sample_a,
             group_b_ids=sample_b,
-            output_path=os.path.join(plot_folder, "combined_ordered_by_covariance.png"),
+            output_path=os.path.join(sig_split_folder, "combined_ordered_by_covariance.png"),
             title_suffix="(Ordered by Covariance Index)"
         )
 
@@ -280,4 +276,4 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     if success:
         df_exp, stats_exp, split_exp = calculate_tm_matrix(exp_a_ids, exp_b_ids, dir_experimental)
         if df_exp is not None and not df_exp.empty:
-            plot_tm_heatmap(df_exp, stats_exp, split_exp, plot_folder, filename="tm_score_EXPERIMENTAL.png")
+            plot_tm_heatmap(df_exp, stats_exp, split_exp, sig_split_folder, filename="tm_score_EXPERIMENTAL.png")
