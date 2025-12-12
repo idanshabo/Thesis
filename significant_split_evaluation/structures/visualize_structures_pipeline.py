@@ -1,6 +1,9 @@
 import os
 import random
 from Bio import SeqIO
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # Import the local modules
 from significant_split_evaluation.structures.structure_predictor import run_prediction_batch
