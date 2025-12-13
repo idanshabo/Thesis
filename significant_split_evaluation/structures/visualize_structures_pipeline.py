@@ -171,7 +171,7 @@ def plot_side_by_side_dynamic(df_cov, df_tm, group_a_ids, group_b_ids, output_pa
     print(f"Saved: {output_path}")
     
 
-def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path, pfam_id=None):
+def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path):
     """
     Main Pipeline.
     """
@@ -240,7 +240,7 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     print("\n=== Experimental Structures Check ===")
     
     # Check if we have necessary info for the optimized fetcher
-    if pfam_id:
+    pfam_id = os.path.basename(fasta_path).split('.')[0]
     global_map = prepare_global_structure_map(pfam_id, fasta_path)
     
     if global_map:
