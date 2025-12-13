@@ -170,15 +170,15 @@ def plot_side_by_side_dynamic(df_cov, df_tm, group_a_ids, group_b_ids, output_pa
     print(f"Saved: {output_path}")
     
 
-def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path):
+def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path, pfam_id=None, msa_path=None):
     """
-    Main Pipeline
+    Main Pipeline.
+    Added pfam_id and msa_path to support efficient Experimental Structure fetching.
     """
     base_output = os.path.join(os.path.dirname(fasta_path), 'structures')
     dir_predicted = os.path.join(base_output, 'predicted_esm')
     dir_experimental = os.path.join(base_output, 'experimental_pdb')
 
-    # --- PART 1: PREPARATION ---
     print("\n=== Running Structural Pipeline ===")
     try:
         records = list(SeqIO.parse(fasta_path, "fasta"))
@@ -198,88 +198,65 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     valid_a = get_valid_ids(split_data['group_a'])
     valid_b = get_valid_ids(split_data['group_b'])
     
-    # Sample
+    # 1. Prediction Workflow
     sample_a = random.sample(valid_a, min(len(valid_a), 50))
     sample_b = random.sample(valid_b, min(len(valid_b), 50))
     processing_list = sample_a + sample_b
     
-    # Predict
     run_prediction_batch(records, dir_predicted, allow_list=processing_list)
     
-    # TM Matrix
-    print("Calculating TM Matrix...")
+    print("Calculating TM Matrix (Predicted)...")
     df_pred, stats_pred, split_pred = calculate_tm_matrix(sample_a, sample_b, dir_predicted)
     
-    if df_pred is None or df_pred.empty:
-        print("TM Matrix calculation failed. Exiting.")
-        return
-        
     if df_pred is not None and not df_pred.empty:
+        # 1a. Representative Alignment
         print("\n=== Generating Representative Alignment ===")
-        
-        # 1. Select the "Centroid" representative for each group
-        # Note: These IDs come from the dataframe index/columns
         rep_a_id = get_group_representative(df_pred, sample_a)
         rep_b_id = get_group_representative(df_pred, sample_b)
         
         if rep_a_id and rep_b_id:
-            # 2. Construct Paths using normalize_id
-            # This ensures '0A967AWS5_9FLAO/1-48' becomes '0A967AWS5_9FLAO_1-48'
-            norm_a_id = normalize_id(rep_a_id)
-            norm_b_id = normalize_id(rep_b_id)
-            
-            pdb_a = os.path.join(dir_predicted, f"{norm_a_id}.pdb")
-            pdb_b = os.path.join(dir_predicted, f"{norm_b_id}.pdb")
-            
-            # 3. Define Output Path
+            pdb_a = os.path.join(dir_predicted, f"{normalize_id(rep_a_id)}.pdb")
+            pdb_b = os.path.join(dir_predicted, f"{normalize_id(rep_b_id)}.pdb")
             align_output = os.path.join(sig_split_folder, "representative_structural_alignment")
             
-            # 4. Run Visualization
             if os.path.exists(pdb_a) and os.path.exists(pdb_b):
-                align_and_visualize_pair(
-                    pdb_a, 
-                    pdb_b, 
-                    align_output,
-                    label_a=f"Group A (Rep: {rep_a_id})", 
-                    label_b=f"Group B (Rep: {rep_b_id})"
-                )
-            else:
-                print(f"Could not find PDB files:\nExpected: {pdb_a}\nExpected: {pdb_b}")
+                align_and_visualize_pair(pdb_a, pdb_b, align_output,
+                    label_a=f"Group A (Rep: {rep_a_id})", label_b=f"Group B (Rep: {rep_b_id})")
 
-    # --- PART 2: PLOT 1 - ORDERED BY GROUPS ---
-    print("Generating Plot 1: Ordered by Groups...")
-    
-    cov_grp, tm_grp = get_aligned_matrices(ordered_cov_path, df_pred, processing_list, sort_by="groups")
-    
-    if cov_grp is not None:
-        plot_side_by_side_dynamic(
-            df_cov=cov_grp, 
-            df_tm=tm_grp,
-            group_a_ids=sample_a,
-            group_b_ids=sample_b,
-            output_path=os.path.join(sig_split_folder, "combined_ordered_by_groups.png"),
-            title_suffix="(Ordered by Split Group)"
-        )
+        # 1b. Plotting
+        print("Generating Plot 1: Ordered by Groups...")
+        cov_grp, tm_grp = get_aligned_matrices(ordered_cov_path, df_pred, processing_list, sort_by="groups")
+        if cov_grp is not None:
+            plot_side_by_side_dynamic(cov_grp, tm_grp, sample_a, sample_b, 
+                os.path.join(sig_split_folder, "combined_ordered_by_groups.png"), "(Ordered by Split Group)")
 
-    # --- PART 3: PLOT 2 - ORDERED BY COVARIANCE ---
-    print("Generating Plot 2: Ordered by Covariance...")
-    
-    cov_ord, tm_ord = get_aligned_matrices(ordered_cov_path, df_pred, processing_list, sort_by="covariance")
-    
-    if cov_ord is not None:
-        plot_side_by_side_dynamic(
-            df_cov=cov_ord, 
-            df_tm=tm_ord,
-            group_a_ids=sample_a,
-            group_b_ids=sample_b,
-            output_path=os.path.join(sig_split_folder, "combined_ordered_by_covariance.png"),
-            title_suffix="(Ordered by Covariance Index)"
-        )
+        print("Generating Plot 2: Ordered by Covariance...")
+        cov_ord, tm_ord = get_aligned_matrices(ordered_cov_path, df_pred, processing_list, sort_by="covariance")
+        if cov_ord is not None:
+            plot_side_by_side_dynamic(cov_ord, tm_ord, sample_a, sample_b,
+                os.path.join(sig_split_folder, "combined_ordered_by_covariance.png"), "(Ordered by Covariance Index)")
 
-    # --- PART 4: EXPERIMENTAL ---
+    # --- PART 4: EXPERIMENTAL (UPDATED LOGIC) ---
     print("\n=== Experimental Structures Check ===")
-    success, exp_a_ids, exp_b_ids = prepare_experimental_folder(split_data['group_a'], split_data['group_b'], dir_experimental)
-    if success:
-        df_exp, stats_exp, split_exp = calculate_tm_matrix(exp_a_ids, exp_b_ids, dir_experimental)
-        if df_exp is not None and not df_exp.empty:
-            plot_tm_heatmap(df_exp, stats_exp, split_exp, sig_split_folder, filename="tm_score_EXPERIMENTAL.png")
+    
+    # Check if we have necessary info for the optimized fetcher
+    if pfam_id and msa_path:
+        # New Pipeline
+        global_map = prepare_global_structure_map(pfam_id, msa_path)
+        
+        if global_map:
+            # Check counts & Download
+            success, exp_a_ids, exp_b_ids = check_and_download_structures(
+                global_map, split_data['group_a'], split_data['group_b'], dir_experimental
+            )
+            
+            if success:
+                print("Calculating TM Matrix (Experimental)...")
+                # Note: exp_a_ids here are PDB IDs, not sequence IDs. 
+                # calculate_tm_matrix likely expects PDB file names (without extension)
+                df_exp, stats_exp, split_exp = calculate_tm_matrix(exp_a_ids, exp_b_ids, dir_experimental)
+                
+                if df_exp is not None and not df_exp.empty:
+                    plot_tm_heatmap(df_exp, stats_exp, split_exp, sig_split_folder, filename="tm_score_EXPERIMENTAL.png")
+    else:
+        print("Skipping Experimental Check: pfam_id or msa_path not provided.")
