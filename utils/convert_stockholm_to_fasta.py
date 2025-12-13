@@ -7,7 +7,7 @@ def convert_stockholm_to_fasta(stockholm_file_path, fasta_file_path=None):
     pfam_family = os.path.basename(stockholm_file_path).split('.')[0]  # Assuming PFAM name is before the first '.'
     
     # Create the directory if it doesn't exist
-    pfam_folder_path = os.path.join(os.path.dirname(stockholm_file_path), pfam_family)
+    pfam_folder_path = os.path.join(os.path.dirname(stockholm_file_path), f"{pfam_family}_calculations")
     os.makedirs(pfam_folder_path, exist_ok=True)
     
     if not fasta_file_path:
