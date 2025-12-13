@@ -26,49 +26,83 @@ def get_group_representative(df_tm, group_ids):
     print(f"Selected Representative for Group (n={len(valid_ids)}): {representative_id} (Avg TM: {mean_scores.max():.2f})")
     return representative_id
 
-def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path, label_a="Group_A", label_b="Group_B"):
+def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path, 
+                             label_a="Group A", label_b="Group B"):
     """
-    Uses PyMOL to align two structures and save the visualization.
+    Uses PyMOL to align two structures, add dynamic labels/legend, and save.
     """
-    # 1. Initialize PyMOL (Idempotent - safe to call multiple times)
+    # 1. Initialize PyMOL
     try:
         pymol.finish_launching(['pymol', '-qc'])
     except:
-        pass # PyMOL might already be running
-
-    # Reset ensures we don't have leftover objects from previous runs
+        pass
     cmd.reinitialize()
 
     # 2. Load the PDB files
-    # We give them friendly object names like 'Group_A_Rep'
-    cmd.load(pdb_path_a, label_a)
-    cmd.load(pdb_path_b, label_b)
+    # We rename them internally to 'obj_A' and 'obj_B' to keep code clean
+    cmd.load(pdb_path_a, 'obj_A')
+    cmd.load(pdb_path_b, 'obj_B')
 
-    # 3. Align mobile (B) onto ref (A)
-    # align returns: [RMSD, atoms_aligned, n_cycles, rmsd_pre_cycle, n_atoms_pre_cycle, score, n_atoms_score]
-    align_results = cmd.align(label_b, label_a)
+    # 3. Align B onto A
+    align_results = cmd.align('obj_B', 'obj_A')
     rmsd_val = align_results[0]
-    print(f"Aligned {label_b} to {label_a} | RMSD: {rmsd_val:.3f} Å")
+    print(f"Alignment RMSD: {rmsd_val:.3f} Å")
 
-    # 4. Styling (Mol*-like aesthetic)
+    # 4. Styling (Cartoon representation)
     cmd.hide('all')
     cmd.show('cartoon')
-    cmd.set('ray_opaque_background', 0) # Transparent background
     
-    # Coloring
-    cmd.color('cyan', label_a)
-    cmd.color('magenta', label_b)
+    # Define Colors
+    color_a = 'cyan'
+    color_b = 'magenta'
+    cmd.color(color_a, 'obj_A')
+    cmd.color(color_b, 'obj_B')
     
-    # Center the camera on the alignment
+    # Orient view nicely
     cmd.zoom()
 
+    # =================================================================
+    # DYNAMIC LABEL PLACEMENT (Title & Legend)
+    # =================================================================
+    # Get the bounding box of the aligned molecules to know where to put text
+    # extent returns [[min_x, min_y, min_z], [max_x, max_y, max_z]]
+    ([min_x, min_y, min_z], [max_x, max_y, max_z]) = cmd.get_extent('all')
+    
+    center_x = (min_x + max_x) / 2
+    height = max_y - min_y
+    
+    # --- Add Title (Above the structure) ---
+    title_y = max_y + (height * 0.2) # 20% above the top
+    cmd.pseudoatom("title_pos", pos=[center_x, title_y, min_z], label="Representative Structural Alignment")
+    
+    # --- Add Legend (Below the structure) ---
+    # Legend Line 1
+    leg1_y = min_y - (height * 0.1)
+    cmd.pseudoatom("leg_a", pos=[center_x, leg1_y, min_z], label=f"{label_a} ({color_a})")
+    
+    # Legend Line 2
+    leg2_y = min_y - (height * 0.18)
+    cmd.pseudoatom("leg_b", pos=[center_x, leg2_y, min_z], label=f"{label_b} ({color_b})")
+
+    # --- Label Styling ---
+    # Global label settings
+    cmd.set("label_font_id", 13)      # Arial-like font
+    cmd.set("label_size", 24)         # Font size
+    cmd.set("label_color", "black")   # Text color
+    
+    # Specific colors for the legend text to match the structures (Optional)
+    # Note: PyMOL labels usually take one color. Keeping them black is safer for readability.
+    
     # 5. Save Outputs
-    # Save Image
-    png_path = f"{output_base_path}_alignment.png"
+    # White background looks best for reports
+    cmd.bg_color('white') 
+    cmd.set('ray_opaque_background', 1)
+
+    # Save PNG
+    png_path = f"{output_base_path}.png"
     cmd.png(png_path, width=1200, height=1200, dpi=300, ray=1)
     
-    # Save Session (allows you to open in PyMOL desktop and rotate)
-    pse_path = f"{output_base_path}_session.pse"
-    cmd.save(pse_path)
+    # Save Session (PSE)
+    cmd.save(f"{output_base_path}.pse")
     
-    print(f"Saved visualization to: {png_path}")
+    print(f"Saved visualization with legend to: {png_path}")
