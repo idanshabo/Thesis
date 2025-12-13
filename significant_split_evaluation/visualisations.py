@@ -430,19 +430,14 @@ def run_variance_analysis(folder_path):
     """
     Automatically deduces paths based on the specific folder structure provided.
     """
-    # Standardize path format
-    folder_path = os.path.normpath(folder_path)
-
     # --- 1. Path Deduction ---
-    
     # Extract Split Name (e.g., "rank5") directly from the folder name
     split_name = os.path.basename(folder_path)
 
     # Navigate up to find the Protein Output directory
     # Current: .../{pf}_outputs/splits_evaluations/significant_splits/{split}
     sig_splits_dir = os.path.dirname(folder_path)
-    splits_eval_dir = os.path.dirname(sig_splits_dir)
-    protein_outputs_dir = os.path.dirname(splits_eval_dir) # This ends in {pf}_outputs
+    protein_outputs_dir = os.path.dirname(sig_splits_dir) # This ends in {pf}_outputs
     
     # Extract Protein ID by stripping "_outputs"
     # e.g., "PF07361_outputs" -> "PF07361"
