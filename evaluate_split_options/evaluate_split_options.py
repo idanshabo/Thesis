@@ -19,7 +19,7 @@ def calculate_jaccard(set1, set2):
     return intersection / union
 
 
-def is_split_redundant(current_split_sets, history_splits, threshold=0.9):
+def is_split_redundant(current_split_sets, history_splits, threshold=0.85):
     """
     Checks if current split is similar to any split in history.
     """
