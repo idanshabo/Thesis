@@ -236,7 +236,13 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
             
             # 4. Run Visualization
             if os.path.exists(pdb_a) and os.path.exists(pdb_b):
-                align_and_visualize_pair(pdb_a, pdb_b, align_output)
+                align_and_visualize_pair(
+                    pdb_a, 
+                    pdb_b, 
+                    align_output,
+                    label_a=f"Group A (Rep: {rep_a_id})", 
+                    label_b=f"Group B (Rep: {rep_b_id})"
+                )
             else:
                 print(f"Could not find PDB files:\nExpected: {pdb_a}\nExpected: {pdb_b}")
 
