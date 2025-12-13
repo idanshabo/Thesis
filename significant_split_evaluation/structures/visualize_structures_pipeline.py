@@ -171,10 +171,9 @@ def plot_side_by_side_dynamic(df_cov, df_tm, group_a_ids, group_b_ids, output_pa
     print(f"Saved: {output_path}")
     
 
-def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path, pfam_id=None, msa_path=None):
+def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path, pfam_id=None):
     """
     Main Pipeline.
-    Added pfam_id and msa_path to support efficient Experimental Structure fetching.
     """
     base_output = os.path.join(os.path.dirname(fasta_path), 'structures')
     dir_predicted = os.path.join(base_output, 'predicted_esm')
@@ -241,23 +240,20 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     print("\n=== Experimental Structures Check ===")
     
     # Check if we have necessary info for the optimized fetcher
-    if pfam_id and msa_path:
-        # New Pipeline
-        global_map = prepare_global_structure_map(pfam_id, msa_path)
+    if pfam_id:
+    global_map = prepare_global_structure_map(pfam_id, fasta_path)
+    
+    if global_map:
+        # Check counts & Download
+        success, exp_a_ids, exp_b_ids = check_and_download_structures(
+            global_map, split_data['group_a'], split_data['group_b'], dir_experimental
+        )
         
-        if global_map:
-            # Check counts & Download
-            success, exp_a_ids, exp_b_ids = check_and_download_structures(
-                global_map, split_data['group_a'], split_data['group_b'], dir_experimental
-            )
+        if success:
+            print("Calculating TM Matrix (Experimental)...")
+            # Note: exp_a_ids here are PDB IDs, not sequence IDs. 
+            # calculate_tm_matrix likely expects PDB file names (without extension)
+            df_exp, stats_exp, split_exp = calculate_tm_matrix(exp_a_ids, exp_b_ids, dir_experimental)
             
-            if success:
-                print("Calculating TM Matrix (Experimental)...")
-                # Note: exp_a_ids here are PDB IDs, not sequence IDs. 
-                # calculate_tm_matrix likely expects PDB file names (without extension)
-                df_exp, stats_exp, split_exp = calculate_tm_matrix(exp_a_ids, exp_b_ids, dir_experimental)
-                
-                if df_exp is not None and not df_exp.empty:
-                    plot_tm_heatmap(df_exp, stats_exp, split_exp, sig_split_folder, filename="tm_score_EXPERIMENTAL.png")
-    else:
-        print("Skipping Experimental Check: pfam_id or msa_path not provided.")
+            if df_exp is not None and not df_exp.empty:
+                plot_tm_heatmap(df_exp, stats_exp, split_exp, sig_split_folder, filename="tm_score_EXPERIMENTAL.png")
