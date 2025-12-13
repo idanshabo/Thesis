@@ -316,7 +316,7 @@ def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, min_v
 
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, 
                         pca_min_variance=None, pca_min_components=None, 
-                        standardize=True, similarity_threshold=0.9):
+                        standardize=True, similarity_threshold=0.85):
     """
     Evaluates splits using Matrix Normal MLE estimation.
     Includes logic to skip splits that are highly similar to previously identified significant splits.
