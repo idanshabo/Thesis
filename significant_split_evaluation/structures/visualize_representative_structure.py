@@ -30,6 +30,7 @@ def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path,
                              label_a="Group A", label_b="Group B"):
     """
     Uses PyMOL to align two structures, add dynamic labels/legend, and save.
+    Corrects the 'zoom' issue to ensure labels are not cut off.
     """
     # 1. Initialize PyMOL
     try:
@@ -39,7 +40,6 @@ def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path,
     cmd.reinitialize()
 
     # 2. Load the PDB files
-    # We rename them internally to 'obj_A' and 'obj_B' to keep code clean
     cmd.load(pdb_path_a, 'obj_A')
     cmd.load(pdb_path_b, 'obj_B')
 
@@ -52,57 +52,51 @@ def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path,
     cmd.hide('all')
     cmd.show('cartoon')
     
-    # Define Colors
     color_a = 'cyan'
     color_b = 'magenta'
     cmd.color(color_a, 'obj_A')
     cmd.color(color_b, 'obj_B')
-    
-    # Orient view nicely
-    cmd.zoom()
 
     # =================================================================
-    # DYNAMIC LABEL PLACEMENT (Title & Legend)
+    # DYNAMIC LABEL PLACEMENT
     # =================================================================
-    # Get the bounding box of the aligned molecules to know where to put text
-    # extent returns [[min_x, min_y, min_z], [max_x, max_y, max_z]]
+    # Get the bounding box of the aligned molecules
     ([min_x, min_y, min_z], [max_x, max_y, max_z]) = cmd.get_extent('all')
     
     center_x = (min_x + max_x) / 2
     height = max_y - min_y
     
-    # --- Add Title (Above the structure) ---
-    title_y = max_y + (height * 0.2) # 20% above the top
+    # Place Title slightly closer (15% above) to minimize empty space
+    title_y = max_y + (height * 0.15)
     cmd.pseudoatom("title_pos", pos=[center_x, title_y, min_z], label="Representative Structural Alignment")
     
-    # --- Add Legend (Below the structure) ---
-    # Legend Line 1
-    leg1_y = min_y - (height * 0.1)
+    # Place Legend (Line 1)
+    leg1_y = min_y - (height * 0.15)
     cmd.pseudoatom("leg_a", pos=[center_x, leg1_y, min_z], label=f"{label_a} ({color_a})")
     
-    # Legend Line 2
-    leg2_y = min_y - (height * 0.18)
+    # Place Legend (Line 2)
+    leg2_y = min_y - (height * 0.25)
     cmd.pseudoatom("leg_b", pos=[center_x, leg2_y, min_z], label=f"{label_b} ({color_b})")
 
-    # --- Label Styling ---
-    # Global label settings
+    # Label Styling
     cmd.set("label_font_id", 13)      # Arial-like font
-    cmd.set("label_size", 24)         # Font size
-    cmd.set("label_color", "black")   # Text color
+    cmd.set("label_size", 20)         # Slightly smaller font to fit better
+    cmd.set("label_color", "black")
     
-    # Specific colors for the legend text to match the structures (Optional)
-    # Note: PyMOL labels usually take one color. Keeping them black is safer for readability.
-    
+    # 'visible' includes the protein AND the pseudoatom labels
+    # 'buffer=5' adds a 5 Angstrom margin around the edges so text isn't flush with the border
+    cmd.zoom('visible', buffer=5)
+
     # 5. Save Outputs
-    # White background looks best for reports
     cmd.bg_color('white') 
     cmd.set('ray_opaque_background', 1)
 
     # Save PNG
     png_path = f"{output_base_path}.png"
-    cmd.png(png_path, width=1200, height=1200, dpi=300, ray=1)
+    # Increasing width slightly helps long text strings fit
+    cmd.png(png_path, width=1600, height=1200, dpi=300, ray=1)
     
-    # Save Session (PSE)
+    # Save Session
     cmd.save(f"{output_base_path}.pse")
     
-    print(f"Saved visualization with legend to: {png_path}")
+    print(f"Saved visualization to: {png_path}")
