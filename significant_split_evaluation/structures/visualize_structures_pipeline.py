@@ -224,11 +224,11 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
                     label_a=f"Group A (Rep: {rep_a_id})", label_b=f"Group B (Rep: {rep_b_id})")
 
         # 1b. Plotting
-        print("Generating Plot 1: Ordered by Groups...")
-        cov_grp, tm_grp = get_aligned_matrices(ordered_cov_path, df_pred, processing_list, sort_by="groups")
-        if cov_grp is not None:
-            plot_side_by_side_dynamic(cov_grp, tm_grp, sample_a, sample_b, 
-                os.path.join(sig_split_folder, "combined_ordered_by_groups.png"), "(Ordered by Split Group)")
+        #print("Generating Plot 1: Ordered by Groups...")
+        #cov_grp, tm_grp = get_aligned_matrices(ordered_cov_path, df_pred, processing_list, sort_by="groups")
+        #if cov_grp is not None:
+        #    plot_side_by_side_dynamic(cov_grp, tm_grp, sample_a, sample_b, 
+        #        os.path.join(sig_split_folder, "combined_ordered_by_groups.png"), "(Ordered by Split Group)")
 
         print("Generating Plot 2: Ordered by Covariance...")
         cov_ord, tm_ord = get_aligned_matrices(ordered_cov_path, df_pred, processing_list, sort_by="covariance")
