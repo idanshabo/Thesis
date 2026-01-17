@@ -169,6 +169,71 @@ def plot_side_by_side_dynamic(df_cov, df_tm, group_a_ids, group_b_ids, output_pa
     plt.savefig(output_path, dpi=300)
     plt.close()
     print(f"Saved: {output_path}")
+
+
+def plot_experimental_grouped_tm(df_tm, group_a_pdbs, group_b_pdbs, output_path):
+    """
+    Plots the TM Score matrix for Experimental structures.
+    Crucially, it REORDERS the dataframe to ensure Group A is top-left 
+    and Group B is bottom-right, drawing a separator line between them.
+    """
+    if df_tm is None or df_tm.empty:
+        print("Skipping Experimental Plot: Matrix is empty.")
+        return
+
+    # 1. Clean and Reorder Indices
+    # We must ensure the IDs in our lists actually exist in the DataFrame index
+    # (The DF index usually contains PDB IDs like '1abc', '2xyz')
+    
+    # Normalize keys to match dataframe if necessary (remove .pdb suffix if present in index)
+    df_keys = set(df_tm.index)
+    
+    valid_a = [x for x in group_a_pdbs if x in df_keys]
+    # Filter valid_b and exclude any that might overlap with A (rare but possible)
+    valid_b = [x for x in group_b_pdbs if x in df_keys and x not in set(valid_a)]
+
+    ordered_ids = valid_a + valid_b
+    
+    if not ordered_ids:
+        print("Error: No matching PDB IDs found in the TM Matrix.")
+        return
+
+    # Reorder the Matrix: Group A first, then Group B
+    df_sorted = df_tm.loc[ordered_ids, ordered_ids]
+
+    # 2. Setup Plot
+    plt.figure(figsize=(11, 10))
+    sns.heatmap(df_sorted, cmap='RdYlBu_r', vmin=0, vmax=1.0, cbar=True,
+                xticklabels=False, yticklabels=False, square=True)
+    
+    plt.title("Experimental Structural Similarity (TM)\n(Ordered by Split Groups)", fontsize=14, pad=10)
+
+    # 3. Draw Dynamic Separator Lines
+    # The boundary is exactly at the end of valid_a
+    boundary_idx = len(valid_a)
+    
+    if 0 < boundary_idx < len(ordered_ids):
+        # Vertical and Horizontal Separators
+        plt.axvline(x=boundary_idx, color='black', linestyle='--', linewidth=2, alpha=0.8)
+        plt.axhline(y=boundary_idx, color='black', linestyle='--', linewidth=2, alpha=0.8)
+
+    # 4. Add Group Labels
+    # Label Group A
+    if boundary_idx > 0:
+        center_a = boundary_idx / 2
+        plt.text(-0.5, center_a, "Group A\n(Exp)", ha='right', va='center', fontweight='bold', fontsize=11)
+        plt.text(center_a, len(ordered_ids) + 0.5, "Group A", ha='center', va='top', fontweight='bold', fontsize=11, rotation=45)
+
+    # Label Group B
+    if len(valid_b) > 0:
+        center_b = boundary_idx + (len(valid_b) / 2)
+        plt.text(-0.5, center_b, "Group B\n(Exp)", ha='right', va='center', fontweight='bold', fontsize=11)
+        plt.text(center_b, len(ordered_ids) + 0.5, "Group B", ha='center', va='top', fontweight='bold', fontsize=11, rotation=45)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300)
+    plt.close()
+    print(f"Saved Experimental Group Plot: {output_path}")
     
 
 def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path):
@@ -236,24 +301,36 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
             plot_side_by_side_dynamic(cov_ord, tm_ord, sample_a, sample_b,
                 os.path.join(sig_split_folder, "combined_ordered_by_covariance.png"), "(Ordered by Covariance Index)")
 
-    # --- PART 4: EXPERIMENTAL (UPDATED LOGIC) ---
+    # --- PART 4: EXPERIMENTAL (UPDATED) ---
     print("\n=== Experimental Structures Check ===")
     
-    # Check if we have necessary info for the optimized fetcher
+    # 1. Prepare Map
     pfam_id = os.path.basename(fasta_path).split('.')[0]
     global_map = prepare_global_structure_map(pfam_id, fasta_path)
     
     if global_map:
-        # Check counts & Download
+        # 2. Download and get Lists of PDB IDs for each Group
+        # exp_a_ids and exp_b_ids are lists of PDB IDs (e.g., ['1abc', '4xyz'])
         success, exp_a_ids, exp_b_ids = check_and_download_structures(
             global_map, split_data['group_a'], split_data['group_b'], dir_experimental
         )
         
         if success:
-            print("Calculating TM Matrix (Experimental)...")
-            # Note: exp_a_ids here are PDB IDs, not sequence IDs. 
-            # calculate_tm_matrix likely expects PDB file names (without extension)
+            print(f"Calculating TM Matrix (Experimental) for {len(exp_a_ids) + len(exp_b_ids)} structures...")
+            
+            # 3. Calculate TM Matrix
+            # Ensure your calculate_tm_matrix can handle PDB IDs as input. 
+            # It returns a dataframe indexed by PDB ID.
             df_exp, stats_exp, split_exp = calculate_tm_matrix(exp_a_ids, exp_b_ids, dir_experimental)
             
             if df_exp is not None and not df_exp.empty:
-                plot_tm_heatmap(df_exp, stats_exp, split_exp, sig_split_folder, filename="tm_score_EXPERIMENTAL.png")
+                # 4. VISUALIZE: Position by Split Groups
+                # This creates the plot you asked for
+                plot_experimental_grouped_tm(
+                    df_exp, 
+                    exp_a_ids, 
+                    exp_b_ids, 
+                    os.path.join(sig_split_folder, "experimental_tm_ordered_by_groups.png")
+                )
+            else:
+                print("Experimental TM calculation returned empty data.")
