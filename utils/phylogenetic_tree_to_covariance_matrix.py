@@ -88,7 +88,7 @@ def tree_to_covariance_matrix(tree_path, output_path=None, chunk_size=50):
     cov_df = pd.concat(chunk_frames, axis=0, ignore_index=True)
     
     # Clean up temp folder upon successful merge (Optional: comment out if you want to keep debug files)
-    shutil.rmtree(chunks_dir)
+    # shutil.rmtree(chunks_dir)
 
     # --- 5. Finalize and Save ---
     # Assign names
