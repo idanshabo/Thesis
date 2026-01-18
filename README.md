@@ -161,5 +161,5 @@ to the outputs directory:
 
 - [pipeline_files/](pipeline_files/): Contains the full pipeline runners (`msa_to_split_full_pipeline.py`).  
 - [requirements.txt](requirements.txt): Python dependencies.
-- [protein_files] contain example for input and ourputs of the pipeline.
+- [protein_files](protein_files/) contain example for input and ourputs of the pipeline.
 - other folders contain different parts of the logic.
