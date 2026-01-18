@@ -159,6 +159,7 @@ to the outputs directory:
 
 # 4. Repository Structure
 
-- [pipeline_files/](pipeline_files/): Contains the core logic scripts (`msa_to_split_full_pipeline.py`).  
-- [convert_stockholm_to_fasta.py](convert_stockholm_to_fasta.py): Helper script for format conversion.  
-- [requirements.txt](requirements.txt): Python dependencies.  
+- [pipeline_files/](pipeline_files/): Contains the full pipeline runners (`msa_to_split_full_pipeline.py`).  
+- [requirements.txt](requirements.txt): Python dependencies.
+- [protein_files] contain example for input and ourputs of the pipeline.
+- other folders contain different parts of the logic.
