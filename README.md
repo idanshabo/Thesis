@@ -89,6 +89,9 @@ Below is the detailed logic.
 
 ---
 
+### 1. MSA file format conversion stockholm to fasta
+- Converts raw MSA stockholm format to fasta format
+ 
 ### 1. Phylogenetic Tree Construction
 - **Input:** Raw MSA  
 - **Action:** Calls FastTree (LG model) to build a maximum-likelihood tree  
@@ -101,7 +104,7 @@ Below is the detailed logic.
 
 ### 3. ESM Embedding & Dimensionality Reduction
 - MSA sequences → **ESM embeddings**  
-- PCA reduces dimensionality (controlled by `pca_min_components`)  
+- PCA reduces dimensionality (controlled both by `pca_min_components` and by `pca_min_variance`)  
 
 ### 4. Matrix Normal Modeling (Core Method)
 
@@ -113,15 +116,15 @@ X \sim MN_{n \times p}(M, U, V)
 
 - **X:** protein embeddings  
 - **U:** phylogenetic covariance  
-- **V:** feature covariance  
+- **V:** feature covariance (after dimentionality reduction using PCA)
 
 The pipeline fits model parameters conditioned on the evolutionary tree.
 
 ### 5. Splitting & Model Selection (BIC)
 
 - Tests a range of possible sub-family counts  
-- Computes **Bayesian Information Criterion (BIC)**  
-- Selects the optimal split with the lowest BIC  
+- Computes **Bayesian Information Criterion (BIC)** based on the matrix normal distribution 
+- Selects significant splits that are also distinct from one another
 
 ---
 
@@ -134,12 +137,23 @@ The pipeline prints real-time logs such as:
 - “BIC Score…”  
 
 ### Return Object
-The function returns a dictionary containing:
+The pipeline saves many outputs to the chosen directiry. 
+to the calculations directory: 
+- **MSA file fasta format** -
+- **phylogenetic tree** -
+- **Covariance matrix** - based on the phylogenetic tree
+- **ESM embeddings** - both raw, centered and normalized
+- **ESM structre predictions**
+- **PDB structures from experiments** - that are relevant for proteins in the specific PFAM
 
-- **best_split** — optimal number of clusters  
-- **labels** — cluster IDs per sequence  
-- **bic_history** — all BIC scores  
-- **covariance_matrix** — computed phylogenetic covariance  
+to the outputs directory:
+- **results file** — containing BIC significance scores
+- per every significant split:
+  - **ordered MSA file divided into the 2 groups**
+  - **covariance matrix visualization** — divided into the 2 groups
+  - **side by side plot of covariance and tm scores** — for a sample of 50 proteins from every group
+  - **structure visualization of a representative protein from each group** — both sive by side and aligned
+  - **raw file containing the split information**
 
 ---
 
