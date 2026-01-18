@@ -139,8 +139,8 @@ The pipeline prints real-time logs such as:
 ### Return Object
 The pipeline saves many outputs to the chosen directiry. 
 to the calculations directory: 
-- **MSA file fasta format** -
-- **phylogenetic tree** -
+- **MSA file fasta format**
+- **phylogenetic tree**
 - **Covariance matrix** - based on the phylogenetic tree
 - **ESM embeddings** - both raw, centered and normalized
 - **ESM structre predictions**
