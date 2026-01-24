@@ -295,7 +295,7 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
         #    plot_side_by_side_dynamic(cov_grp, tm_grp, sample_a, sample_b, 
         #        os.path.join(sig_split_folder, "combined_ordered_by_groups.png"), "(Ordered by Split Group)")
 
-        print("Generating Plot 2: Ordered by Covariance...")
+        print("Generating Predicted TM Matrix Plot:")
         cov_ord, tm_ord = get_aligned_matrices(ordered_cov_path, df_pred, processing_list, sort_by="covariance")
         if cov_ord is not None:
             plot_side_by_side_dynamic(cov_ord, tm_ord, sample_a, sample_b,
