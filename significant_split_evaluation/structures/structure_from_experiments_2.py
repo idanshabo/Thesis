@@ -192,6 +192,26 @@ def check_and_download_structures(global_map, group_a_leaves, group_b_leaves, ou
     """
     Checks if groups have sufficient structures. If yes, downloads them.
     """
+    print("\n--- DEBUGGING ID MISMATCH ---")
+    # 1. Show what keys are in the map (from MSA)
+    if global_map:
+        print(f"Example Map Key (Raw): '{list(global_map.keys())[0]}'")
+    else:
+        print("Map is empty.")
+
+    # 2. Show what keys are in your groups (from JSON)
+    if group_a_leaves:
+        print(f"Example Group A ID:    '{group_a_leaves[0]}'")
+        
+    # 3. Test normalization manually
+    if group_a_leaves and global_map:
+        test_id = group_a_leaves[0]
+        norm_id = normalize_id(test_id)
+        print(f"Testing ID: '{test_id}'")
+        print(f"   -> In Map? {test_id in global_map}")
+        print(f"   -> Normalized '{norm_id}' in Map? {norm_id in global_map}")
+    print("-----------------------------\n")
+
     # 1. Filter Map for current groups
     pdbs_a = set()
     for leaf in group_a_leaves:
