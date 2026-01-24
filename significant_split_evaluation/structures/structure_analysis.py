@@ -1,33 +1,58 @@
 import os
 import numpy as np
 import pandas as pd
-from Bio.PDB import PDBParser
+from Bio.PDB import PDBParser, MMCIFParser
 from Bio.SeqUtils import seq1
 from tmtools import tm_align
 from scipy.spatial.distance import squareform
 from scipy.cluster.hierarchy import linkage, leaves_list, optimal_leaf_ordering
 
-def get_pdb_data(pdb_path):
-    """Parses PDB to return coords and sequence."""
-    parser = PDBParser(QUIET=True)
+def get_structure_data(file_path):
+    """
+    Parses PDB or MMCIF to return coords and sequence.
+    Detects format based on file extension.
+    """
+    # 1. Select Parser based on extension
+    if file_path.endswith('.cif'):
+        parser = MMCIFParser(QUIET=True)
+        # MMCIF parser requires an ID, we can use the filename
+        struct_id = os.path.basename(file_path)
+    else:
+        parser = PDBParser(QUIET=True)
+        struct_id = "id"
+
     try:
-        structure = parser.get_structure("id", pdb_path)
-    except Exception:
+        structure = parser.get_structure(struct_id, file_path)
+    except Exception as e:
+        print(f"Error parsing {file_path}: {e}")
         return None, None
     
     coords = []
     sequence = []
     
+    # 2. Extract Coordinates (CA atoms only)
     for model in structure:
         for chain in model:
             for residue in chain:
+                # Check for standard amino acids using CA atom availability
                 if 'CA' in residue:
-                    res_letter = seq1(residue.resname, custom_map={'MSE': 'M'})
-                    if len(res_letter) == 1 and res_letter != 'X':
-                        coords.append(residue['CA'].get_coord())
-                        sequence.append(res_letter)
-            return np.array(coords), "".join(sequence)
-    return None, None
+                    try:
+                        # Convert 3-letter code to 1-letter
+                        res_letter = seq1(residue.resname, custom_map={'MSE': 'M'})
+                        
+                        # Filter out unknowns or non-standard that map to 'X' (optional, but safer for alignment)
+                        if len(res_letter) == 1 and res_letter != 'X':
+                            coords.append(residue['CA'].get_coord())
+                            sequence.append(res_letter)
+                    except Exception:
+                        pass
+        # Usually we only take the first model if multiple exist
+        break 
+            
+    if not coords:
+        return None, None
+
+    return np.array(coords), "".join(sequence)
 
 def _calculate_average_excluding_diagonal(matrix):
     m = matrix.copy()
@@ -54,21 +79,44 @@ def calculate_tm_matrix(group_a_ids, group_b_ids, pdb_folder):
     all_ids = group_a_ids + group_b_ids
     cache = {}
     
-    print("Loading PDB files for analysis...")
+    print("Loading structure files (PDB/CIF) for analysis...")
+    
     for pid in all_ids:
         safe_id = pid.replace("/", "_")
-        path = os.path.join(pdb_folder, f"{safe_id}.pdb")
-        if os.path.exists(path):
-            data = get_pdb_data(path)
+        safe_id_lower = safe_id.lower()
+        
+        # Check for .pdb, then .cif, then lowercase versions
+        possible_paths = [
+            os.path.join(pdb_folder, f"{safe_id}.pdb"),
+            os.path.join(pdb_folder, f"{safe_id}.cif"),
+            os.path.join(pdb_folder, f"{safe_id_lower}.pdb"),
+            os.path.join(pdb_folder, f"{safe_id_lower}.cif")
+        ]
+        
+        found_path = None
+        for p in possible_paths:
+            if os.path.exists(p):
+                found_path = p
+                break
+        
+        if found_path:
+            # Pass the found path to the updated parser
+            data = get_structure_data(found_path)
             if data[0] is not None:
                 cache[pid] = data
+        else:
+            # Optional: Print warning only if verbose
+            # print(f"Warning: Structure for {pid} not found in {pdb_folder}")
+            pass
     
     # Update lists to only include successfully loaded IDs
     valid_a = [x for x in group_a_ids if x in cache]
     valid_b = [x for x in group_b_ids if x in cache]
     
-    if len(valid_a) < 2 or len(valid_b) < 2:
-        print("Not enough valid structures to calculate matrix.")
+    # Check if we have enough data
+    # (Relaxed check: If you want to allow 1 vs 1 comparison, change to < 1)
+    if len(valid_a) < 1 or len(valid_b) < 1:
+        print(f"Not enough valid structures. Found A:{len(valid_a)}, B:{len(valid_b)}")
         return None, None, None
 
     # 2. Build Matrix
@@ -89,10 +137,12 @@ def calculate_tm_matrix(group_a_ids, group_b_ids, pdb_folder):
             
             coords_c, seq_c = cache[c_id]
             try:
+                # tmtools alignment
                 res = tm_align(coords_r, coords_c, seq_r, seq_c)
                 score = (res.tm_norm_chain1 + res.tm_norm_chain2) / 2.0
                 raw_matrix[i, j] = score
-            except:
+            except Exception as e:
+                print(f"Alignment error {r_id} vs {c_id}: {e}")
                 raw_matrix[i, j] = 0.0
 
     # 3. Calculate Stats
@@ -107,7 +157,7 @@ def calculate_tm_matrix(group_a_ids, group_b_ids, pdb_folder):
         'avg_inter': np.mean(sub_inter)
     }
 
-    # 4. Sort Groups
+    # 4. Sort Groups (Cluster within group for better visualization)
     sorted_a = _get_sort_order(sub_a, valid_a)
     sorted_b = _get_sort_order(sub_b, valid_b)
     final_order = sorted_a + sorted_b
