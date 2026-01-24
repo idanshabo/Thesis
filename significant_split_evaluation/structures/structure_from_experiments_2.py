@@ -131,6 +131,20 @@ def check_and_download_structures(global_map, group_a_leaves, group_b_leaves, ou
     Checks if groups have >= 2 structures each. If yes, downloads them.
     RETURNS: (Success_Bool, List_IDs_Group_A, List_IDs_Group_B)
     """
+    print("\n--- DEBUGGING ID MISMATCH ---")
+    if len(global_map) > 0:
+        example_map_key = list(global_map.keys())[0]
+        print(f"Global Map Key Example: '{example_map_key}'")
+    else:
+        print("Global Map is empty!")
+    
+    if len(group_a_leaves) > 0:
+        example_leaf = group_a_leaves[0]
+        print(f"Group A Leaf Example:   '{example_leaf}'")
+        print(f"Normalized Leaf:        '{normalize_id(example_leaf)}'")
+    
+    print("-----------------------------\n")
+    
     # 1. Filter Map for current groups
     pdbs_a = set()
     for leaf in group_a_leaves:
