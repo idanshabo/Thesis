@@ -1,15 +1,16 @@
 import os
 import random
-from Bio import SeqIO
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import logomaker  # <--- NEW DEPENDENCY
+from Bio import SeqIO
 
 # Import the local modules
 from significant_split_evaluation.structures.structure_predictor import run_prediction_batch
 from significant_split_evaluation.structures.structure_analysis import calculate_tm_matrix
 from significant_split_evaluation.structures.visualization import plot_tm_heatmap
-# from significant_split_evaluation.structures.structures_from_experiments import get_pdb_from_uniprot, select_best_pdb, prepare_experimental_folder
 from significant_split_evaluation.structures.visualize_representative_structure import get_group_representative, align_and_visualize_pair
 from significant_split_evaluation.structures.structure_from_experiments_2 import prepare_global_structure_map, check_and_download_structures
 
@@ -20,6 +21,109 @@ def normalize_id(identifier):
     Seq/1 -> Seq_1
     """
     return identifier.replace("/", "_")
+
+
+def align_matrices(df1, df2):
+    """
+    Ensures both DataFrames have the same columns (amino acids)
+    and the same index (positions). Missing columns are filled with 0.
+    """
+    # Get union of all characters found in both groups
+    all_chars = sorted(list(set(df1.columns) | set(df2.columns)))
+
+    # Reindex both to this full set of characters
+    df1_aligned = df1.reindex(columns=all_chars, fill_value=0)
+    df2_aligned = df2.reindex(columns=all_chars, fill_value=0)
+
+    return df1_aligned, df2_aligned
+
+
+def generate_comparative_logos(records, group_a_ids, group_b_ids, output_path, highlight_threshold=0.6):
+    """
+    Generates a stacked sequence logo plot comparing Group A and Group B,
+    highlighting divergent positions.
+    """
+    print("--- Generating Scaled Logos with Highlights ---")
+    
+    # 1. Extract Sequences
+    # Create a quick lookup map for records
+    seq_map = {r.id: str(r.seq).upper() for r in records}
+    # Add normalized keys to map just in case
+    for r in records:
+        seq_map[normalize_id(r.id)] = str(r.seq).upper()
+
+    seqs_a = []
+    seqs_b = []
+
+    # Helper to find seq
+    def get_seq(uid):
+        if uid in seq_map: return seq_map[uid]
+        if normalize_id(uid) in seq_map: return seq_map[normalize_id(uid)]
+        return None
+
+    for uid in group_a_ids:
+        s = get_seq(uid)
+        if s: seqs_a.append(s)
+    
+    for uid in group_b_ids:
+        s = get_seq(uid)
+        if s: seqs_b.append(s)
+
+    if not seqs_a or not seqs_b:
+        print("Error: Empty groups for Logo plotting.")
+        return
+
+    # 2. Create Count Matrices
+    try:
+        counts_a = logomaker.alignment_to_matrix(seqs_a)
+        counts_b = logomaker.alignment_to_matrix(seqs_b)
+
+        # 3. Align Matrices
+        counts_a, counts_b = align_matrices(counts_a, counts_b)
+
+        # 4. Convert to Information (Bits)
+        info_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='information')
+        info_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='information')
+
+        # 5. Determine Global Y-Axis Max
+        max_a = info_a.sum(axis=1).max()
+        max_b = info_b.sum(axis=1).max()
+        global_max = max(max_a, max_b) * 1.1 
+
+        # 6. Calculate Differences for Highlighting
+        prob_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='probability')
+        prob_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='probability')
+        
+        # Simple difference score
+        diff_score = np.sum(np.abs(prob_a - prob_b), axis=1)
+        divergent_positions = diff_score[diff_score > highlight_threshold].index.tolist()
+
+        # 7. Plotting
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 6), sharex=True)
+
+        logomaker.Logo(info_a, ax=ax1, color_scheme='chemistry')
+        logomaker.Logo(info_b, ax=ax2, color_scheme='chemistry')
+
+        ax1.set_ylim(0, global_max)
+        ax2.set_ylim(0, global_max)
+
+        ax1.set_title(f"Group A ({len(seqs_a)} sequences)", fontsize=14, fontweight='bold')
+        ax2.set_title(f"Group B ({len(seqs_b)} sequences)", fontsize=14, fontweight='bold')
+        ax1.set_ylabel("Bits")
+        ax2.set_ylabel("Bits")
+
+        # Add Highlights
+        for pos in divergent_positions:
+            ax1.axvspan(pos - 0.5, pos + 0.5, color='red', alpha=0.2, zorder=0)
+            ax2.axvspan(pos - 0.5, pos + 0.5, color='red', alpha=0.2, zorder=0)
+
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=300)
+        plt.close()
+        print(f"Saved Logo Plot: {output_path}")
+
+    except Exception as e:
+        print(f"Error generating Logo plot: {e}")
 
 
 def get_intervals_from_index(index, group_a_ids, group_b_ids):
@@ -114,7 +218,6 @@ def plot_side_by_side_dynamic(df_cov, df_tm, group_a_ids, group_b_ids, output_pa
         return
 
     # 1. Calculate Intervals (Blocks)
-    # Both DFs have the same index order now, so we can use df_cov.index
     intervals = get_intervals_from_index(df_cov.index, group_a_ids, group_b_ids)
 
     # 2. Setup Figure
@@ -132,7 +235,6 @@ def plot_side_by_side_dynamic(df_cov, df_tm, group_a_ids, group_b_ids, output_pa
         ax2.set_title(f"Structural Similarity (TM)\n{title_suffix}", fontsize=14, pad=10)
 
     # --- 3. DRAW LINES AND LABELS ---
-    # We iterate over the intervals we calculated
     for label, start, end in intervals:
         
         # Draw Line at the END of the block (unless it's the very last block)
@@ -150,7 +252,7 @@ def plot_side_by_side_dynamic(df_cov, df_tm, group_a_ids, group_b_ids, output_pa
             for ax, color in [(ax1, 'white'), (ax2, 'black')]:
                 # Side Label (Left Axis)
                 ax.text(-0.5, center, group_name, ha='right', va='center', 
-                        fontsize=10, fontweight='bold', color='black') # Keep text black for readability outside plot
+                        fontsize=10, fontweight='bold', color='black')
                 
                 # Bottom Label (X Axis)
                 ax.text(center, len(df_cov) + 0.5, group_name, ha='center', va='top', 
@@ -158,7 +260,6 @@ def plot_side_by_side_dynamic(df_cov, df_tm, group_a_ids, group_b_ids, output_pa
 
             # --- Calculate Stats for this block (Diagonal) on TM Plot ---
             if df_tm is not None:
-                # Extract the square block [start:end, start:end]
                 block_val = df_tm.iloc[start:end, start:end].values.mean()
                 if not pd.isna(block_val):
                     ax2.text(center, center, f"{block_val:.2f}", 
@@ -182,14 +283,9 @@ def plot_experimental_grouped_tm(df_tm, group_a_pdbs, group_b_pdbs, output_path)
         return
 
     # 1. Clean and Reorder Indices
-    # We must ensure the IDs in our lists actually exist in the DataFrame index
-    # (The DF index usually contains PDB IDs like '1abc', '2xyz')
-    
-    # Normalize keys to match dataframe if necessary (remove .pdb suffix if present in index)
     df_keys = set(df_tm.index)
     
     valid_a = [x for x in group_a_pdbs if x in df_keys]
-    # Filter valid_b and exclude any that might overlap with A (rare but possible)
     valid_b = [x for x in group_b_pdbs if x in df_keys and x not in set(valid_a)]
 
     ordered_ids = valid_a + valid_b
@@ -209,7 +305,6 @@ def plot_experimental_grouped_tm(df_tm, group_a_pdbs, group_b_pdbs, output_path)
     plt.title("Experimental Structural Similarity (TM)\n(Ordered by Split Groups)", fontsize=14, pad=10)
 
     # 3. Draw Dynamic Separator Lines
-    # The boundary is exactly at the end of valid_a
     boundary_idx = len(valid_a)
     
     if 0 < boundary_idx < len(ordered_ids):
@@ -218,13 +313,11 @@ def plot_experimental_grouped_tm(df_tm, group_a_pdbs, group_b_pdbs, output_path)
         plt.axhline(y=boundary_idx, color='black', linestyle='--', linewidth=2, alpha=0.8)
 
     # 4. Add Group Labels
-    # Label Group A
     if boundary_idx > 0:
         center_a = boundary_idx / 2
         plt.text(-0.5, center_a, "Group A\n(Exp)", ha='right', va='center', fontweight='bold', fontsize=11)
         plt.text(center_a, len(ordered_ids) + 0.5, "Group A", ha='center', va='top', fontweight='bold', fontsize=11, rotation=45)
 
-    # Label Group B
     if len(valid_b) > 0:
         center_b = boundary_idx + (len(valid_b) / 2)
         plt.text(-0.5, center_b, "Group B\n(Exp)", ha='right', va='center', fontweight='bold', fontsize=11)
@@ -235,6 +328,18 @@ def plot_experimental_grouped_tm(df_tm, group_a_pdbs, group_b_pdbs, output_path)
     plt.close()
     print(f"Saved Experimental Group Plot: {output_path}")
     
+
+def get_actual_structure_path(directory, pdb_id):
+    """
+    Helper to check if file exists as .pdb or .cif
+    """
+    path_pdb = os.path.join(directory, f"{pdb_id}.pdb")
+    if os.path.exists(path_pdb): return path_pdb
+    
+    path_cif = os.path.join(directory, f"{pdb_id}.cif")
+    if os.path.exists(path_cif): return path_cif
+    
+    return None
 
 def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path):
     """
@@ -262,8 +367,12 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
 
     valid_a = get_valid_ids(split_data['group_a'])
     valid_b = get_valid_ids(split_data['group_b'])
+
+    # --- PART 0: LOGO PLOTS ---
+    logo_path = os.path.join(sig_split_folder, "comparative_sequence_logos.png")
+    generate_comparative_logos(records, valid_a, valid_b, logo_path, highlight_threshold=0.8)
     
-    # 1. Prediction Workflow
+    # --- PART 1: PREDICTED ---
     sample_a = random.sample(valid_a, min(len(valid_a), 50))
     sample_b = random.sample(valid_b, min(len(valid_b), 50))
     processing_list = sample_a + sample_b
@@ -275,33 +384,27 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     
     if df_pred is not None and not df_pred.empty:
         # 1a. Representative Alignment
-        print("\n=== Generating Representative Alignment ===")
+        print("\n=== Generating Representative Alignment (Predicted) ===")
         rep_a_id = get_group_representative(df_pred, sample_a)
         rep_b_id = get_group_representative(df_pred, sample_b)
         
         if rep_a_id and rep_b_id:
             pdb_a = os.path.join(dir_predicted, f"{normalize_id(rep_a_id)}.pdb")
             pdb_b = os.path.join(dir_predicted, f"{normalize_id(rep_b_id)}.pdb")
-            align_output = os.path.join(sig_split_folder, "representative_structural_alignment")
+            align_output = os.path.join(sig_split_folder, "representative_structural_alignment_predicted")
             
             if os.path.exists(pdb_a) and os.path.exists(pdb_b):
                 align_and_visualize_pair(pdb_a, pdb_b, align_output,
                     label_a=f"Group A (Rep: {rep_a_id})", label_b=f"Group B (Rep: {rep_b_id})")
 
         # 1b. Plotting
-        #print("Generating Plot 1: Ordered by Groups...")
-        #cov_grp, tm_grp = get_aligned_matrices(ordered_cov_path, df_pred, processing_list, sort_by="groups")
-        #if cov_grp is not None:
-        #    plot_side_by_side_dynamic(cov_grp, tm_grp, sample_a, sample_b, 
-        #        os.path.join(sig_split_folder, "combined_ordered_by_groups.png"), "(Ordered by Split Group)")
-
         print("Generating Predicted TM Matrix Plot:")
         cov_ord, tm_ord = get_aligned_matrices(ordered_cov_path, df_pred, processing_list, sort_by="covariance")
         if cov_ord is not None:
-            plot_side_by_side_dynamic(cov_ord, tm_ord, sample_a, sample_b,
+            plot_side_by_side_dynamic(cov_ord, tm_ord, sample_a, sample_b, 
                 os.path.join(sig_split_folder, "combined_ordered_by_covariance.png"), "(Ordered by Covariance Index)")
 
-    # --- PART 4: EXPERIMENTAL ---
+    # --- PART 2: EXPERIMENTAL ---
     print("\n=== Experimental Structures Check ===")
     
     pfam_id = os.path.basename(fasta_path).split('.')[0]
@@ -313,7 +416,6 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
         )
         
         if success:
-            # --- FIX STARTS HERE ---
             # 1. Convert to sets to ensure internal uniqueness
             set_a = set(exp_a_ids)
             set_b = set(exp_b_ids)
@@ -339,9 +441,34 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
                 df_exp, stats_exp, split_exp = calculate_tm_matrix(clean_a, clean_b, dir_experimental)
                 
                 if df_exp is not None and not df_exp.empty:
+                    # A. HEATMAP
                     plot_experimental_grouped_tm(
                         df_exp, 
                         clean_a, 
                         clean_b, 
                         os.path.join(sig_split_folder, "experimental_tm_ordered_by_groups.png")
                     )
+
+                    # B. REPRESENTATIVE ALIGNMENT (NEW)
+                    print("\n=== Generating Representative Alignment (Experimental) ===")
+                    # Select best representative for the specific group based on the matrix
+                    rep_a_exp = get_group_representative(df_exp, clean_a)
+                    rep_b_exp = get_group_representative(df_exp, clean_b)
+
+                    if rep_a_exp and rep_b_exp:
+                        # Find actual file paths (check .pdb and .cif)
+                        pdb_a_path = get_actual_structure_path(dir_experimental, rep_a_exp)
+                        pdb_b_path = get_actual_structure_path(dir_experimental, rep_b_exp)
+
+                        if pdb_a_path and pdb_b_path:
+                            align_output_exp = os.path.join(sig_split_folder, "representative_structural_alignment_experimental")
+                            
+                            align_and_visualize_pair(
+                                pdb_a_path, 
+                                pdb_b_path, 
+                                align_output_exp,
+                                label_a=f"Group A (Exp: {rep_a_exp})", 
+                                label_b=f"Group B (Exp: {rep_b_exp})"
+                            )
+                        else:
+                            print("Error: Could not locate Experimental PDB files on disk.")
