@@ -3,3 +3,4 @@ ete3
 esm
 tmtools
 pymol-open-source
+logomaker
