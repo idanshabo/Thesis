@@ -301,36 +301,47 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
             plot_side_by_side_dynamic(cov_ord, tm_ord, sample_a, sample_b,
                 os.path.join(sig_split_folder, "combined_ordered_by_covariance.png"), "(Ordered by Covariance Index)")
 
-    # --- PART 4: EXPERIMENTAL (UPDATED) ---
+    # --- PART 4: EXPERIMENTAL ---
     print("\n=== Experimental Structures Check ===")
     
-    # 1. Prepare Map
     pfam_id = os.path.basename(fasta_path).split('.')[0]
     global_map = prepare_global_structure_map(pfam_id, fasta_path)
     
     if global_map:
-        # 2. Download and get Lists of PDB IDs for each Group
-        # exp_a_ids and exp_b_ids are lists of PDB IDs (e.g., ['1abc', '4xyz'])
         success, exp_a_ids, exp_b_ids = check_and_download_structures(
             global_map, split_data['group_a'], split_data['group_b'], dir_experimental
         )
         
         if success:
-            print(f"Calculating TM Matrix (Experimental) for {len(exp_a_ids) + len(exp_b_ids)} structures...")
+            # --- FIX STARTS HERE ---
+            # 1. Convert to sets to ensure internal uniqueness
+            set_a = set(exp_a_ids)
+            set_b = set(exp_b_ids)
             
-            # 3. Calculate TM Matrix
-            # Ensure your calculate_tm_matrix can handle PDB IDs as input. 
-            # It returns a dataframe indexed by PDB ID.
-            df_exp, stats_exp, split_exp = calculate_tm_matrix(exp_a_ids, exp_b_ids, dir_experimental)
-            
-            if df_exp is not None and not df_exp.empty:
-                # 4. VISUALIZE: Position by Split Groups
-                # This creates the plot you asked for
-                plot_experimental_grouped_tm(
-                    df_exp, 
-                    exp_a_ids, 
-                    exp_b_ids, 
-                    os.path.join(sig_split_folder, "experimental_tm_ordered_by_groups.png")
-                )
+            # 2. Identify and remove overlapping IDs 
+            # (PDBs that appear in both groups are ambiguous for comparison)
+            overlap = set_a.intersection(set_b)
+            if overlap:
+                print(f"    [Cleanup] Removing {len(overlap)} ambiguous PDBs found in both groups: {overlap}")
+                set_a = set_a - overlap
+                set_b = set_b - overlap
+
+            # 3. Convert back to sorted lists
+            clean_a = sorted(list(set_a))
+            clean_b = sorted(list(set_b))
+
+            if len(clean_a) < 1 or len(clean_b) < 1:
+                print("    [Structure Skip] Not enough unique, non-overlapping experimental structures.")
             else:
-                print("Experimental TM calculation returned empty data.")
+                print(f"Calculating TM Matrix (Experimental) for {len(clean_a) + len(clean_b)} structures...")
+                
+                # Pass the cleaned, disjoint lists
+                df_exp, stats_exp, split_exp = calculate_tm_matrix(clean_a, clean_b, dir_experimental)
+                
+                if df_exp is not None and not df_exp.empty:
+                    plot_experimental_grouped_tm(
+                        df_exp, 
+                        clean_a, 
+                        clean_b, 
+                        os.path.join(sig_split_folder, "experimental_tm_ordered_by_groups.png")
+                    )
