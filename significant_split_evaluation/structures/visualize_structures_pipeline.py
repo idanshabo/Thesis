@@ -44,7 +44,6 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, output_path, h
     """
     print("\n--- Generating Comparative Sequence Logos ---")
     
-    # 1. Map creation (Handling both raw and normalized IDs)
     seq_map = {}
     for r in records:
         seq_map[r.id] = str(r.seq).upper()
@@ -53,7 +52,6 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, output_path, h
     seqs_a = []
     seqs_b = []
 
-    # Robust retrieval
     for uid in group_a_ids:
         if uid in seq_map: seqs_a.append(seq_map[uid])
         elif normalize_id(uid) in seq_map: seqs_a.append(seq_map[normalize_id(uid)])
@@ -246,12 +244,18 @@ def get_actual_structure_path(directory, pdb_id):
     """
     Helper to check if file exists as .pdb or .cif (Experimental downloads might vary)
     """
+    # 1. Try Exact match
     path_pdb = os.path.join(directory, f"{pdb_id}.pdb")
     if os.path.exists(path_pdb): return path_pdb
-    
     path_cif = os.path.join(directory, f"{pdb_id}.cif")
     if os.path.exists(path_cif): return path_cif
     
+    # 2. Try Lowercase
+    path_pdb_lower = os.path.join(directory, f"{pdb_id.lower()}.pdb")
+    if os.path.exists(path_pdb_lower): return path_pdb_lower
+    path_cif_lower = os.path.join(directory, f"{pdb_id.lower()}.cif")
+    if os.path.exists(path_cif_lower): return path_cif_lower
+
     return None
 
 
@@ -331,24 +335,25 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     global_map = prepare_global_structure_map(pfam_id, fasta_path)
     
     if global_map:
-        # --- FIX FOR ID MISMATCH ---
-        # The map often contains IDs with '/', but the split groups use '_'.
-        # We augment the map to support both.
+        # --- FIX 1: AUGMENT MAP (Handle / vs _ mismatch) ---
         augmented_map = global_map.copy()
         for key in list(global_map.keys()):
             norm_key = normalize_id(key)
             if norm_key not in augmented_map:
                 augmented_map[norm_key] = global_map[key]
         
-        # Use augmented_map here
         success, exp_a_ids, exp_b_ids = check_and_download_structures(
             augmented_map, split_data['group_a'], split_data['group_b'], dir_experimental
         )
         
         if success:
-            # 1. CLEANUP OVERLAPS
-            set_a = set(exp_a_ids)
-            set_b = set(exp_b_ids)
+            # --- FIX 2: FORCE LOWERCASE PDB IDs ---
+            # PDB files are saved as lowercase (e.g., 1abc.pdb) but APIs often return Uppercase (1ABC).
+            # We must normalize to avoid mismatches.
+            set_a = {x.lower() for x in exp_a_ids}
+            set_b = {x.lower() for x in exp_b_ids}
+
+            # Cleanup overlaps
             overlap = set_a.intersection(set_b)
             if overlap:
                 print(f"    [Cleanup] Removing {len(overlap)} ambiguous PDBs found in both groups: {overlap}")
@@ -358,23 +363,20 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
             clean_a = sorted(list(set_a))
             clean_b = sorted(list(set_b))
             
-            # --- MINIMUM THRESHOLD CHECKS ---
-            
-            # Threshold for 3D Visualization: >= 1 in each group
+            # --- THRESHOLD CHECKS ---
             has_enough_for_viz = (len(clean_a) >= 1 and len(clean_b) >= 1)
-            
-            # Threshold for TM Matrix/Heatmap: >= 2 in each group
             has_enough_for_tm  = (len(clean_a) >= 2 and len(clean_b) >= 2)
 
             if not has_enough_for_viz:
                 print("    [Structure Skip] Less than 1 experimental structure in one or both groups. Skipping Experimental analysis.")
             else:
-                # We have at least 1 vs 1, so we can calculate the matrix (needed for selecting representative)
                 print(f"Calculating TM Matrix (Experimental) for {len(clean_a) + len(clean_b)} structures...")
+                
+                # IMPORTANT: clean_a/clean_b are now strictly lowercase.
                 df_exp, stats_exp, split_exp = calculate_tm_matrix(clean_a, clean_b, dir_experimental)
                 
                 if df_exp is not None and not df_exp.empty:
-                    # A. Matrix Plot (REQUIREMENT: >= 2 per group)
+                    # A. HEATMAP (Requires >= 2)
                     if has_enough_for_tm:
                         plot_experimental_grouped_tm(
                             df_exp, 
@@ -385,12 +387,15 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
                     else:
                         print("    [Info] Skipping Experimental Heatmap: Need at least 2 structures per group.")
 
-                    # B. Representative Alignment (REQUIREMENT: >= 1 per group)
+                    # B. REPRESENTATIVE ALIGNMENT (Requires >= 1)
                     print("\n=== Generating Representative Alignment (Experimental) ===")
+                    
                     rep_a_exp = get_group_representative(df_exp, clean_a)
                     rep_b_exp = get_group_representative(df_exp, clean_b)
 
                     if rep_a_exp and rep_b_exp:
+                        print(f"    -> Selected Representatives: A={rep_a_exp}, B={rep_b_exp}")
+                        
                         pdb_a_path = get_actual_structure_path(dir_experimental, rep_a_exp)
                         pdb_b_path = get_actual_structure_path(dir_experimental, rep_b_exp)
 
@@ -405,4 +410,8 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
                                 label_b=f"Group B (Exp: {rep_b_exp})"
                             )
                         else:
-                            print(f"    [Error] Could not locate files for representatives: {rep_a_exp} or {rep_b_exp}")
+                            print(f"    [Error] File Not Found on Disk. Paths checked:")
+                            print(f"      A: {dir_experimental}/{rep_a_exp}.pdb/cif")
+                            print(f"      B: {dir_experimental}/{rep_b_exp}.pdb/cif")
+                    else:
+                        print("    [Error] Could not identify representatives from the matrix.")
