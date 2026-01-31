@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import logomaker  # <--- NEW DEPENDENCY
+import logomaker
 from Bio import SeqIO
 
 # Import the local modules
