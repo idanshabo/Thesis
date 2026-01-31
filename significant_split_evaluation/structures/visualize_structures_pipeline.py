@@ -44,25 +44,23 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, output_path, h
     """
     print("\n--- Generating Comparative Sequence Logos ---")
     
-    seq_map = {r.id: str(r.seq).upper() for r in records}
+    # 1. Map creation (Handling both raw and normalized IDs)
+    seq_map = {}
     for r in records:
+        seq_map[r.id] = str(r.seq).upper()
         seq_map[normalize_id(r.id)] = str(r.seq).upper()
 
     seqs_a = []
     seqs_b = []
 
-    def get_seq(uid):
-        if uid in seq_map: return seq_map[uid]
-        if normalize_id(uid) in seq_map: return seq_map[normalize_id(uid)]
-        return None
-
+    # Robust retrieval
     for uid in group_a_ids:
-        s = get_seq(uid)
-        if s: seqs_a.append(s)
+        if uid in seq_map: seqs_a.append(seq_map[uid])
+        elif normalize_id(uid) in seq_map: seqs_a.append(seq_map[normalize_id(uid)])
     
     for uid in group_b_ids:
-        s = get_seq(uid)
-        if s: seqs_b.append(s)
+        if uid in seq_map: seqs_b.append(seq_map[uid])
+        elif normalize_id(uid) in seq_map: seqs_b.append(seq_map[normalize_id(uid)])
 
     if not seqs_a or not seqs_b:
         print("Error: One or both groups are empty. Skipping Logo plot.")
@@ -285,7 +283,7 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     valid_b = get_valid_ids(split_data['group_b'])
 
     # ----------------------------------------------------
-    # PART 1: COMPARATIVE LOGO PLOTS (NEW)
+    # PART 1: COMPARATIVE LOGO PLOTS
     # ----------------------------------------------------
     logo_path = os.path.join(sig_split_folder, "comparative_sequence_logos.png")
     generate_comparative_logos(records, valid_a, valid_b, logo_path, highlight_threshold=0.8)
@@ -333,8 +331,18 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     global_map = prepare_global_structure_map(pfam_id, fasta_path)
     
     if global_map:
+        # --- FIX FOR ID MISMATCH ---
+        # The map often contains IDs with '/', but the split groups use '_'.
+        # We augment the map to support both.
+        augmented_map = global_map.copy()
+        for key in list(global_map.keys()):
+            norm_key = normalize_id(key)
+            if norm_key not in augmented_map:
+                augmented_map[norm_key] = global_map[key]
+        
+        # Use augmented_map here
         success, exp_a_ids, exp_b_ids = check_and_download_structures(
-            global_map, split_data['group_a'], split_data['group_b'], dir_experimental
+            augmented_map, split_data['group_a'], split_data['group_b'], dir_experimental
         )
         
         if success:
