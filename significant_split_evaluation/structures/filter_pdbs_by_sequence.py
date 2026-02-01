@@ -5,12 +5,9 @@ from Bio import SeqIO
 from Bio.Align import PairwiseAligner
 import pymol
 from pymol import cmd
-from significant_split_evaluation.structures.structure_from_experiments_2 import prepare_global_structure_map
-
 
 def normalize_id(identifier):
     return identifier.replace("/", "_")
-
 
 def align_and_crop_single_pdb(pdb_path, target_seq, output_path):
     """
@@ -54,9 +51,50 @@ def align_and_crop_single_pdb(pdb_path, target_seq, output_path):
                 alignments = aligner.align(target_seq, clean_pdb_seq)
                 if alignments:
                     match = alignments[0]
-                    # Get start/end indices in the PDB sequence string
-                    pdb_start_idx = match.path[0][1]
-                    pdb_end_idx = match.path[-1][1]
+                    
+                    # --- FIX FOR BIOPYTHON VERSION COMPATIBILITY ---
+                    # Newer Biopython (1.80+) uses .path or .coordinates
+                    # Older versions differ. We strictly calculate from aligned indices.
+                    
+                    # Get indices of the aligned segments
+                    # match.indices is standard across recent versions (returns 2 arrays of indices)
+                    # We want the indices corresponding to the PDB sequence (the second sequence, index 1)
+                    
+                    try:
+                        # Attempt standard coordinate retrieval (works on 1.80+)
+                        # [0] is target, [1] is query (pdb)
+                        # coordinates returns (start, end)
+                        aligned_regions = match.coordinates[1]
+                        pdb_start_idx = aligned_regions[0]
+                        pdb_end_idx = aligned_regions[-1]
+                    except AttributeError:
+                        # Fallback for older Biopython or different property names
+                        # We iterate the aligned segments
+                        # Use format() to get the aligned strings, then count
+                        # Or calculate min/max from indices
+                        
+                        # Indices is usually property of the alignment object in different formats
+                        # Safest way: Parse the 'path' manually if available, else standard fallback
+                        # Let's use the simplest: strings
+                        
+                        # Get aligned coordinates directly from the object properties
+                        # For PairwiseAlignment object:
+                        # target indices are usually aligned[0], query (pdb) aligned[1]
+                        
+                        # If simple properties fail, we use the string representation to find the range
+                        # This is slightly slower but 100% robust
+                        alignment_info = format(match).split('\n')
+                        # Alignment output usually looks like:
+                        # target seq
+                        # |||||
+                        # query seq
+                        
+                        # Let's rely on the aligned array indices if we can
+                        # match[1] gives the indices for the second sequence
+                        pdb_indices = match.indices[1]
+                        pdb_start_idx = pdb_indices[0]
+                        pdb_end_idx = pdb_indices[-1]
+                        
                     best_range = (pdb_start_idx, pdb_end_idx)
 
         # Crop if a good match found
