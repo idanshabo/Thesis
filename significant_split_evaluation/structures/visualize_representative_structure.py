@@ -51,33 +51,34 @@ def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path,
     
     # Global Settings
     cmd.set("label_font_id", 13)
-    cmd.set("label_size", 16)    # Reduced from 24 to 16 to fix sizing
+    cmd.set("label_size", 18)    # Readable size
     cmd.set("label_color", "black")
     cmd.bg_color('white')
     cmd.set('ray_opaque_background', 1)
 
     # --- PLOT 1: SUPERIMPOSED ---
-    ([min_x, min_y, min_z], [max_x, max_y, max_z]) = cmd.get_extent('all')
+    # 1. Get positions of PROTEINS only
+    ([min_x, min_y, min_z], [max_x, max_y, max_z]) = cmd.get_extent('obj_A or obj_B')
     center_x = (min_x + max_x) / 2
     height = max_y - min_y
-    width = max_x - min_x
 
-    # Tight Zoom on the actual proteins first
-    cmd.zoom('all', buffer=2.0)
-
-    # Place Title (Just above structure)
-    cmd.pseudoatom("title_1", pos=[center_x, max_y + (height * 0.1), min_z], 
+    # 2. Place Labels relative to proteins
+    # Title slightly higher
+    cmd.pseudoatom("title_1", pos=[center_x, max_y + (height * 0.15), min_z], 
                    label="Representative Alignment (Superimposed)")
     
-    # Place Legends (Just below structure, tightly stacked)
-    # Note: We anchor them closer to min_y
-    cmd.pseudoatom("leg_a_1", pos=[center_x, min_y - (height * 0.1), min_z], 
+    # Legends below
+    cmd.pseudoatom("leg_a_1", pos=[center_x, min_y - (height * 0.15), min_z], 
                    label=f"{label_a} ({color_a})")
-    cmd.pseudoatom("leg_b_1", pos=[center_x, min_y - (height * 0.2), min_z], 
+    cmd.pseudoatom("leg_b_1", pos=[center_x, min_y - (height * 0.30), min_z], 
                    label=f"{label_b} ({color_b})")
 
-    # Save - Width increased to 2000 to prevent text clipping
-    cmd.png(f"{output_base_path}_superimposed.png", width=2000, height=1500, dpi=300, ray=1)
+    # 3. ZOOM LAST (Crucial Fix)
+    # We zoom on 'visible' which now includes the proteins AND the new labels
+    # Buffer 3.0 gives extra padding so bottom text isn't cut
+    cmd.zoom('visible', buffer=3.0)
+    
+    cmd.png(f"{output_base_path}_superimposed.png", width=2000, height=1600, dpi=300, ray=1)
     print(f"Saved: {output_base_path}_superimposed.png")
 
     # --- PLOT 2: SIDE-BY-SIDE ---
@@ -86,30 +87,30 @@ def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path,
     cmd.delete("leg_b_1")
 
     # Move Group B to the right
-    # Shift is width + small buffer (5A)
+    width = max_x - min_x
     shift = width + 5
     cmd.translate([shift, 0, 0], 'obj_B', camera=0)
 
-    # Re-calculate extents
+    # 1. Recalculate extent for the new wide scene
     ([min_x, min_y, min_z], [max_x, max_y, max_z]) = cmd.get_extent('obj_A or obj_B')
     center_x = (min_x + max_x) / 2
     height = max_y - min_y
     
-    # Tight Zoom on the new wide scene
-    cmd.zoom('all', buffer=2.0)
-
-    cmd.pseudoatom("title_2", pos=[center_x, max_y + (height * 0.1), min_z], 
+    # 2. Place Labels
+    cmd.pseudoatom("title_2", pos=[center_x, max_y + (height * 0.15), min_z], 
                    label="Representative Alignment (Side-by-Side)")
 
-    # Stack labels vertically in the center
-    cmd.pseudoatom("leg_a_2", pos=[center_x, min_y - (height * 0.1), min_z], 
+    cmd.pseudoatom("leg_a_2", pos=[center_x, min_y - (height * 0.15), min_z], 
                    label=f"{label_a} ({color_a})")
     
-    cmd.pseudoatom("leg_b_2", pos=[center_x, min_y - (height * 0.2), min_z], 
+    cmd.pseudoatom("leg_b_2", pos=[center_x, min_y - (height * 0.30), min_z], 
                    label=f"{label_b} ({color_b})")
 
-    # Save - Massive width (3000) to ensure long text lines fit
-    cmd.png(f"{output_base_path}_side_by_side.png", width=3000, height=1500, dpi=300, ray=1)
+    # 3. ZOOM LAST
+    cmd.zoom('visible', buffer=3.0)
+
+    # Wide canvas to fit text
+    cmd.png(f"{output_base_path}_side_by_side.png", width=3000, height=1600, dpi=300, ray=1)
     
     cmd.save(f"{output_base_path}_combined.pse")
     print(f"Saved: {output_base_path}_side_by_side.png")
