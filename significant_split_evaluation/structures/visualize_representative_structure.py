@@ -10,7 +10,6 @@ def get_group_representative(df_tm, group_ids):
     similar (highest average TM-score) to all other members of the group.
     """
     # Filter the TM matrix to only include the specific group members
-    # We use intersection to ensure we only look at IDs that actually exist in the matrix
     valid_ids = [uid for uid in group_ids if uid in df_tm.index]
     
     if not valid_ids:
@@ -19,8 +18,7 @@ def get_group_representative(df_tm, group_ids):
     # Subset the matrix
     sub_matrix = df_tm.loc[valid_ids, valid_ids]
     
-    # Calculate mean TM score for each sample against its group members
-    # ID with highest mean is the most "representative" center of the cluster
+    # Calculate mean TM score for each sample
     mean_scores = sub_matrix.mean(axis=1)
     representative_id = mean_scores.idxmax()
     
@@ -61,7 +59,7 @@ def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path,
     
     # Global Label Settings
     cmd.set("label_font_id", 13)
-    cmd.set("label_size", 20)
+    cmd.set("label_size", 24) # Slightly larger for readability
     cmd.set("label_color", "black")
     cmd.bg_color('white')
     cmd.set('ray_opaque_background', 1)
@@ -69,15 +67,18 @@ def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path,
     # =================================================================
     # PLOT 1: SUPERIMPOSED
     # =================================================================
-    # Calculate dimensions
     ([min_x, min_y, min_z], [max_x, max_y, max_z]) = cmd.get_extent('all')
     center_x = (min_x + max_x) / 2
     height = max_y - min_y
 
-    # Add Labels
-    cmd.pseudoatom("title_1", pos=[center_x, max_y + (height * 0.15), min_z], 
+    # Add Labels (Stacked vertically to prevent overlap)
+    # Title at top
+    cmd.pseudoatom("title_1", pos=[center_x, max_y + (height * 0.2), min_z], 
                    label="Representative Alignment (Superimposed)")
-    cmd.pseudoatom("leg_a_1", pos=[center_x, min_y - (height * 0.15), min_z], 
+    
+    # Legend at bottom (Stacked with large gap)
+    # Lower Group A first, then Group B below it
+    cmd.pseudoatom("leg_a_1", pos=[center_x, min_y - (height * 0.1), min_z], 
                    label=f"{label_a} ({color_a})")
     cmd.pseudoatom("leg_b_1", pos=[center_x, min_y - (height * 0.25), min_z], 
                    label=f"{label_b} ({color_b})")
@@ -90,36 +91,44 @@ def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path,
     # =================================================================
     # PLOT 2: SIDE-BY-SIDE
     # =================================================================
-    # Clear previous labels to avoid duplicates
+    # Clear previous labels
     cmd.delete("title_1")
     cmd.delete("leg_a_1")
     cmd.delete("leg_b_1")
 
-    # Move (Translate) Group B to the right
-    # We move it by the width of the structure + 20 Angstroms padding
+    # Move Group B to the right
     width = max_x - min_x
     shift = width + 20
-    # translate [x, y, z], selection, camera=0 (0 = move object in world space)
     cmd.translate([shift, 0, 0], 'obj_B', camera=0)
 
-    # Recalculate dimensions for the NEW wider scene
+    # Recalculate dimensions for the wider scene
     ([min_x, min_y, min_z], [max_x, max_y, max_z]) = cmd.get_extent('all')
     center_x = (min_x + max_x) / 2
+    
+    # Get centers of individual objects for specific labels
+    ([ax1, ay1, az1], [ax2, ay2, az2]) = cmd.get_extent('obj_A')
+    center_a_x = (ax1 + ax2) / 2
+    
+    ([bx1, by1, bz1], [bx2, by2, bz2]) = cmd.get_extent('obj_B')
+    center_b_x = (bx1 + bx2) / 2
+    
     height = max_y - min_y
 
-    # Add New Labels (Centered on the new pair)
-    cmd.pseudoatom("title_2", pos=[center_x, max_y + (height * 0.15), min_z], 
+    # Add New Labels
+    cmd.pseudoatom("title_2", pos=[center_x, max_y + (height * 0.2), min_z], 
                    label="Representative Alignment (Side-by-Side)")
-    cmd.pseudoatom("leg_a_2", pos=[center_x, min_y - (height * 0.15), min_z], 
+
+    # Label A under object A
+    cmd.pseudoatom("leg_a_2", pos=[center_a_x, min_y - (height * 0.1), min_z], 
                    label=f"{label_a} ({color_a})")
-    cmd.pseudoatom("leg_b_2", pos=[center_x, min_y - (height * 0.25), min_z], 
+    
+    # Label B under object B (Same Y height as A to keep them aligned)
+    cmd.pseudoatom("leg_b_2", pos=[center_b_x, min_y - (height * 0.1), min_z], 
                    label=f"{label_b} ({color_b})")
 
     # Zoom and Save
     cmd.zoom('visible', buffer=5)
-    # We use a wider image (2400px) because the scene is now much wider
     cmd.png(f"{output_base_path}_side_by_side.png", width=2400, height=1200, dpi=300, ray=1)
     
-    # Save the PyMOL session (includes both objects in their new positions)
     cmd.save(f"{output_base_path}_combined.pse")
     print(f"Saved: {output_base_path}_side_by_side.png")
