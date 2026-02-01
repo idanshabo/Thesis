@@ -13,15 +13,7 @@ from significant_split_evaluation.structures.structure_analysis import calculate
 from significant_split_evaluation.structures.visualization import plot_tm_heatmap
 from significant_split_evaluation.structures.visualize_representative_structure import get_group_representative, align_and_visualize_pair
 from significant_split_evaluation.structures.structure_from_experiments_2 import prepare_global_structure_map, check_and_download_structures
-
-# NEW IMPORT: Sequence Cropper
-# Ensure filter_pdbs_by_sequence.py is in the python path or same folder
-try:
-    from filter_pdbs_by_sequence import align_and_crop_single_pdb
-except ImportError:
-    # If the file is placed elsewhere, you might need to adjust sys.path or move it
-    print("Warning: filter_pdbs_by_sequence not found. Cropping will be skipped.")
-    def align_and_crop_single_pdb(pdb, seq, out): return pdb
+from significant_split_evaluation.structures.filter_pdbs_by_sequence import align_and_crop_single_pdb
 
 
 def normalize_id(identifier):
