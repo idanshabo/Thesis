@@ -14,6 +14,15 @@ from significant_split_evaluation.structures.visualization import plot_tm_heatma
 from significant_split_evaluation.structures.visualize_representative_structure import get_group_representative, align_and_visualize_pair
 from significant_split_evaluation.structures.structure_from_experiments_2 import prepare_global_structure_map, check_and_download_structures
 
+# NEW IMPORT: Sequence Cropper
+# Ensure filter_pdbs_by_sequence.py is in the python path or same folder
+try:
+    from filter_pdbs_by_sequence import align_and_crop_single_pdb
+except ImportError:
+    # If the file is placed elsewhere, you might need to adjust sys.path or move it
+    print("Warning: filter_pdbs_by_sequence not found. Cropping will be skipped.")
+    def align_and_crop_single_pdb(pdb, seq, out): return pdb
+
 
 def normalize_id(identifier):
     """
@@ -242,7 +251,7 @@ def plot_experimental_grouped_tm(df_tm, group_a_pdbs, group_b_pdbs, output_path)
 
 def get_actual_structure_path(directory, pdb_id):
     """
-    Helper to check if file exists as .pdb or .cif (Experimental downloads might vary)
+    Helper to check if file exists as .pdb or .cif
     """
     # 1. Try Exact match
     path_pdb = os.path.join(directory, f"{pdb_id}.pdb")
@@ -258,7 +267,6 @@ def get_actual_structure_path(directory, pdb_id):
 
     return None
 
-
 def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path):
     """
     Main Pipeline.
@@ -273,6 +281,12 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     except FileNotFoundError:
         print("Error: FASTA not found.")
         return
+
+    # Create sequence lookup map for cropping later
+    seq_lookup = {}
+    for r in records:
+        seq_lookup[r.id] = str(r.seq).upper()
+        seq_lookup[normalize_id(r.id)] = str(r.seq).upper()
 
     id_map = {normalize_id(r.id): r.id for r in records}
     
@@ -334,8 +348,16 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     pfam_id = os.path.basename(fasta_path).split('.')[0]
     global_map = prepare_global_structure_map(pfam_id, fasta_path)
     
+    # Pre-map PDBs to Sequence IDs (needed for cropping)
+    # Map structure: { 'SeqID': {'1abc', '2xyz'} }
+    pdb_to_seq_id = {}
     if global_map:
-        # --- FIX 1: AUGMENT MAP (Handle / vs _ mismatch) ---
+        for seq_id, pdbs in global_map.items():
+            for pdb in pdbs:
+                pdb_to_seq_id[pdb.lower()] = seq_id
+
+    if global_map:
+        # Augment map
         augmented_map = global_map.copy()
         for key in list(global_map.keys()):
             norm_key = normalize_id(key)
@@ -347,49 +369,41 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
         )
         
         if success:
-            # --- FIX 2: FORCE LOWERCASE PDB IDs ---
-            # PDB files are saved as lowercase (e.g., 1abc.pdb) but APIs often return Uppercase (1ABC).
-            # We must normalize to avoid mismatches.
             set_a = {x.lower() for x in exp_a_ids}
             set_b = {x.lower() for x in exp_b_ids}
 
-            # Cleanup overlaps
+            # Rescue overlaps
             overlap = set_a.intersection(set_b)
-            if overlap:
-                print(f"    [Cleanup] Removing {len(overlap)} ambiguous PDBs found in both groups: {overlap}")
-                set_a = set_a - overlap
-                set_b = set_b - overlap
+            clean_a_set = set_a - overlap
+            clean_b_set = set_b - overlap
 
-            clean_a = sorted(list(set_a))
-            clean_b = sorted(list(set_b))
+            if len(clean_a_set) == 0 and len(set_a) > 0:
+                print(f"    [Warning] Group A only contains overlapping PDBs {overlap}. Retaining for visualization.")
+                clean_a_set = set_a
+            if len(clean_b_set) == 0 and len(set_b) > 0:
+                print(f"    [Warning] Group B only contains overlapping PDBs {overlap}. Retaining for visualization.")
+                clean_b_set = set_b
+
+            clean_a = sorted(list(clean_a_set))
+            clean_b = sorted(list(clean_b_set))
             
-            # --- THRESHOLD CHECKS ---
             has_enough_for_viz = (len(clean_a) >= 1 and len(clean_b) >= 1)
             has_enough_for_tm  = (len(clean_a) >= 2 and len(clean_b) >= 2)
 
             if not has_enough_for_viz:
-                print("    [Structure Skip] Less than 1 experimental structure in one or both groups. Skipping Experimental analysis.")
+                print("    [Structure Skip] Less than 1 experimental structure in one or both groups.")
             else:
                 print(f"Calculating TM Matrix (Experimental) for {len(clean_a) + len(clean_b)} structures...")
-                
-                # IMPORTANT: clean_a/clean_b are now strictly lowercase.
                 df_exp, stats_exp, split_exp = calculate_tm_matrix(clean_a, clean_b, dir_experimental)
                 
                 if df_exp is not None and not df_exp.empty:
-                    # A. HEATMAP (Requires >= 2)
                     if has_enough_for_tm:
                         plot_experimental_grouped_tm(
-                            df_exp, 
-                            clean_a, 
-                            clean_b, 
+                            df_exp, clean_a, clean_b, 
                             os.path.join(sig_split_folder, "experimental_tm_ordered_by_groups.png")
                         )
-                    else:
-                        print("    [Info] Skipping Experimental Heatmap: Need at least 2 structures per group.")
 
-                    # B. REPRESENTATIVE ALIGNMENT (Requires >= 1)
                     print("\n=== Generating Representative Alignment (Experimental) ===")
-                    
                     rep_a_exp = get_group_representative(df_exp, clean_a)
                     rep_b_exp = get_group_representative(df_exp, clean_b)
 
@@ -400,18 +414,36 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
                         pdb_b_path = get_actual_structure_path(dir_experimental, rep_b_exp)
 
                         if pdb_a_path and pdb_b_path:
-                            align_output_exp = os.path.join(sig_split_folder, "representative_structural_alignment_experimental")
+                            # --- SEQUENCE-BASED CROPPING ---
+                            final_a_path = pdb_a_path
+                            final_b_path = pdb_b_path
+
+                            # Crop A
+                            if rep_a_exp.lower() in pdb_to_seq_id:
+                                seq_id_a = pdb_to_seq_id[rep_a_exp.lower()]
+                                if seq_id_a in seq_lookup:
+                                    target_seq_a = seq_lookup[seq_id_a]
+                                    out_a = os.path.join(sig_split_folder, f"cropped_{rep_a_exp}.pdb")
+                                    final_a_path = align_and_crop_single_pdb(pdb_a_path, target_seq_a, out_a)
                             
+                            # Crop B
+                            if rep_b_exp.lower() in pdb_to_seq_id:
+                                seq_id_b = pdb_to_seq_id[rep_b_exp.lower()]
+                                if seq_id_b in seq_lookup:
+                                    target_seq_b = seq_lookup[seq_id_b]
+                                    out_b = os.path.join(sig_split_folder, f"cropped_{rep_b_exp}.pdb")
+                                    final_b_path = align_and_crop_single_pdb(pdb_b_path, target_seq_b, out_b)
+
+                            # Visualize
+                            align_output_exp = os.path.join(sig_split_folder, "representative_structural_alignment_experimental")
                             align_and_visualize_pair(
-                                pdb_a_path, 
-                                pdb_b_path, 
+                                final_a_path, 
+                                final_b_path, 
                                 align_output_exp,
                                 label_a=f"Group A (Exp: {rep_a_exp})", 
                                 label_b=f"Group B (Exp: {rep_b_exp})"
                             )
                         else:
-                            print(f"    [Error] File Not Found on Disk. Paths checked:")
-                            print(f"      A: {dir_experimental}/{rep_a_exp}.pdb/cif")
-                            print(f"      B: {dir_experimental}/{rep_b_exp}.pdb/cif")
+                            print(f"    [Error] File Not Found on Disk.")
                     else:
                         print("    [Error] Could not identify representatives from the matrix.")
