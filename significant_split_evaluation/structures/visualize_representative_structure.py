@@ -19,7 +19,7 @@ def get_group_representative(df_tm, group_ids):
     print(f"Selected Representative for Group (n={len(valid_ids)}): {representative_id} (Avg TM: {mean_scores.max():.2f})")
     return representative_id
 
-    
+
 def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path, 
                              label_a="Group A", label_b="Group B"):
     """
@@ -51,7 +51,7 @@ def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path,
     
     # Global Settings
     cmd.set("label_font_id", 13)
-    cmd.set("label_size", 24)
+    cmd.set("label_size", 16)    # Reduced from 24 to 16 to fix sizing
     cmd.set("label_color", "black")
     cmd.bg_color('white')
     cmd.set('ray_opaque_background', 1)
@@ -62,25 +62,22 @@ def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path,
     height = max_y - min_y
     width = max_x - min_x
 
-    # Force zoom out to accommodate text width
-    # We add invisible atoms far to the left/right to widen the view
-    padding_factor = 1.5 
-    cmd.pseudoatom("safety_margin_left", pos=[min_x - (width * padding_factor), min_y, min_z])
-    cmd.pseudoatom("safety_margin_right", pos=[max_x + (width * padding_factor), min_y, min_z])
-    cmd.hide("nonbonded", "safety_margin_*") # Hide the margin atoms
+    # Tight Zoom on the actual proteins first
+    cmd.zoom('all', buffer=2.0)
 
-    # Title
-    cmd.pseudoatom("title_1", pos=[center_x, max_y + (height * 0.25), min_z], 
+    # Place Title (Just above structure)
+    cmd.pseudoatom("title_1", pos=[center_x, max_y + (height * 0.1), min_z], 
                    label="Representative Alignment (Superimposed)")
     
-    # Legend (Stacked vertically with extra gap)
-    cmd.pseudoatom("leg_a_1", pos=[center_x, min_y - (height * 0.15), min_z], 
+    # Place Legends (Just below structure, tightly stacked)
+    # Note: We anchor them closer to min_y
+    cmd.pseudoatom("leg_a_1", pos=[center_x, min_y - (height * 0.1), min_z], 
                    label=f"{label_a} ({color_a})")
-    cmd.pseudoatom("leg_b_1", pos=[center_x, min_y - (height * 0.40), min_z], 
+    cmd.pseudoatom("leg_b_1", pos=[center_x, min_y - (height * 0.2), min_z], 
                    label=f"{label_b} ({color_b})")
 
-    cmd.zoom('all', buffer=2) # Zoom to include safety margins
-    cmd.png(f"{output_base_path}_superimposed.png", width=1600, height=1400, dpi=300, ray=1)
+    # Save - Width increased to 2000 to prevent text clipping
+    cmd.png(f"{output_base_path}_superimposed.png", width=2000, height=1500, dpi=300, ray=1)
     print(f"Saved: {output_base_path}_superimposed.png")
 
     # --- PLOT 2: SIDE-BY-SIDE ---
@@ -88,38 +85,31 @@ def align_and_visualize_pair(pdb_path_a, pdb_path_b, output_base_path,
     cmd.delete("leg_a_1")
     cmd.delete("leg_b_1")
 
-    # Move Group B
-    # Shift based on object width + buffer
-    shift = width + 20
+    # Move Group B to the right
+    # Shift is width + small buffer (5A)
+    shift = width + 5
     cmd.translate([shift, 0, 0], 'obj_B', camera=0)
 
-    # Re-calculate extents for the new wide scene
+    # Re-calculate extents
     ([min_x, min_y, min_z], [max_x, max_y, max_z]) = cmd.get_extent('obj_A or obj_B')
     center_x = (min_x + max_x) / 2
     height = max_y - min_y
-    width = max_x - min_x
+    
+    # Tight Zoom on the new wide scene
+    cmd.zoom('all', buffer=2.0)
 
-    # Update Safety Margins for new width
-    cmd.delete("safety_margin_*")
-    cmd.pseudoatom("safety_margin_left", pos=[min_x - (width * 0.2), min_y, min_z])
-    cmd.pseudoatom("safety_margin_right", pos=[max_x + (width * 0.2), min_y, min_z])
-    cmd.hide("nonbonded", "safety_margin_*")
-
-    cmd.pseudoatom("title_2", pos=[center_x, max_y + (height * 0.25), min_z], 
+    cmd.pseudoatom("title_2", pos=[center_x, max_y + (height * 0.1), min_z], 
                    label="Representative Alignment (Side-by-Side)")
 
-    # Group A Label
-    cmd.pseudoatom("leg_a_2", pos=[center_x, min_y - (height * 0.15), min_z], 
+    # Stack labels vertically in the center
+    cmd.pseudoatom("leg_a_2", pos=[center_x, min_y - (height * 0.1), min_z], 
                    label=f"{label_a} ({color_a})")
     
-    # Group B Label (Below A)
-    cmd.pseudoatom("leg_b_2", pos=[center_x, min_y - (height * 0.40), min_z], 
+    cmd.pseudoatom("leg_b_2", pos=[center_x, min_y - (height * 0.2), min_z], 
                    label=f"{label_b} ({color_b})")
 
-    # We use a wider image to fit the side-by-side structures comfortably
-    cmd.zoom('all', buffer=2)
-    cmd.png(f"{output_base_path}_side_by_side.png", width=2400, height=1400, dpi=300, ray=1)
+    # Save - Massive width (3000) to ensure long text lines fit
+    cmd.png(f"{output_base_path}_side_by_side.png", width=3000, height=1500, dpi=300, ray=1)
     
-    # Save session
     cmd.save(f"{output_base_path}_combined.pse")
     print(f"Saved: {output_base_path}_side_by_side.png")
