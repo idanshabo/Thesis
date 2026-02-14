@@ -62,6 +62,75 @@ run_pipeline(msa_file_path,
 )
 ```
 
+## Execution Script (Python — Linux / Local Server)
+To run this pipeline on a standard Linux environment (e.g., Ubuntu/Debian), use the following steps to set up the environment and execute the script.
+
+1. Terminal Setup
+Run these commands in your terminal to install system requirements and set up the Python environment.
+
+```Bash
+# 1. Install FastTree (System dependency)
+sudo apt-get update
+sudo apt-get install -y fasttree
+
+# 2. Clone the repository
+git clone https://github.com/idanshabo/Thesis.git
+cd Thesis
+
+# 3. Create and activate a virtual environment (Recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# 4. Install Python dependencies
+pip install -r requirements.txt
+```
+
+2. Run the Pipeline
+Create a python script (e.g., run_analysis.py) in the root of the repository:
+
+```Python
+import os
+import sys
+
+# Add current directory to path to ensure local imports work
+sys.path.append(os.getcwd())
+
+from pipeline_files.msa_to_split_full_pipeline import run_pipeline
+
+# --- Configuration ---
+# Path to your input MSA file (Relative or Absolute path)
+msa_file_path = 'protein_files/PF00900.alignment.full'
+
+# Optional: Define a specific output directory
+output_dir = './results/PF00900_Analysis'
+
+# --- Execute ---
+if __name__ == "__main__":
+    print(f"Starting pipeline processing for: {msa_file_path}")
+    
+    run_pipeline(
+        msa_file_path,
+        output_path=output_dir,          # Results will be saved here
+        print_file_content=False,        # Set to True to debug input reading
+        number_of_nodes_to_evaluate=15,  # Number of splits to check
+        pca_min_variance=0.99,           # Min variance for PCA to retain
+        pca_min_components=100,          # Dimensionality of the embeddings to retain
+        standardize=True                 # Normalize data before modeling
+    )
+    print("Pipeline finished successfully.")
+```
+
+Then, execute it from the terminal:
+
+```Bash
+python run_analysis.py
+```
+Note on GPU: This pipeline utilizes ESM models which are computationally intensive.
+
+With GPU: Ensure you have the correct PyTorch version with CUDA support installed for fast processing.
+
+CPU Only: The pipeline will run, but embedding generation will be significantly slower.
+
 ---
 
 ## Script Outputs
