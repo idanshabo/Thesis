@@ -279,8 +279,13 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     
     print("Calculating TM Matrix (Predicted)...")
     df_pred, stats_pred, split_pred = calculate_tm_matrix(sample_a, sample_b, dir_predicted)
+    df_sorted, tm_stats, split_pos = calculate_tm_matrix(
+        sample_a, 
+        sample_b, 
+        dir_predicted
+    )
     
-    if df_pred is not None and not df_pred.empty:
+    if df_sorted is not None and not df_sorted.empty:
         print("\n=== Generating Representative Alignment (Predicted) ===")
         rep_a_id = get_group_representative(df_pred, sample_a)
         rep_b_id = get_group_representative(df_pred, sample_b)
@@ -365,3 +370,4 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
                             align_output_exp = os.path.join(sig_split_folder, "representative_structural_alignment_experimental")
                             align_and_visualize_pair(pdb_a_path, pdb_b_path, align_output_exp,
                                 label_a=f"Group A (Exp: {rep_a_exp})", label_b=f"Group B (Exp: {rep_b_exp})")
+    return tm_stats
