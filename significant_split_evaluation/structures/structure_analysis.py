@@ -69,12 +69,14 @@ def _get_sort_order(sub_matrix, labels):
     Z_ordered = optimal_leaf_ordering(Z, condensed)
     return [labels[i] for i in leaves_list(Z_ordered)]
 
+
 def calculate_tm_matrix(group_a_ids, group_b_ids, pdb_folder):
     """
     Orchestrates the data loading, matrix calculation, and sorting.
     Returns: (Sorted DataFrame, Stats Dictionary, Split Position)
     """
-    
+
+
     # 1. Map and Load Data
     all_ids = group_a_ids + group_b_ids
     cache = {}
@@ -85,7 +87,6 @@ def calculate_tm_matrix(group_a_ids, group_b_ids, pdb_folder):
         safe_id = pid.replace("/", "_")
         safe_id_lower = safe_id.lower()
         
-        # Check for .pdb, then .cif, then lowercase versions
         possible_paths = [
             os.path.join(pdb_folder, f"{safe_id}.pdb"),
             os.path.join(pdb_folder, f"{safe_id}.cif"),
@@ -100,21 +101,17 @@ def calculate_tm_matrix(group_a_ids, group_b_ids, pdb_folder):
                 break
         
         if found_path:
-            # Pass the found path to the updated parser
-            data = get_structure_data(found_path)
+            # Assuming get_structure_data is defined or imported in your file
+            data = get_structure_data(found_path) 
             if data[0] is not None:
                 cache[pid] = data
         else:
-            # Optional: Print warning only if verbose
-            # print(f"Warning: Structure for {pid} not found in {pdb_folder}")
             pass
     
     # Update lists to only include successfully loaded IDs
     valid_a = [x for x in group_a_ids if x in cache]
     valid_b = [x for x in group_b_ids if x in cache]
     
-    # Check if we have enough data
-    # (Relaxed check: If you want to allow 1 vs 1 comparison, change to < 1)
     if len(valid_a) < 1 or len(valid_b) < 1:
         print(f"Not enough valid structures. Found A:{len(valid_a)}, B:{len(valid_b)}")
         return None, None, None
@@ -137,7 +134,7 @@ def calculate_tm_matrix(group_a_ids, group_b_ids, pdb_folder):
             
             coords_c, seq_c = cache[c_id]
             try:
-                # tmtools alignment
+                # Assuming tm_align is imported
                 res = tm_align(coords_r, coords_c, seq_r, seq_c)
                 score = (res.tm_norm_chain1 + res.tm_norm_chain2) / 2.0
                 raw_matrix[i, j] = score
@@ -157,12 +154,11 @@ def calculate_tm_matrix(group_a_ids, group_b_ids, pdb_folder):
         'avg_inter': np.mean(sub_inter)
     }
 
-    # 4. Sort Groups (Cluster within group for better visualization)
+    # 4. Sort and Dataframe
     sorted_a = _get_sort_order(sub_a, valid_a)
     sorted_b = _get_sort_order(sub_b, valid_b)
     final_order = sorted_a + sorted_b
     
-    # 5. Create DataFrame
     df_raw = pd.DataFrame(raw_matrix, index=combined_order, columns=combined_order)
     df_sorted = df_raw.reindex(index=final_order, columns=final_order)
     
