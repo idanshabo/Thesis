@@ -23,6 +23,7 @@ from utils.metadata_tracker import MetadataTracker
 from utils.msa_stats import get_msa_stats
 
 def run_pipeline(MSA_file_path, 
+                 embedding_mode="sequence",
                  print_file_content=False, 
                  output_path=None, 
                  number_of_nodes_to_evaluate=None,
@@ -78,7 +79,7 @@ def run_pipeline(MSA_file_path,
         
         # Embeddings
         emb_out_dir = os.path.join(calc_dir, 'embeddings_output')
-        norm_emb_path = create_normalized_mean_embeddings_matrix(fasta_path, emb_out_dir)
+        norm_emb_path = create_normalized_mean_embeddings_matrix(fasta_path, emb_out_dir, mode=embedding_mode)
         
         # Metadata: Embedding Dimension
         try:
