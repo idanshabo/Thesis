@@ -25,7 +25,7 @@ from utils.msa_stats import get_msa_stats
 def run_pipeline(MSA_file_path, 
                  print_file_content=False, 
                  output_path=None, 
-                 number_of_nodes_to_evaluate=5,
+                 number_of_nodes_to_evaluate=None,
                  pca_min_variance=0.99,
                  pca_min_components=100,
                  standardize=True):
