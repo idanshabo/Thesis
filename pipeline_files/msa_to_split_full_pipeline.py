@@ -36,17 +36,19 @@ def run_pipeline(MSA_file_path,
     family_name = os.path.basename(MSA_file_path).split('.')[0] 
     out_dir = os.path.join(base_dir, f"{family_name}_outputs")
     calc_dir = os.path.join(base_dir, f"{family_name}_calculations")
-    
+    out_mode_dir = os.path.join(out_dir, f"{embedding_mode}_embeddings")
     # Initialize tracker
     tracker = MetadataTracker(os.path.join(out_dir, "pipeline_metadata.json"))
     tracker.add_stat("pipeline_stats", "family_name", family_name)
-    pipeline_start = time.time()
+    tracker.add_stat("pipeline_stats", "embedding_mode", embedding_mode)
     
+    pipeline_start = time.time()
     try:
         # --- 1. Setup & MSA Stats ---
         tracker.start_timer("Setup_and_MSA_Stats")
         os.makedirs(calc_dir, exist_ok=True)
         os.makedirs(out_dir, exist_ok=True)
+        os.makedirs(out_mode_dir, exist_ok=True)
 
         if print_file_content:
             read_stockholm_file_and_print_content(MSA_file_path)
@@ -78,9 +80,9 @@ def run_pipeline(MSA_file_path,
         cov_ordered_path = order_covariance_matrix_by_tree(cov_path, tree_path)
         
         # Embeddings
-        emb_out_dir = os.path.join(calc_dir, 'embeddings_output')
-        norm_emb_path = create_normalized_mean_embeddings_matrix(fasta_path, emb_out_dir, mode=embedding_mode)
-        
+        emb_out_dir = os.path.join(calc_dir, f'embeddings_{embedding_mode}')
+        norm_emb_path = create_normalized_mean_embeddings_matrix(fasta_path, mode=embedding_mode, output_path=emb_out_dir)
+      
         # Metadata: Embedding Dimension
         try:
             emb_data = torch.load(norm_emb_path)
@@ -98,7 +100,7 @@ def run_pipeline(MSA_file_path,
         
         results, raw_splits_count, unique_splits_count = evaluate_top_splits(
             tree_path, cov_path, norm_emb_path, 
-            output_path=out_dir, 
+            output_path=out_mode_dir, 
             k=number_of_nodes_to_evaluate, 
             pca_min_variance=pca_min_variance, 
             pca_min_components=pca_min_components, 
@@ -111,11 +113,11 @@ def run_pipeline(MSA_file_path,
         tracker.stop_timer()
 
         # --- 4. Save Results ---
-        save_results_json(results, os.path.join(out_dir, "results.json"))
+        save_results_json(results, os.path.join(out_mode_dir, "results.json"))
 
         # --- 5. Visualizations & Metadata ---
         tracker.start_timer("Visualization_and_Analysis")
-        sig_splits_path = os.path.join(out_dir, 'significant_splits')
+        sig_splits_path = os.path.join(out_mode_dir, 'significant_splits')
         
         sig_count = 0
         if os.path.exists(sig_splits_path):
