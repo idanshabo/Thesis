@@ -1,6 +1,9 @@
 import time
 import json
 import os
+import random
+from itertools import combinations
+from Bio import Phylo
 
 class MetadataTracker:
     def __init__(self, output_path):
@@ -43,3 +46,59 @@ class MetadataTracker:
                 json.dump(self.metadata, f, indent=4)
         except Exception as e:
             print(f"Warning: Could not save metadata: {e}")
+
+    def calc_and_add_sequence_similarity(self, fasta_path):
+        """Calculates avg sequence similarity and adds it to metadata."""
+        try:
+            sequences = []
+            with open(fasta_path, 'r') as f:
+                seq = []
+                for line in f:
+                    if line.startswith(">"):
+                        if seq:
+                            sequences.append("".join(seq))
+                            seq = []
+                    else:
+                        seq.append(line.strip())
+                if seq:
+                    sequences.append("".join(seq))
+
+            n_seqs = len(sequences)
+            if n_seqs < 2:
+                self.add_stat("msa_stats", "avg_sequence_similarity_pct", 100.0)
+                return
+
+            if n_seqs <= 500:
+                pairs = list(combinations(sequences, 2))
+            else:
+                pairs = []
+                for _ in range(10000):
+                    i, j = random.sample(range(n_seqs), 2)
+                    pairs.append((sequences[i], sequences[j]))
+
+            total_sim = 0
+            for seq1, seq2 in pairs:
+                min_len = min(len(seq1), len(seq2))
+                if min_len == 0:
+                    continue
+                # Ignore gap-to-gap matches
+                matches = sum(1 for a, b in zip(seq1, seq2) if a == b and a != '-')
+                total_sim += (matches / min_len) * 100
+
+            avg_sim = total_sim / len(pairs) if pairs else 0.0
+            self.add_stat("msa_stats", "avg_sequence_similarity_pct", round(avg_sim, 2))
+        except Exception as e:
+            print(f"Warning: Could not calculate sequence similarity: {e}")
+
+    def calc_and_add_tree_stats(self, tree_path):
+        """Calculates normalized branch length and adds it to metadata."""
+        try:
+            tree = Phylo.read(tree_path, "newick")
+            total_length = tree.total_branch_length()
+            num_terminals = len(tree.get_terminals())
+            
+            if num_terminals > 0:
+                norm_len = total_length / num_terminals
+                self.add_stat("msa_stats", "normalized_total_branch_length", round(norm_len, 4))
+        except Exception as e:
+            print(f"Warning: Could not calculate normalized branch length: {e}")
