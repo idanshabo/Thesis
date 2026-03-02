@@ -437,7 +437,7 @@ def run_variance_analysis(folder_path):
     # Navigate up to find the Protein Output directory
     # Current: .../{pf}_outputs/splits_evaluations/significant_splits/{split}
     sig_splits_dir = os.path.dirname(folder_path)
-    protein_outputs_dir = os.path.dirname(sig_splits_dir) # This ends in {pf}_outputs
+    protein_outputs_dir = os.path.dirname(os.path.dirname(sig_splits_dir)) # This ends in {pf}_outputs
     
     # Extract Protein ID by stripping "_outputs"
     # e.g., "PF07361_outputs" -> "PF07361"
