@@ -21,7 +21,7 @@ def calculate_jaccard(set1, set2):
 
 def is_split_redundant(current_split_sets, history_splits, threshold=0.85):
     """
-    Checks if current split is similar to any split in history.
+    Checks if current split is similar to any previously accepted split.
     """
     cur_a, cur_b = current_split_sets
 
@@ -29,44 +29,43 @@ def is_split_redundant(current_split_sets, history_splits, threshold=0.85):
         # Check Direct Match (A vs A)
         sim_direct = calculate_jaccard(cur_a, hist_a)
         
-        # Check Inverse Match (A vs B) - because {A,B} is the same split as {B,A}
+        # Check Inverse Match (A vs B)
         sim_inverse = calculate_jaccard(cur_a, hist_b)
         
         if sim_direct >= threshold:
-            return True, f"Too similar to previous Significant Split #{idx+1} (Direct match: {sim_direct:.2%})"
+            return True, f"Too similar to accepted Split #{idx+1} (Direct match: {sim_direct:.2%})"
         
         if sim_inverse >= threshold:
-            return True, f"Too similar to previous Significant Split #{idx+1} (Inverse match: {sim_inverse:.2%})"
+            return True, f"Too similar to accepted Split #{idx+1} (Inverse match: {sim_inverse:.2%})"
             
     return False, ""
 
 
-def find_candidate_splits(newick_path, k=1, min_support=0.9, min_prop=0.1):
+def find_candidate_splits(newick_path, k=None, min_support=0.8, min_prop=0.1):
     """
-    Finds the top k candidate splits from a phylogenetic tree.
+    Finds candidate splits from a phylogenetic tree, ordered bottom-up (leaves to root).
+    Filters out splits where the smallest group is less than `min_prop` (e.g., 10%) of total leaves.
     """
-
     # 1. Load the tree and set the root
     try:
-        # format=1 helps ete3 correctly parse FastTree support values
         tree = Tree(newick_path, format=1)
     except Exception as e:
         print(f"Error loading tree with format=1: {e}")
         print("Falling back to format=0...")
-        tree = Tree(newick_path, format=0) # Fallback
+        tree = Tree(newick_path, format=0)
 
-    # 2. Set the root objectively using midpoint rooting (best when no outgroup is known)
+    # 2. Set the root objectively using midpoint rooting
     try:
         tree.set_outgroup(tree.get_midpoint_outgroup())
     except Exception as e:
         print(f"Could not midpoint root the tree: {e}")
-        print("Proceeding with the tree as-is, but the first split might be arbitrary.")
 
     all_leaves = set(tree.get_leaf_names())
     total_leaves = len(all_leaves)
     candidate_splits = []
 
     # 3. Iterate over all internal nodes
+    # "postorder" inherently visits child nodes (leaves) before parent nodes (root)
     for node in tree.traverse("postorder"):
         if node.is_leaf() or node.is_root():
             continue
@@ -81,7 +80,8 @@ def find_candidate_splits(newick_path, k=1, min_support=0.9, min_prop=0.1):
         clade_leaves = set(node.get_leaf_names())
         clade_size = len(clade_leaves)
         min_size = min_prop * total_leaves
-        # Filter out trivial splits (e.g., a single leaf vs. everyone else)
+        
+        # Enforce the 10% rule: filter out splits where the smaller part is < 10%
         if clade_size < min_size or (total_leaves - clade_size) < min_size:
             continue
 
@@ -94,16 +94,16 @@ def find_candidate_splits(newick_path, k=1, min_support=0.9, min_prop=0.1):
             'length': length,
             'group_a': group_a_leaves,
             'group_b': group_b_leaves,
-            'node_name': node.name # For identification
+            'node_name': node.name 
         }
         candidate_splits.append(split_info)
 
-    # 6. Sort candidates: highest branch length first
-    candidate_splits.sort(key=lambda x: x['length'], reverse=True)
+    # Note: Sorting by length was removed here to preserve the bottom-up order!
 
-    # 7. Return the top k candidates
-    return candidate_splits[:k]
-
+    # 6. Return candidates (cap at k if specified, otherwise return all)
+    if k is not None:
+        return candidate_splits[:k]
+    return candidate_splits
 
 def split_covariance_matrix(original_cov_path, split_info, output_suffix_a="_group_a", output_suffix_b="_group_b", output_dir=None):
     """
@@ -314,7 +314,7 @@ def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, min_v
     return transformed_tensors, p_new
 
 
-def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5, 
+def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None, 
                         pca_min_variance=None, pca_min_components=None, 
                         standardize=True, similarity_threshold=0.85):
     """
@@ -406,46 +406,51 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
         pca_for_splits = PCA(n_components=p_current)
         pca_for_splits.fit(emb_standardized_full_raw.cpu().numpy())
     
-    candidates = find_candidate_splits(tree_path, k=k, min_support=0.8, min_prop=0.1)
-    results = []
+    # 1. Fetch ALL valid candidates based on size and support
+    raw_candidates = find_candidate_splits(tree_path, k=k, min_support=0.8, min_prop=0.1)
     
-    significant_split_history = [] 
+    # 2. Pre-filter for redundancy
+    candidates = []
+    accepted_split_sets = []
+    
+    print(f"Found {len(raw_candidates)} raw candidate splits meeting size and support criteria.")
+    print(f"Filtering out splits with >={similarity_threshold*100:.0f}% similarity to each other...")
+    
+    for split in raw_candidates:
+        current_sets = (split['group_a'], split['group_b'])
+        is_redundant, reason = is_split_redundant(current_sets, accepted_split_sets, threshold=similarity_threshold)
+        
+        if not is_redundant:
+            candidates.append(split)
+            accepted_split_sets.append(current_sets)
+            
+    print(f"--> Kept {len(candidates)} unique splits for MLE evaluation.\n")
 
+    results = []
+
+    # 3. Main Evaluation Loop
     for i, split in enumerate(candidates):
         rank = i + 1
         node_name = split.get('node_name', f'Node_{i}')
         
-        print(f"\n--- Candidate {rank}: {node_name} (Len: {split.get('length', 0):.4f}) ---")
-
-        current_sets = (split['group_a'], split['group_b'])
-        is_redundant, reason = is_split_redundant(current_sets, significant_split_history, threshold=similarity_threshold)
-        
-        if is_redundant:
-            print(f"   [SKIP] {reason}")
-            results.append({
-                'rank': rank, 'node': node_name, 'bic': None, 'delta': 0, 
-                'sig': False, 'folder': None, 'note': 'Skipped (Redundant)'
-            })
-            continue
+        print(f"\n--- Evaluating Unique Split {rank}/{len(candidates)}: {node_name} (Len: {split.get('length', 0):.4f}) ---")
 
         split_folder_name = f"rank{rank}"
         split_dir = os.path.join(base_eval_dir, split_folder_name)
         os.makedirs(split_dir, exist_ok=True)
         
-        # NEW: Create calculations folder
+        # Create calculations folder
         calc_dir = os.path.join(split_dir, "calculations")
         os.makedirs(calc_dir, exist_ok=True)
 
         suffix_a = f"_rank{rank}_subA"
         suffix_b = f"_rank{rank}_subB"
 
-        # CHANGED: output_dir is now calc_dir
         cov_a, cov_b = split_covariance_matrix(cov_path, split, suffix_a, suffix_b, output_dir=calc_dir)
         pt_a, pt_b = split_protein_embeddings(pt_path, split, suffix_a, suffix_b, output_dir=calc_dir)
 
         if cov_a is None: continue
 
-        # CHANGED: Aligned files go to calc_dir
         aligned_path_a = os.path.join(calc_dir, f"aligned{suffix_a}.pt")
         aligned_path_b = os.path.join(calc_dir, f"aligned{suffix_b}.pt")
         
@@ -468,7 +473,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
 
         # Run MLE
         print("   Running MLE for Sub-trees")
-        # CHANGED: output_dir is now calc_dir
         _, v_path_a, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_a_raw], U_path=cov_a, name_comments=suffix_a, output_dir=calc_dir)
         _, v_path_b, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_b_raw], U_path=cov_b, name_comments=suffix_b, output_dir=calc_dir)
 
@@ -478,7 +482,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
         v_tensor_a = load_matrix_tensor(v_path_a)
         v_tensor_b = load_matrix_tensor(v_path_b)
         
-        # CHANGED: Save embedding covariances to calc_dir
         pd.DataFrame(v_tensor_a.cpu().numpy()).to_csv(os.path.join(calc_dir, f"embedding_cov{suffix_a}.csv"))
         pd.DataFrame(v_tensor_b.cpu().numpy()).to_csv(os.path.join(calc_dir, f"embedding_cov{suffix_b}.csv"))
 
@@ -498,8 +501,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
             shutil.move(split_dir, new_split_dir)
             split_dir = new_split_dir
             
-            significant_split_history.append((split['group_a'], split['group_b']))
-            
             # Save JSON
             raw_group_a = split.get('taxa') or split.get('leaves') or split.get('group_a')
             if raw_group_a and all_names and len(all_names) > 0:
@@ -518,7 +519,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=5,
                 }
                 
                 json_filename = f"split_rank{rank}.json"
-                # Keep JSON in the root of the split folder for easy access
                 json_path = os.path.join(split_dir, json_filename)
                 
                 with open(json_path, 'w') as f:
