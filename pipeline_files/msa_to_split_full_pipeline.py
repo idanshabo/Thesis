@@ -62,12 +62,14 @@ def run_pipeline(MSA_file_path,
         temp_fasta = convert_stockholm_to_fasta(MSA_file_path)
         fasta_path = os.path.join(calc_dir, os.path.basename(temp_fasta))
         shutil.move(temp_fasta, fasta_path)
-
+        tracker.calc_and_add_sequence_similarity(fasta_path)
+      
         # Tree
         temp_tree = run_fasttree(fasta_path)
         tree_path = os.path.join(calc_dir, os.path.basename(temp_tree))
         shutil.move(temp_tree, tree_path)
-
+        tracker.calc_and_add_tree_stats(tree_path)
+      
         # Covariance
         temp_cov = tree_to_covariance_matrix(tree_path)
         cov_path = os.path.join(calc_dir, os.path.basename(temp_cov))
