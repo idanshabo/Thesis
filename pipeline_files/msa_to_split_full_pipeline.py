@@ -94,11 +94,19 @@ def run_pipeline(MSA_file_path,
 
         # --- 3. Evaluate Splits ---
         tracker.start_timer("Split_Evaluation")
-        results = evaluate_top_splits(tree_path, cov_path, norm_emb_path, 
-                                      output_path=out_dir, k=number_of_nodes_to_evaluate, 
-                                      pca_min_variance=pca_min_variance, 
-                                      pca_min_components=pca_min_components, 
-                                      standardize=standardize)
+        
+        results, raw_splits_count, unique_splits_count = evaluate_top_splits(
+            tree_path, cov_path, norm_emb_path, 
+            output_path=out_dir, 
+            k=number_of_nodes_to_evaluate, 
+            pca_min_variance=pca_min_variance, 
+            pca_min_components=pca_min_components, 
+            standardize=standardize
+        )
+        
+        tracker.add_stat("pipeline_stats", "num_raw_candidate_splits", raw_splits_count)
+        tracker.add_stat("pipeline_stats", "num_unique_candidate_splits", unique_splits_count)
+        
         tracker.stop_timer()
 
         # --- 4. Save Results ---
