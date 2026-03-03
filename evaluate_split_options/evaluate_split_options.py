@@ -430,11 +430,6 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
     print("PHASE 4: Split Testing (H1)")
     print("="*40)
     
-    pca_for_splits = None
-    if pca_min_variance is not None or pca_min_components is not None:
-        pca_for_splits = PCA(n_components=p_current)
-        pca_for_splits.fit(emb_standardized_full_raw.cpu().numpy())
-    
     # 1. Fetch ALL valid candidates based on size and support
     raw_candidates = find_candidate_splits(tree_path, k=k, min_support=0.8, min_prop=0.1)
     
@@ -486,14 +481,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
         emb_tensor_a = align_embeddings_with_covariance(cov_a, pt_a, aligned_path_a).float()
         emb_tensor_b = align_embeddings_with_covariance(cov_b, pt_b, aligned_path_b).float()
 
-        if standardize:
-            emb_standardized_a_raw, emb_standardized_b_raw = global_standardize_embeddings(
-                emb_tensor_full, [emb_tensor_a, emb_tensor_b]
-            )
-        else:
-            emb_standardized_a_raw, emb_standardized_b_raw = emb_tensor_a, emb_tensor_b
-
-        # Apply pPCA to sub-tensors
+        # Apply pPCA
         if pca_for_splits is not None:
             emb_transformed_a_raw = torch.from_numpy(pca_for_splits.transform(emb_tensor_a.cpu().numpy())).float()
             emb_transformed_b_raw = torch.from_numpy(pca_for_splits.transform(emb_tensor_b.cpu().numpy())).float()
