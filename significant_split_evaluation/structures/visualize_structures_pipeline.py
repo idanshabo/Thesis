@@ -210,10 +210,6 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     sample_b = random.sample(valid_b, min(len(valid_b), 50))
     processing_list = sample_a + sample_b
     run_prediction_batch(records, dir_predicted, allow_list=processing_list)
-    
-    # 2. LOGOS (Pass the full sequence groups for the logos)
-    logo_path = os.path.join(sig_split_folder, "comparative_sequence_logos.png")
-    generate_comparative_logos(records, valid_a, valid_b, dir_predicted, logo_path, highlight_threshold=0.8)
 
     print("Calculating TM Matrix (Predicted)...")
     df_pred, stats_pred, split_pred = calculate_tm_matrix(sample_a, sample_b, dir_predicted)
@@ -229,6 +225,10 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
         rep_b_id = get_group_representative(df_pred, sample_b)
         
         if rep_a_id and rep_b_id:
+            # 2. LOGOS
+            logo_path = os.path.join(sig_split_folder, "comparative_sequence_logos.png")
+            generate_comparative_logos(records, valid_a, valid_b, rep_a_id, rep_b_id, dir_predicted, logo_path, highlight_threshold=0.8)
+            
             pdb_a = os.path.join(dir_predicted, f"{normalize_id(rep_a_id)}.pdb")
             pdb_b = os.path.join(dir_predicted, f"{normalize_id(rep_b_id)}.pdb")
             align_output = os.path.join(sig_split_folder, "representative_structural_alignment_predicted")
