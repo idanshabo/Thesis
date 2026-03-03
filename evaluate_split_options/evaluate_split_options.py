@@ -594,4 +594,4 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
         else:
             print(f"{res['rank']:<5} | {res['node']:<15} | {res['delta']:<15.2f} | {'YES' if res['sig'] else 'NO'}")
 
-    return results, len(raw_candidates), len(candidates)
+    return results, raw_splits_count, unique_splits_count, p_current
