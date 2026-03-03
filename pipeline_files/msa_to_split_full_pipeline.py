@@ -3,7 +3,6 @@ import shutil
 import time
 import torch
 import numpy as np
-from sklearn.decomposition import PCA
 
 # --- Utils Imports ---
 from utils.read_stockholm_file_and_print_content import read_stockholm_file_and_print_content
