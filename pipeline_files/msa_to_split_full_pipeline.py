@@ -82,23 +82,13 @@ def run_pipeline(MSA_file_path,
         # Embeddings
         emb_out_dir = os.path.join(calc_dir, f'embeddings_{embedding_mode}')
         norm_emb_path = create_normalized_mean_embeddings_matrix(fasta_path, mode=embedding_mode, output_path=emb_out_dir)
-      
-        # Metadata: Embedding Dimension
-        try:
-            emb_data = torch.load(norm_emb_path)
-            if isinstance(emb_data, torch.Tensor): emb_data = emb_data.numpy()
-            pca = PCA(n_components=pca_min_variance)
-            pca.fit(emb_data)
-            tracker.add_stat("pipeline_stats", f"embedding_dim_{int(pca_min_variance*100)}pct_var", int(pca.n_components_))
-        except Exception as e:
-            print(f"Warning: Could not calc embedding dim: {e}")
 
         tracker.stop_timer()
 
         # --- 3. Evaluate Splits ---
         tracker.start_timer("Split_Evaluation")
         
-        results, raw_splits_count, unique_splits_count = evaluate_top_splits(
+        results, raw_splits_count, unique_splits_count, final_p_dim = evaluate_top_splits(
             tree_path, cov_path, norm_emb_path, 
             output_path=out_mode_dir, 
             k=number_of_nodes_to_evaluate, 
@@ -109,7 +99,7 @@ def run_pipeline(MSA_file_path,
         
         tracker.add_stat("pipeline_stats", "num_raw_candidate_splits", raw_splits_count)
         tracker.add_stat("pipeline_stats", "num_unique_candidate_splits", unique_splits_count)
-        
+        tracker.add_stat("pipeline_stats", "final_embedding_dim", final_p_dim)
         tracker.stop_timer()
 
         # --- 4. Save Results ---
