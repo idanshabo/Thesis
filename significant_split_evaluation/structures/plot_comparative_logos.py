@@ -74,6 +74,7 @@ def get_consensus_structure(aligned_sequences, seq_ids, dir_predicted):
         
         ss_ungapped = None
         if os.path.exists(pdb_path):
+            print(f"      -> Running DSSP for {seq_id}...")
             ss_ungapped = get_dssp_q8_from_pdb(pdb_path)
             
         # Skip if prediction failed or length mismatched
