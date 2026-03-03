@@ -246,72 +246,92 @@ def global_standardize_embeddings(full_embeddings, embeddings_list, epsilon=1e-8
         standardized_list.append((emb - global_mu) / global_std)
         
     return standardized_list
-
-
-def pca_transform_data(full_tensor_standardized, sub_tensors_standardized, min_variance=None, min_components=None):
-    """
-    Fits PCA. If both min_variance and min_components are provided,
-    it selects the number of components that satisfies BOTH conditions.
-    """
-    # Convert to NumPy
-    full_np = full_tensor_standardized.cpu().numpy()
-    n_samples, n_features = full_np.shape
     
-    final_n_components = None
 
-    # --- LOGIC TO DETERMINE N_COMPONENTS ---
-    if min_variance is not None and min_components is not None:
-        print(f"   -> Calculating components to satisfy Variance >= {min_variance*100:.0f}% AND Count >= {min_components}...")
-        
-        # 1. Fit a temporary PCA on all available components to check variance profile
-        max_possible = min(n_samples, n_features)
-        pca_temp = PCA(n_components=max_possible)
-        pca_temp.fit(full_np)
-        
-        # 2. Calculate cumulative variance
-        cumsum_var = np.cumsum(pca_temp.explained_variance_ratio_)
-        
-        # 3. Find index where variance is met
-        n_needed_for_var = np.searchsorted(cumsum_var, min_variance) + 1
-        
-        # 4. Take the maximum of the two requirements
-        final_n_components = max(n_needed_for_var, min_components)
-        
-        # 5. Safety cap: cannot exceed available features
-        final_n_components = min(final_n_components, max_possible)
-        
-        print(f"      - Components for {min_variance*100:.0f}% variance: {n_needed_for_var}")
-        print(f"      - Hard floor: {min_components}")
-        print(f"      - Selected: {final_n_components}")
+class PhylogeneticPCA:
+    def __init__(self, min_variance=None, min_components=None, mode='cov'):
+        """
+        mode: 'cov' for standard pPCA, 'corr' to standardize to unit evolutionary variance.
+        """
+        self.min_variance = min_variance
+        self.min_components = min_components
+        self.mode = mode
+        self.a = None          # Phylogenetic mean
+        self.V = None          # Eigenvectors
+        self.std_diag = None   # For correlation mode scaling
+        self.final_n_components = None
 
-    elif min_variance is not None:
-        final_n_components = min_variance 
-        print(f"   -> Target Variance: {min_variance*100:.0f}%")
-
-    elif min_components is not None:
-        final_n_components = min_components
-        print(f"   -> Target Count: {min_components}")
+    def fit(self, X, C):
+        """
+        X: numpy array (n_samples, n_features)
+        C: numpy array (n_samples, n_samples) - Phylogenetic covariance matrix
+        """
+        n, m = X.shape
         
-    else:
-        final_n_components = 0.99 
-    
-    # --- FINAL FIT & TRANSFORM ---
-    pca = PCA(n_components=final_n_components)
-    pca.fit(full_np)
-    
-    p_new = pca.n_components_
-    
-    # 1. Transform full data
-    transformed_full_np = pca.transform(full_np)
-    transformed_tensors = [torch.from_numpy(transformed_full_np).float()]
-
-    # 2. Transform sub-tensors
-    for sub_tensor in sub_tensors_standardized:
-        sub_np = sub_tensor.cpu().numpy()
-        transformed_sub_np = pca.transform(sub_np)
-        transformed_tensors.append(torch.from_numpy(transformed_sub_np).float())
+        # 1. Compute inverse of C (using pseudo-inverse for numerical stability)
+        invC = np.linalg.pinv(C)
         
-    return transformed_tensors, p_new
+        # 2. Compute vector of ancestral states (phylogenetic mean 'a')
+        one = np.ones((n, 1))
+        term1 = 1.0 / (one.T @ invC @ one)[0, 0]
+        term2 = one.T @ invC @ X
+        self.a = (term1 * term2).T  # Shape: (m, 1)
+        
+        # Center X using the phylogenetic mean
+        X_centered = X - (one @ self.a.T)
+        
+        # 3. Compute evolutionary VCV matrix 'R'
+        R = (X_centered.T @ invC @ X_centered) / (n - 1)
+        
+        # Convert to correlation matrix if standardized variance is requested
+        if self.mode == 'corr':
+            self.std_diag = np.sqrt(np.diag(R))
+            # Standardize X
+            X_centered = X_centered / self.std_diag
+            # Change R to correlation matrix
+            R = R / np.outer(self.std_diag, self.std_diag)
+            
+        # 4. Eigendecomposition of R
+        eigenvalues, eigenvectors = np.linalg.eigh(R)
+        
+        # Sort descending
+        idx = np.argsort(eigenvalues)[::-1]
+        eigenvalues = eigenvalues[idx]
+        eigenvectors = eigenvectors[:, idx]
+        
+        # Determine n_components based on your existing logic
+        total_var = np.sum(np.maximum(eigenvalues, 0))
+        explained_variance_ratio = np.maximum(eigenvalues, 0) / total_var
+        cumsum_var = np.cumsum(explained_variance_ratio)
+        
+        final_comp = m 
+        if self.min_variance is not None and self.min_components is not None:
+            n_needed = np.searchsorted(cumsum_var, self.min_variance) + 1
+            final_comp = max(n_needed, self.min_components)
+        elif self.min_variance is not None:
+            final_comp = np.searchsorted(cumsum_var, self.min_variance) + 1
+        elif self.min_components is not None:
+            final_comp = self.min_components
+            
+        self.final_n_components = min(final_comp, min(n, m))
+        print(f"   -> pPCA selected {self.final_n_components} components.")
+        
+        # Save truncated eigenvectors
+        self.V = eigenvectors[:, :self.final_n_components]
+
+    def transform(self, X):
+        """ Projects new data into the pPCA space using global phylogenetic mean and eigenvectors. """
+        k = X.shape[0]
+        one = np.ones((k, 1))
+        
+        # Center using the previously fitted phylogenetic mean
+        X_centered = X - (one @ self.a.T)
+        
+        if self.mode == 'corr':
+            X_centered = X_centered / self.std_diag
+            
+        # Compute scores in the rotated space
+        return X_centered @ self.V
 
 
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None, 
@@ -342,35 +362,44 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
 
     dir_out = os.path.dirname(pt_path)
 
-    # --- PHASE 1: Alignment & Standardization ---
+    # --- PHASE 1: Alignment ---
     print("\n" + "="*40)
-    print("PHASE 1: Alignment & Standardization")
+    print("PHASE 1: Alignment (Standardization is now handled by pPCA)")
     print("="*40)
     
     aligned_full_path = os.path.join(dir_out, "aligned_global_embeddings.pt")
     emb_tensor_full = align_embeddings_with_covariance(cov_path, pt_path, aligned_full_path).float()
     
-    if standardize:
-        print("Applying Global Standardization (Z-score)...")
-        emb_standardized_full_raw, = global_standardize_embeddings(emb_tensor_full, [emb_tensor_full])
-    else:
-        print("Skipping Standardization...")
-        emb_standardized_full_raw = emb_tensor_full
+    # Load the aligned covariance matrix 'C' early so pPCA can use it
+    u_tensor_full = load_matrix_tensor(cov_path)
     
-    # --- PHASE 2: Dimensionality Reduction (PCA) ---
+    # --- PHASE 2: Dimensionality Reduction (pPCA) ---
+    pca_for_splits = None
     if pca_min_variance is not None or pca_min_components is not None:
         print("\n" + "="*40)
-        print("PHASE 2: Dimensionality Reduction (PCA)")
+        print("PHASE 2: Dimensionality Reduction (Phylogenetic PCA)")
         print("="*40)
         
-        [emb_transformed_full_raw], p_current = pca_transform_data(
-            emb_standardized_full_raw, [], 
+        # Determine mode based on your 'standardize' flag
+        p_mode = 'corr' if standardize else 'cov'
+        
+        pca_for_splits = PhylogeneticPCA(
             min_variance=pca_min_variance, 
-            min_components=pca_min_components
+            min_components=pca_min_components, 
+            mode=p_mode
         )
+        
+        # Fit the pPCA using both the embeddings and the phylogenetic covariance matrix
+        pca_for_splits.fit(emb_tensor_full.cpu().numpy(), u_tensor_full.cpu().numpy())
+        
+        # Transform the full dataset
+        transformed_full_np = pca_for_splits.transform(emb_tensor_full.cpu().numpy())
+        emb_transformed_full_raw = torch.from_numpy(transformed_full_np).float()
+        
+        p_current = pca_for_splits.final_n_components
         print(f"Final Dimension (p'): {p_current}")
     else:
-        emb_transformed_full_raw = emb_standardized_full_raw
+        emb_transformed_full_raw = emb_tensor_full
 
     # --- PHASE 3: Global Baseline (H0) ---
     print("\n" + "="*40)
@@ -464,12 +493,12 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
         else:
             emb_standardized_a_raw, emb_standardized_b_raw = emb_tensor_a, emb_tensor_b
 
-        # Apply PCA
+        # Apply pPCA to sub-tensors
         if pca_for_splits is not None:
-            emb_transformed_a_raw = torch.from_numpy(pca_for_splits.transform(emb_standardized_a_raw.cpu().numpy())).float()
-            emb_transformed_b_raw = torch.from_numpy(pca_for_splits.transform(emb_standardized_b_raw.cpu().numpy())).float()
+            emb_transformed_a_raw = torch.from_numpy(pca_for_splits.transform(emb_tensor_a.cpu().numpy())).float()
+            emb_transformed_b_raw = torch.from_numpy(pca_for_splits.transform(emb_tensor_b.cpu().numpy())).float()
         else:
-            emb_transformed_a_raw, emb_transformed_b_raw = emb_standardized_a_raw, emb_standardized_b_raw
+            emb_transformed_a_raw, emb_transformed_b_raw = emb_tensor_a, emb_tensor_b
 
         # Run MLE
         print("   Running MLE for Sub-trees")
