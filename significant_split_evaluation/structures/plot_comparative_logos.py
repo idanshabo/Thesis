@@ -127,7 +127,8 @@ def get_consensus_structure(aligned_sequences, seq_ids, dir_predicted):
         else:
             consensus_ss.append('C') # Fallback
             
-    return "".join(consensus_ss)
+    # Return BOTH the consensus string AND the number of structures used
+    return "".join(consensus_ss), len(aligned_ss_strings)
 
 def draw_biological_ss_track(ax, ss_string):
     """Draws continuous biological shapes (helices, strands) for the SS track."""
@@ -225,8 +226,9 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
         divergent_positions = diff_score[diff_score > highlight_threshold].index.tolist()
 
         print("    Predicting structures and voting on consensus...")
-        ss_consensus_a = get_consensus_structure(seqs_a, valid_ids_a, dir_predicted)
-        ss_consensus_b = get_consensus_structure(seqs_b, valid_ids_b, dir_predicted)
+        # Unpack the two returned values
+        ss_consensus_a, num_ss_a = get_consensus_structure(seqs_a, valid_ids_a, dir_predicted)
+        ss_consensus_b, num_ss_b = get_consensus_structure(seqs_b, valid_ids_b, dir_predicted)
 
         fig = plt.figure(figsize=(15, 8))
         gs = gridspec.GridSpec(4, 1, height_ratios=[4, 0.5, 4, 0.5], hspace=0.3)
@@ -240,8 +242,10 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
         logomaker.Logo(info_b, ax=ax_logo_b, color_scheme='chemistry')
         ax_logo_a.set_ylim(0, global_max)
         ax_logo_b.set_ylim(0, global_max)
-        ax_logo_a.set_title(f"Group A ({len(seqs_a)} sequences)", fontsize=14, fontweight='bold')
-        ax_logo_b.set_title(f"Group B ({len(seqs_b)} sequences)", fontsize=14, fontweight='bold')
+
+        ax_logo_a.set_title(f"Group A ({len(seqs_a)} sequences | SS Consensus: {num_ss_a} structures)", fontsize=14, fontweight='bold')
+        ax_logo_b.set_title(f"Group B ({len(seqs_b)} sequences | SS Consensus: {num_ss_b} structures)", fontsize=14, fontweight='bold')
+        
         ax_logo_a.set_ylabel("Bits")
         ax_logo_b.set_ylabel("Bits")
 
