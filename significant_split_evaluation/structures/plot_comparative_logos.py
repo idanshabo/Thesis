@@ -2,13 +2,14 @@ import os
 import shutil
 import uuid
 import numpy as np
+import mdtraj as md
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as patches
 import matplotlib.patheffects as pe
 import logomaker
 from collections import Counter
-from Bio.PDB import PDBParser, DSSP
+from Bio.PDB import PDBParser
 import warnings
 from Bio import BiopythonWarning
 
@@ -30,48 +31,30 @@ def normalize_id(identifier):
 
 def get_dssp_q8_from_pdb(pdb_path):
     """
-    Runs DSSP on a predicted PDB file to extract the 1D secondary structure string.
-    Uses /tmp/ to bypass Google Drive I/O bottlenecks on Colab.
+    Calculates 1D secondary structure string from a PDB using MDTraj.
+    Bypasses the buggy Ubuntu dssp executable entirely.
     """
-    parser = PDBParser(QUIET=True)
-    
-    # Create a temporary local path to avoid Google Drive FUSE latency
-    temp_pdb = f"/tmp/temp_dssp_{uuid.uuid4().hex}.pdb"
-    
     try:
-        # Copy file from slow Google Drive to fast local Colab disk
-        shutil.copy2(pdb_path, temp_pdb)
+        # Load the PDB file directly into MDTraj
+        traj = md.load(pdb_path)
         
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', BiopythonWarning)
-            # Read the local temp file
-            structure = parser.get_structure("protein", temp_pdb)
-            model = structure[0]
-            
-            # DSSP executable name varies by OS (often 'dssp' or 'mkdssp')
-            try:
-                dssp = DSSP(model, temp_pdb, dssp='mkdssp')
-            except Exception:
-                dssp = DSSP(model, temp_pdb, dssp='dssp')
-
-            # Extract the structure
-            ss_list = []
-            for key in dssp.keys():
-                ss_char = dssp[key][2]
-                if ss_char == '-' or ss_char == ' ':
-                    ss_char = 'C'
-                ss_list.append(ss_char)
-
-            return "".join(ss_list)
-            
+        # Compute DSSP (simplified=False gives the full 8 states)
+        # Returns an array of shape (n_frames, n_residues). We take frame 0.
+        ss_array = md.compute_dssp(traj, simplified=False)[0]
+        
+        ss_list = []
+        for char in ss_array:
+            # MDTraj uses ' ' or 'NA' for loops/coils. Map to 'C'.
+            if char == ' ' or char == '-' or char == 'NA':
+                ss_list.append('C')
+            else:
+                ss_list.append(char)
+                
+        return "".join(ss_list)
+        
     except Exception as e:
-        print(f"    [DSSP Warning] Failed for {pdb_path}: {e}")
+        print(f"    [MDTraj Warning] Failed for {pdb_path}: {e}")
         return None
-        
-    finally:
-        # Always clean up the temp file so we don't clog Colab's memory
-        if os.path.exists(temp_pdb):
-            os.remove(temp_pdb)
             
 def get_consensus_structure(aligned_sequences, seq_ids, dir_predicted):
     """
