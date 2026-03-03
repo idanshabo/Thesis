@@ -1,4 +1,6 @@
 import os
+import shutil
+import uuid
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -29,34 +31,48 @@ def normalize_id(identifier):
 def get_dssp_q8_from_pdb(pdb_path):
     """
     Runs DSSP on a predicted PDB file to extract the 1D secondary structure string.
+    Uses /tmp/ to bypass Google Drive I/O bottlenecks on Colab.
     """
     parser = PDBParser(QUIET=True)
+    
+    # Create a temporary local path to avoid Google Drive FUSE latency
+    temp_pdb = f"/tmp/temp_dssp_{uuid.uuid4().hex}.pdb"
+    
     try:
+        # Copy file from slow Google Drive to fast local Colab disk
+        shutil.copy2(pdb_path, temp_pdb)
+        
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', BiopythonWarning)
-            structure = parser.get_structure("protein", pdb_path)
+            # Read the local temp file
+            structure = parser.get_structure("protein", temp_pdb)
             model = structure[0]
             
             # DSSP executable name varies by OS (often 'dssp' or 'mkdssp')
             try:
-                dssp = DSSP(model, pdb_path, dssp='mkdssp')
+                dssp = DSSP(model, temp_pdb, dssp='mkdssp')
             except Exception:
-                dssp = DSSP(model, pdb_path, dssp='dssp')
+                dssp = DSSP(model, temp_pdb, dssp='dssp')
 
-            # DSSP returns a tuple for each residue. Index 2 is the structure.
+            # Extract the structure
             ss_list = []
             for key in dssp.keys():
                 ss_char = dssp[key][2]
-                # DSSP uses '-' or ' ' for Coils/Loops. Map these to 'C'.
                 if ss_char == '-' or ss_char == ' ':
                     ss_char = 'C'
                 ss_list.append(ss_char)
 
             return "".join(ss_list)
+            
     except Exception as e:
         print(f"    [DSSP Warning] Failed for {pdb_path}: {e}")
         return None
-
+        
+    finally:
+        # Always clean up the temp file so we don't clog Colab's memory
+        if os.path.exists(temp_pdb):
+            os.remove(temp_pdb)
+            
 def get_consensus_structure(aligned_sequences, seq_ids, dir_predicted):
     """
     Reads PDBs for the group, extracts Q8 via DSSP, re-inserts MSA gaps, 
