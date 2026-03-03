@@ -29,6 +29,61 @@ Q8_COLORS = {
 def normalize_id(identifier):
     return identifier.replace("/", "_")
 
+def draw_biological_ss_track(ax, ss_string):
+    """Draws continuous biological shapes (helices, strands) for the SS track."""
+    blocks = []
+    if ss_string:
+        current_state = ss_string[0]
+        start_idx = 0
+        for i, state in enumerate(ss_string):
+            if state != current_state:
+                blocks.append((current_state, start_idx, i - 1))
+                current_state = state
+                start_idx = i
+        blocks.append((current_state, start_idx, len(ss_string) - 1))
+
+    ax.set_ylim(0, 1)
+    ax.set_xlim(-0.5, len(ss_string) - 0.5)
+    ax.set_yticks([])
+    ax.set_ylabel("Q8", rotation=0, labelpad=15, va='center')
+    ax.plot([-0.5, len(ss_string) - 0.5], [0.5, 0.5], color='#D0D0D0', linewidth=2, zorder=1)
+
+    for state, start, end in blocks:
+        if state == '-': continue
+        color = Q8_COLORS.get(state, '#808080')
+        x_start, x_end = start - 0.5, end + 0.5
+        length = x_end - x_start
+
+        if state in ['H', 'G', 'I']:
+            x = np.linspace(x_start, x_end, int(max(100, 30 * length)))
+            period = min(3.6, length if length > 0 else 1.0)
+            taper_len = min(1.0, length / 2)
+            taper = np.ones_like(x)
+            if taper_len > 0:
+                for i, xv in enumerate(x):
+                    if xv < x_start + taper_len: taper[i] = 0.5 - 0.5 * np.cos(np.pi * (xv - x_start) / taper_len)
+                    elif xv > x_end - taper_len: taper[i] = 0.5 - 0.5 * np.cos(np.pi * (x_end - xv) / taper_len)
+            y = 0.5 + 0.35 * np.sin(2 * np.pi * (x - x_start) / period) * taper
+            ax.plot(x, y, color=color, linewidth=3.5, solid_capstyle='round', zorder=4,
+                    path_effects=[pe.Stroke(linewidth=5.5, foreground='black'), pe.Normal()])
+        elif state in ['E', 'B']:
+            head_len = min(1.0, length / 2) if length > 0.5 else length
+            tail_len = length - head_len
+            hw, tw = 0.35, 0.20
+            if length > head_len:
+                verts = [(x_start, 0.5 - tw), (x_start + tail_len, 0.5 - tw), (x_start + tail_len, 0.5 - hw),
+                         (x_end, 0.5), (x_start + tail_len, 0.5 + hw), (x_start + tail_len, 0.5 + tw), (x_start, 0.5 + tw)]
+            else:
+                verts = [(x_start, 0.5 - hw), (x_end, 0.5), (x_start, 0.5 + hw)]
+            ax.add_patch(patches.Polygon(verts, facecolor=color, edgecolor='black', linewidth=1.5, zorder=4))
+        else:
+            ax.plot([x_start, x_end], [0.5, 0.5], color=color, linewidth=3.5, solid_capstyle='butt', zorder=3,
+                    path_effects=[pe.Stroke(linewidth=5.5, foreground='black'), pe.Normal()])
+
+def align_matrices(df1, df2):
+    all_chars = sorted(list(set(df1.columns) | set(df2.columns)))
+    return df1.reindex(columns=all_chars, fill_value=0), df2.reindex(columns=all_chars, fill_value=0)
+    
 def get_dssp_q8_from_pdb(pdb_path):
     """Calculates 1D secondary structure string from a PDB using MDTraj."""
     try:
