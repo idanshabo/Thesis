@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import logomaker 
 from Bio import SeqIO
 
 # Import the local modules
@@ -19,7 +18,6 @@ from significant_split_evaluation.structures.plot_comparative_logos import gener
 
 def normalize_id(identifier):
     return identifier.replace("/", "_")
-
 
 def get_actual_structure_path(directory, pdb_id):
     """ Helper to check if file exists as .pdb or .cif """
@@ -36,7 +34,6 @@ def get_actual_structure_path(directory, pdb_id):
     if os.path.exists(path_cif_lower): return path_cif_lower
 
     return None
-
 
 def batch_crop_pdbs(pdb_id_list, dir_experimental, pdb_to_seq_id, seq_lookup):
     """
@@ -82,66 +79,6 @@ def batch_crop_pdbs(pdb_id_list, dir_experimental, pdb_to_seq_id, seq_lookup):
             new_id_list.append(pdb_id)
             
     return new_id_list
-
-# ==========================================
-# LOGO PLOTTING FUNCTIONS
-# ==========================================
-def align_matrices(df1, df2):
-    all_chars = sorted(list(set(df1.columns) | set(df2.columns)))
-    df1_aligned = df1.reindex(columns=all_chars, fill_value=0)
-    df2_aligned = df2.reindex(columns=all_chars, fill_value=0)
-    return df1_aligned, df2_aligned
-
-def generate_comparative_logos(records, group_a_ids, group_b_ids, output_path, highlight_threshold=0.6):
-    print("\n--- Generating Comparative Sequence Logos ---")
-    seq_map = {}
-    for r in records:
-        seq_map[r.id] = str(r.seq).upper()
-        seq_map[normalize_id(r.id)] = str(r.seq).upper()
-    seqs_a, seqs_b = [], []
-    for uid in group_a_ids:
-        if uid in seq_map: seqs_a.append(seq_map[uid])
-        elif normalize_id(uid) in seq_map: seqs_a.append(seq_map[normalize_id(uid)])
-    for uid in group_b_ids:
-        if uid in seq_map: seqs_b.append(seq_map[uid])
-        elif normalize_id(uid) in seq_map: seqs_b.append(seq_map[normalize_id(uid)])
-
-    if not seqs_a or not seqs_b:
-        print("Error: One or both groups are empty. Skipping Logo plot.")
-        return
-
-    try:
-        counts_a = logomaker.alignment_to_matrix(seqs_a)
-        counts_b = logomaker.alignment_to_matrix(seqs_b)
-        counts_a, counts_b = align_matrices(counts_a, counts_b)
-        info_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='information')
-        info_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='information')
-        max_a = info_a.sum(axis=1).max()
-        max_b = info_b.sum(axis=1).max()
-        global_max = max(max_a, max_b) * 1.1 
-        prob_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='probability')
-        prob_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='probability')
-        diff_score = np.sum(np.abs(prob_a - prob_b), axis=1)
-        divergent_positions = diff_score[diff_score > highlight_threshold].index.tolist()
-
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 6), sharex=True)
-        logomaker.Logo(info_a, ax=ax1, color_scheme='chemistry')
-        logomaker.Logo(info_b, ax=ax2, color_scheme='chemistry')
-        ax1.set_ylim(0, global_max)
-        ax2.set_ylim(0, global_max)
-        ax1.set_title(f"Group A ({len(seqs_a)} sequences)", fontsize=14, fontweight='bold')
-        ax2.set_title(f"Group B ({len(seqs_b)} sequences)", fontsize=14, fontweight='bold')
-        ax1.set_ylabel("Bits")
-        ax2.set_ylabel("Bits")
-        for pos in divergent_positions:
-            ax1.axvspan(pos - 0.5, pos + 0.5, color='red', alpha=0.2, zorder=0)
-            ax2.axvspan(pos - 0.5, pos + 0.5, color='red', alpha=0.2, zorder=0)
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=300)
-        plt.close()
-        print(f"Saved Logo Plot: {output_path}")
-    except Exception as e:
-        print(f"Error generating Logo plot: {e}")
 
 # ==========================================
 # HELPERS
@@ -268,16 +205,16 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     valid_a = get_valid_ids(split_data['group_a'])
     valid_b = get_valid_ids(split_data['group_b'])
 
-    # 1. LOGOS
-    logo_path = os.path.join(sig_split_folder, "comparative_sequence_logos.png")
-    generate_comparative_logos(records, valid_a, valid_b, logo_path, highlight_threshold=0.8)
-
-    # 2. PREDICTED
+    # 1. PREDICTED (Moved before Logos)
     sample_a = random.sample(valid_a, min(len(valid_a), 50))
     sample_b = random.sample(valid_b, min(len(valid_b), 50))
     processing_list = sample_a + sample_b
     run_prediction_batch(records, dir_predicted, allow_list=processing_list)
     
+    # 2. LOGOS (Pass the predicted directory and samples)
+    logo_path = os.path.join(sig_split_folder, "comparative_sequence_logos.png")
+    generate_comparative_logos(records, sample_a, sample_b, dir_predicted, logo_path, highlight_threshold=0.8)
+
     print("Calculating TM Matrix (Predicted)...")
     df_pred, stats_pred, split_pred = calculate_tm_matrix(sample_a, sample_b, dir_predicted)
     df_sorted, tm_stats, split_pos = calculate_tm_matrix(
