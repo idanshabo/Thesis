@@ -211,9 +211,9 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
     processing_list = sample_a + sample_b
     run_prediction_batch(records, dir_predicted, allow_list=processing_list)
     
-    # 2. LOGOS (Pass the predicted directory and samples)
+    # 2. LOGOS (Pass the full sequence groups for the logos)
     logo_path = os.path.join(sig_split_folder, "comparative_sequence_logos.png")
-    generate_comparative_logos(records, sample_a, sample_b, dir_predicted, logo_path, highlight_threshold=0.8)
+    generate_comparative_logos(records, valid_a, valid_b, dir_predicted, logo_path, highlight_threshold=0.8)
 
     print("Calculating TM Matrix (Predicted)...")
     df_pred, stats_pred, split_pred = calculate_tm_matrix(sample_a, sample_b, dir_predicted)
