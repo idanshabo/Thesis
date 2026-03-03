@@ -1,17 +1,12 @@
 import os
-import shutil
-import uuid
 import numpy as np
-import mdtraj as md
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as patches
 import matplotlib.patheffects as pe
 import logomaker
+import mdtraj as md
 from collections import Counter
-from Bio.PDB import PDBParser
-import warnings
-from Bio import BiopythonWarning
 
 # Standard colors for Q8 secondary structure
 Q8_COLORS = {
@@ -29,18 +24,94 @@ Q8_COLORS = {
 def normalize_id(identifier):
     return identifier.replace("/", "_")
 
+def get_dssp_q8_from_pdb(pdb_path):
+    """Calculates 1D secondary structure string from a PDB using MDTraj."""
+    try:
+        traj = md.load(pdb_path)
+        ss_array = md.compute_dssp(traj, simplified=False)[0]
+        ss_list = []
+        for char in ss_array:
+            if char in [' ', '-', 'NA']: ss_list.append('C')
+            else: ss_list.append(char)
+        return "".join(ss_list)
+    except Exception as e:
+        print(f"    [MDTraj Warning] Failed for {pdb_path}: {e}")
+        return None
+
+def get_consensus_structure(aligned_sequences, seq_ids, dir_predicted):
+    """
+    Calculates the raw, unfiltered column-by-column majority vote 
+    for the secondary structure of the group.
+    """
+    aligned_ss_strings = []
+    
+    for seq, seq_id in zip(aligned_sequences, seq_ids):
+        ungapped = seq.replace("-", "")
+        if not ungapped:
+            continue
+            
+        pdb_path = os.path.join(dir_predicted, f"{normalize_id(seq_id)}.pdb")
+        ss_ungapped = None
+        if os.path.exists(pdb_path):
+            ss_ungapped = get_dssp_q8_from_pdb(pdb_path)
+            
+        if not ss_ungapped or len(ss_ungapped) != len(ungapped):
+            continue
+            
+        # Re-insert gaps based on the original aligned sequence
+        ss_gapped = []
+        idx = 0
+        for char in seq:
+            if char == "-":
+                ss_gapped.append("-")
+            else:
+                ss_gapped.append(ss_ungapped[idx])
+                idx += 1
+        aligned_ss_strings.append("".join(ss_gapped))
+        
+    if not aligned_ss_strings:
+        return "-" * len(aligned_sequences[0]), 0
+        
+    # Calculate pure column-wise consensus (Majority Vote)
+    consensus_ss = []
+    seq_length = len(aligned_sequences[0])
+    
+    for col_idx in range(seq_length):
+        col = [ss[col_idx] for ss in aligned_ss_strings if ss[col_idx] != "-"]
+        if not col:
+            consensus_ss.append("-")
+        else:
+            most_common = Counter(col).most_common(1)[0][0]
+            consensus_ss.append(most_common)
+            
+    return "".join(consensus_ss), len(aligned_ss_strings)
+
 def draw_biological_ss_track(ax, ss_string):
-    """Draws continuous biological shapes (helices, strands) for the SS track."""
+    """Draws biological shapes, bridging across MSA gaps naturally."""
     blocks = []
     if ss_string:
-        current_state = ss_string[0]
-        start_idx = 0
+        current_state = None
+        start_idx = None
+        last_idx = None
+        
         for i, state in enumerate(ss_string):
-            if state != current_state:
-                blocks.append((current_state, start_idx, i - 1))
+            if state == '-': 
+                continue # Bridge visually over gaps
+                
+            if current_state is None:
                 current_state = state
                 start_idx = i
-        blocks.append((current_state, start_idx, len(ss_string) - 1))
+                last_idx = i
+            elif state == current_state:
+                last_idx = i
+            else:
+                blocks.append((current_state, start_idx, last_idx))
+                current_state = state
+                start_idx = i
+                last_idx = i
+                
+        if current_state is not None:
+            blocks.append((current_state, start_idx, last_idx))
 
     ax.set_ylim(0, 1)
     ax.set_xlim(-0.5, len(ss_string) - 0.5)
@@ -51,7 +122,8 @@ def draw_biological_ss_track(ax, ss_string):
     for state, start, end in blocks:
         if state == '-': continue
         color = Q8_COLORS.get(state, '#808080')
-        x_start, x_end = start - 0.5, end + 0.5
+        x_start = start - 0.5
+        x_end = end + 0.5
         length = x_end - x_start
 
         if state in ['H', 'G', 'I']:
@@ -69,7 +141,8 @@ def draw_biological_ss_track(ax, ss_string):
         elif state in ['E', 'B']:
             head_len = min(1.0, length / 2) if length > 0.5 else length
             tail_len = length - head_len
-            hw, tw = 0.35, 0.20
+            hw = 0.35 
+            tw = 0.20 
             if length > head_len:
                 verts = [(x_start, 0.5 - tw), (x_start + tail_len, 0.5 - tw), (x_start + tail_len, 0.5 - hw),
                          (x_end, 0.5), (x_start + tail_len, 0.5 + hw), (x_start + tail_len, 0.5 + tw), (x_start, 0.5 + tw)]
@@ -83,66 +156,9 @@ def draw_biological_ss_track(ax, ss_string):
 def align_matrices(df1, df2):
     all_chars = sorted(list(set(df1.columns) | set(df2.columns)))
     return df1.reindex(columns=all_chars, fill_value=0), df2.reindex(columns=all_chars, fill_value=0)
-    
-def get_dssp_q8_from_pdb(pdb_path):
-    """Calculates 1D secondary structure string from a PDB using MDTraj."""
-    try:
-        traj = md.load(pdb_path)
-        ss_array = md.compute_dssp(traj, simplified=False)[0]
-        ss_list = []
-        for char in ss_array:
-            if char in [' ', '-', 'NA']: ss_list.append('C')
-            else: ss_list.append(char)
-        return "".join(ss_list)
-    except Exception as e:
-        print(f"    [MDTraj Warning] Failed for {pdb_path}: {e}")
-        return None
 
-def get_representative_structure(aligned_sequences, seq_ids, rep_id, dir_predicted):
-    """
-    Fetches the actual Q8 structure for the specific representative protein
-    and maps it to the MSA alignment length by re-inserting gaps.
-    """
-    norm_rep = normalize_id(rep_id)
-    
-    # 1. Find the representative sequence in our lists
-    rep_idx = -1
-    for i, sid in enumerate(seq_ids):
-        if normalize_id(sid) == norm_rep:
-            rep_idx = i
-            break
-            
-    if rep_idx == -1:
-        print(f"    [Warning] Representative ID {rep_id} not found in alignment.")
-        return "-" * len(aligned_sequences[0])
-        
-    seq = aligned_sequences[rep_idx]
-    ungapped = seq.replace("-", "")
-    
-    # 2. Get its actual predicted structure
-    pdb_path = os.path.join(dir_predicted, f"{norm_rep}.pdb")
-    ss_ungapped = None
-    if os.path.exists(pdb_path):
-        ss_ungapped = get_dssp_q8_from_pdb(pdb_path)
-        
-    if not ss_ungapped or len(ss_ungapped) != len(ungapped):
-        print(f"    [Warning] Could not get valid structure for representative {rep_id}.")
-        return "-" * len(seq)
-        
-    # 3. Re-insert gaps based exactly on the representative's MSA sequence
-    ss_gapped = []
-    idx = 0
-    for char in seq:
-        if char == "-":
-            ss_gapped.append("-")
-        else:
-            ss_gapped.append(ss_ungapped[idx])
-            idx += 1
-            
-    return "".join(ss_gapped)
-
-def generate_comparative_logos(records, group_a_ids, group_b_ids, rep_a, rep_b, dir_predicted, output_path, highlight_threshold=0.6):
-    print("\n--- Generating Comparative Sequence Logos with Representative SS ---")
+def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted, output_path, highlight_threshold=0.6):
+    print("\n--- Generating Comparative Sequence Logos with Raw Consensus SS ---")
     seq_map = {}
     for r in records:
         seq_map[r.id] = str(r.seq).upper()
@@ -181,9 +197,9 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, rep_a, rep_b, 
         diff_score = np.sum(np.abs(prob_a - prob_b), axis=1)
         divergent_positions = diff_score[diff_score > highlight_threshold].index.tolist()
 
-        # Fetch Representative Structures instead of Consensus
-        ss_rep_a = get_representative_structure(seqs_a, valid_ids_a, rep_a, dir_predicted)
-        ss_rep_b = get_representative_structure(seqs_b, valid_ids_b, rep_b, dir_predicted)
+        # Get Raw Consensus and structure count
+        ss_cons_a, num_a = get_consensus_structure(seqs_a, valid_ids_a, dir_predicted)
+        ss_cons_b, num_b = get_consensus_structure(seqs_b, valid_ids_b, dir_predicted)
 
         fig = plt.figure(figsize=(15, 8))
         gs = gridspec.GridSpec(4, 1, height_ratios=[4, 0.5, 4, 0.5], hspace=0.3)
@@ -198,14 +214,14 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, rep_a, rep_b, 
         ax_logo_a.set_ylim(0, global_max)
         ax_logo_b.set_ylim(0, global_max)
         
-        # Display the representative used in the title
-        ax_logo_a.set_title(f"Group A ({len(seqs_a)} sequences) | Structure: {rep_a}", fontsize=14, fontweight='bold')
-        ax_logo_b.set_title(f"Group B ({len(seqs_b)} sequences) | Structure: {rep_b}", fontsize=14, fontweight='bold')
+        # Restore the title format
+        ax_logo_a.set_title(f"Group A ({len(seqs_a)} sequences | SS Consensus: {num_a} structures)", fontsize=14, fontweight='bold')
+        ax_logo_b.set_title(f"Group B ({len(seqs_b)} sequences | SS Consensus: {num_b} structures)", fontsize=14, fontweight='bold')
         ax_logo_a.set_ylabel("Bits")
         ax_logo_b.set_ylabel("Bits")
 
-        draw_biological_ss_track(ax_ss_a, ss_rep_a)
-        draw_biological_ss_track(ax_ss_b, ss_rep_b)
+        draw_biological_ss_track(ax_ss_a, ss_cons_a)
+        draw_biological_ss_track(ax_ss_b, ss_cons_b)
 
         for pos in divergent_positions:
             for ax in [ax_logo_a, ax_ss_a, ax_logo_b, ax_ss_b]:
@@ -220,7 +236,7 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, rep_a, rep_b, 
 
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close(fig)
-        print(f"Saved Comparative Sequence Logos (with Representative SS): {output_path}")
+        print(f"Saved Comparative Sequence Logos (Raw Consensus): {output_path}")
 
     except Exception as e:
         print(f"Error generating Logo plot: {e}")
