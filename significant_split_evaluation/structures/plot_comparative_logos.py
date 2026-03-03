@@ -30,163 +30,64 @@ def normalize_id(identifier):
     return identifier.replace("/", "_")
 
 def get_dssp_q8_from_pdb(pdb_path):
-    """
-    Calculates 1D secondary structure string from a PDB using MDTraj.
-    Bypasses the buggy Ubuntu dssp executable entirely.
-    """
+    """Calculates 1D secondary structure string from a PDB using MDTraj."""
     try:
-        # Load the PDB file directly into MDTraj
         traj = md.load(pdb_path)
-        
-        # Compute DSSP (simplified=False gives the full 8 states)
-        # Returns an array of shape (n_frames, n_residues). We take frame 0.
         ss_array = md.compute_dssp(traj, simplified=False)[0]
-        
         ss_list = []
         for char in ss_array:
-            # MDTraj uses ' ' or 'NA' for loops/coils. Map to 'C'.
-            if char == ' ' or char == '-' or char == 'NA':
-                ss_list.append('C')
-            else:
-                ss_list.append(char)
-                
+            if char in [' ', '-', 'NA']: ss_list.append('C')
+            else: ss_list.append(char)
         return "".join(ss_list)
-        
     except Exception as e:
         print(f"    [MDTraj Warning] Failed for {pdb_path}: {e}")
         return None
-            
-def get_consensus_structure(aligned_sequences, seq_ids, dir_predicted):
-    aligned_ss_strings = []
+
+def get_representative_structure(aligned_sequences, seq_ids, rep_id, dir_predicted):
+    """
+    Fetches the actual Q8 structure for the specific representative protein
+    and maps it to the MSA alignment length by re-inserting gaps.
+    """
+    norm_rep = normalize_id(rep_id)
     
-    for seq, seq_id in zip(aligned_sequences, seq_ids):
-        ungapped = seq.replace("-", "")
-        if not ungapped:
-            continue
+    # 1. Find the representative sequence in our lists
+    rep_idx = -1
+    for i, sid in enumerate(seq_ids):
+        if normalize_id(sid) == norm_rep:
+            rep_idx = i
+            break
             
-        pdb_path = os.path.join(dir_predicted, f"{normalize_id(seq_id)}.pdb")
-        
-        ss_ungapped = None
-        if os.path.exists(pdb_path):
-            ss_ungapped = get_dssp_q8_from_pdb(pdb_path)
-            
-        if not ss_ungapped or len(ss_ungapped) != len(ungapped):
-            continue
-            
-        # Pre-smooth individual predictions (Remove impossible 1-residue strands/helices)
-        # (A simple cleanup: if E is surrounded by C, make it C)
-        smoothed_ss = list(ss_ungapped)
-        for i in range(1, len(smoothed_ss) - 1):
-            if smoothed_ss[i] in ['E', 'H'] and smoothed_ss[i-1] != smoothed_ss[i] and smoothed_ss[i+1] != smoothed_ss[i]:
-                smoothed_ss[i] = 'C'
-        ss_ungapped = "".join(smoothed_ss)
-            
-        # Re-insert gaps based on the original aligned sequence
-        ss_gapped = []
-        idx = 0
-        for char in seq:
-            if char == "-":
-                ss_gapped.append("-")
-            else:
-                ss_gapped.append(ss_ungapped[idx])
-                idx += 1
-        aligned_ss_strings.append("".join(ss_gapped))
-        
-    if not aligned_ss_strings:
+    if rep_idx == -1:
+        print(f"    [Warning] Representative ID {rep_id} not found in alignment.")
         return "-" * len(aligned_sequences[0])
         
-    consensus_ss = []
-    seq_length = len(aligned_sequences[0])
+    seq = aligned_sequences[rep_idx]
+    ungapped = seq.replace("-", "")
     
-    # Grouped Voting
-    for col_idx in range(seq_length):
-        col = [ss[col_idx] for ss in aligned_ss_strings if ss[col_idx] != "-"]
-        if not col:
-            consensus_ss.append("-")
-            continue
-            
-        # Tally the broad classes
-        class_counts = {'Helix': 0, 'Strand': 0, 'Coil': 0}
-        char_map = {
-            'H': 'Helix', 'G': 'Helix', 'I': 'Helix',
-            'E': 'Strand', 'B': 'Strand',
-            'T': 'Coil', 'S': 'Coil', 'C': 'Coil'
-        }
+    # 2. Get its actual predicted structure
+    pdb_path = os.path.join(dir_predicted, f"{norm_rep}.pdb")
+    ss_ungapped = None
+    if os.path.exists(pdb_path):
+        ss_ungapped = get_dssp_q8_from_pdb(pdb_path)
         
-        for char in col:
-            class_counts[char_map.get(char, 'Coil')] += 1
-            
-        # Find the winning class
-        winning_class = max(class_counts, key=class_counts.get)
+    if not ss_ungapped or len(ss_ungapped) != len(ungapped):
+        print(f"    [Warning] Could not get valid structure for representative {rep_id}.")
+        return "-" * len(seq)
         
-        # Now find the most common specific character WITHIN the winning class
-        valid_chars = [char for char in col if char_map.get(char, 'Coil') == winning_class]
-        if valid_chars:
-            most_common_specific = Counter(valid_chars).most_common(1)[0][0]
-            consensus_ss.append(most_common_specific)
+    # 3. Re-insert gaps based exactly on the representative's MSA sequence
+    ss_gapped = []
+    idx = 0
+    for char in seq:
+        if char == "-":
+            ss_gapped.append("-")
         else:
-            consensus_ss.append('C') # Fallback
+            ss_gapped.append(ss_ungapped[idx])
+            idx += 1
             
-    # Return BOTH the consensus string AND the number of structures used
-    return "".join(consensus_ss), len(aligned_ss_strings)
+    return "".join(ss_gapped)
 
-def draw_biological_ss_track(ax, ss_string):
-    """Draws continuous biological shapes (helices, strands) for the SS track."""
-    blocks = []
-    if ss_string:
-        current_state = ss_string[0]
-        start_idx = 0
-        for i, state in enumerate(ss_string):
-            if state != current_state:
-                blocks.append((current_state, start_idx, i - 1))
-                current_state = state
-                start_idx = i
-        blocks.append((current_state, start_idx, len(ss_string) - 1))
-
-    ax.set_ylim(0, 1)
-    ax.set_xlim(-0.5, len(ss_string) - 0.5)
-    ax.set_yticks([])
-    ax.set_ylabel("Q8", rotation=0, labelpad=15, va='center')
-    ax.plot([-0.5, len(ss_string) - 0.5], [0.5, 0.5], color='#D0D0D0', linewidth=2, zorder=1)
-
-    for state, start, end in blocks:
-        if state == '-': continue
-        color = Q8_COLORS.get(state, '#808080')
-        x_start, x_end = start - 0.5, end + 0.5
-        length = x_end - x_start
-
-        if state in ['H', 'G', 'I']:
-            x = np.linspace(x_start, x_end, int(max(100, 30 * length)))
-            period = min(3.6, length if length > 0 else 1.0)
-            taper_len = min(1.0, length / 2)
-            taper = np.ones_like(x)
-            if taper_len > 0:
-                for i, xv in enumerate(x):
-                    if xv < x_start + taper_len: taper[i] = 0.5 - 0.5 * np.cos(np.pi * (xv - x_start) / taper_len)
-                    elif xv > x_end - taper_len: taper[i] = 0.5 - 0.5 * np.cos(np.pi * (x_end - xv) / taper_len)
-            y = 0.5 + 0.35 * np.sin(2 * np.pi * (x - x_start) / period) * taper
-            ax.plot(x, y, color=color, linewidth=3.5, solid_capstyle='round', zorder=4,
-                    path_effects=[pe.Stroke(linewidth=5.5, foreground='black'), pe.Normal()])
-        elif state in ['E', 'B']:
-            head_len = min(1.0, length / 2) if length > 0.5 else length
-            tail_len = length - head_len
-            hw, tw = 0.35, 0.20
-            if length > head_len:
-                verts = [(x_start, 0.5 - tw), (x_start + tail_len, 0.5 - tw), (x_start + tail_len, 0.5 - hw),
-                         (x_end, 0.5), (x_start + tail_len, 0.5 + hw), (x_start + tail_len, 0.5 + tw), (x_start, 0.5 + tw)]
-            else:
-                verts = [(x_start, 0.5 - hw), (x_end, 0.5), (x_start, 0.5 + hw)]
-            ax.add_patch(patches.Polygon(verts, facecolor=color, edgecolor='black', linewidth=1.5, zorder=4))
-        else:
-            ax.plot([x_start, x_end], [0.5, 0.5], color=color, linewidth=3.5, solid_capstyle='butt', zorder=3,
-                    path_effects=[pe.Stroke(linewidth=5.5, foreground='black'), pe.Normal()])
-
-def align_matrices(df1, df2):
-    all_chars = sorted(list(set(df1.columns) | set(df2.columns)))
-    return df1.reindex(columns=all_chars, fill_value=0), df2.reindex(columns=all_chars, fill_value=0)
-
-def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted, output_path, highlight_threshold=0.6):
-    print("\n--- Generating Comparative Sequence Logos with Consensus SS ---")
+def generate_comparative_logos(records, group_a_ids, group_b_ids, rep_a, rep_b, dir_predicted, output_path, highlight_threshold=0.6):
+    print("\n--- Generating Comparative Sequence Logos with Representative SS ---")
     seq_map = {}
     for r in records:
         seq_map[r.id] = str(r.seq).upper()
@@ -225,10 +126,9 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
         diff_score = np.sum(np.abs(prob_a - prob_b), axis=1)
         divergent_positions = diff_score[diff_score > highlight_threshold].index.tolist()
 
-        print("    Predicting structures and voting on consensus...")
-        # Unpack the two returned values
-        ss_consensus_a, num_ss_a = get_consensus_structure(seqs_a, valid_ids_a, dir_predicted)
-        ss_consensus_b, num_ss_b = get_consensus_structure(seqs_b, valid_ids_b, dir_predicted)
+        # Fetch Representative Structures instead of Consensus
+        ss_rep_a = get_representative_structure(seqs_a, valid_ids_a, rep_a, dir_predicted)
+        ss_rep_b = get_representative_structure(seqs_b, valid_ids_b, rep_b, dir_predicted)
 
         fig = plt.figure(figsize=(15, 8))
         gs = gridspec.GridSpec(4, 1, height_ratios=[4, 0.5, 4, 0.5], hspace=0.3)
@@ -242,15 +142,15 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
         logomaker.Logo(info_b, ax=ax_logo_b, color_scheme='chemistry')
         ax_logo_a.set_ylim(0, global_max)
         ax_logo_b.set_ylim(0, global_max)
-
-        ax_logo_a.set_title(f"Group A ({len(seqs_a)} sequences | SS Consensus: {num_ss_a} structures)", fontsize=14, fontweight='bold')
-        ax_logo_b.set_title(f"Group B ({len(seqs_b)} sequences | SS Consensus: {num_ss_b} structures)", fontsize=14, fontweight='bold')
         
+        # Display the representative used in the title
+        ax_logo_a.set_title(f"Group A ({len(seqs_a)} sequences) | Structure: {rep_a}", fontsize=14, fontweight='bold')
+        ax_logo_b.set_title(f"Group B ({len(seqs_b)} sequences) | Structure: {rep_b}", fontsize=14, fontweight='bold')
         ax_logo_a.set_ylabel("Bits")
         ax_logo_b.set_ylabel("Bits")
 
-        draw_biological_ss_track(ax_ss_a, ss_consensus_a)
-        draw_biological_ss_track(ax_ss_b, ss_consensus_b)
+        draw_biological_ss_track(ax_ss_a, ss_rep_a)
+        draw_biological_ss_track(ax_ss_b, ss_rep_b)
 
         for pos in divergent_positions:
             for ax in [ax_logo_a, ax_ss_a, ax_logo_b, ax_ss_b]:
@@ -265,7 +165,7 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
 
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close(fig)
-        print(f"Saved Comparative Sequence Logos (with Consensus SS): {output_path}")
+        print(f"Saved Comparative Sequence Logos (with Representative SS): {output_path}")
 
     except Exception as e:
         print(f"Error generating Logo plot: {e}")
