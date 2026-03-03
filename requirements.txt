@@ -6,3 +6,4 @@ pymol-open-source
 logomaker
 transformers
 sentencepiece
+mdtraj
