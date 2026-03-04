@@ -10,7 +10,7 @@ from estimate_matrix_normal.estimate_matrix_normal import matrix_normal_mle_fixe
 from utils.align_embeddings_with_covariance import align_embeddings_with_covariance
 from evaluate_split_options.utils import load_matrix_tensor, get_log_det, calculate_matrix_normal_ll, calculate_bic_matrix_normal
 from evaluate_split_options.lrt_statistics import compute_gls_operators, compute_mle_and_lrt, simulate_null_data, add_jitter
-from evaluate_split_options.recursive_tree_traversal import 
+from evaluate_split_options.recursive_tree_traversal import find_candidate_splits_from_node, recursive_mean_split
 
 def calculate_jaccard(set1, set2):
     """Calculates Jaccard Index: Intersection / Union"""
