@@ -14,7 +14,7 @@ from utils.order_covariance_matrix import order_covariance_matrix_by_tree
 from create_phylogenetic_tree.run_fasttree import run_fasttree
 from handling_esm_embeddings.create_normalized_mean_embeddings_matrix import create_normalized_mean_embeddings_matrix
 from evaluate_split_options.evaluate_split_options import evaluate_top_splits
-from significant_split_evaluation.visualisations import visualize_split_msa_sorted, plot_split_covariance, run_variance_analysis
+from significant_split_evaluation.visualisations import visualize_split_msa_sorted, plot_split_covariance, run_variance_analysis, plot_side_by_side_embedding_covariance
 from significant_split_evaluation.handle_splits_evaluation import get_split_info
 from significant_split_evaluation.structures.visualize_structures_pipeline import visualize_structures_pipeline
 
@@ -175,6 +175,7 @@ def run_visualize(args, tracker, fasta_path, cov_ordered_path, out_mode_dir):
             
             visualize_split_msa_sorted(fasta_path, split_info, folder_path)
             plot_split_covariance(cov_ordered_path, split_info, folder_path)
+            plot_side_by_side_embedding_covariance(folder_path, split_info)
             
             tm_stats = visualize_structures_pipeline(fasta_path, split_info, folder_path, cov_ordered_path)
             if tm_stats:
