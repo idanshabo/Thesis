@@ -397,6 +397,73 @@ def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder):
     print(f"Covariance plot saved to {output_path}")
 
 
+def plot_side_by_side_embedding_covariance(folder_path, split_info):
+    """
+    Plots the Global, Group A, and Group B embedding covariance matrices side-by-side.
+    Note: These are p x p feature covariance matrices across PCA dimensions.
+    """
+    # --- 1. Path Deduction ---
+    split_name = os.path.basename(folder_path)
+    sig_splits_dir = os.path.dirname(folder_path)
+    protein_outputs_dir = os.path.dirname(os.path.dirname(sig_splits_dir))
+    
+    dir_name = os.path.basename(protein_outputs_dir)
+    protein_id = dir_name.replace("_outputs", "")
+    
+    protein_data_root = os.path.dirname(protein_outputs_dir)
+    calc_dir = os.path.join(protein_data_root, f"{protein_id}_calculations")
+    
+    # Define Full File Paths
+    full_cov_path = os.path.join(calc_dir, f"{protein_id}_calculations_global_H0_PCA_embeddings_cov_mat.csv")
+    child_a_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subA.csv")
+    child_b_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subB.csv")
+    
+    output_path = os.path.join(folder_path, "embedding_covariances_comparison.png")
+
+    # --- 2. Setup & Load ---
+    try:
+        cov_global = pd.read_csv(full_cov_path, index_col=0)
+        cov_a = pd.read_csv(child_a_path, index_col=0)
+        cov_b = pd.read_csv(child_b_path, index_col=0)
+    except Exception as e:
+        print(f"Error loading embedding covariance matrices: {e}")
+        return
+
+    # --- 3. Plotting ---
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    
+    # Calculate global min/max so the colorbar scale is identical across all three subplots
+    vmin = min(cov_global.values.min(), cov_a.values.min(), cov_b.values.min())
+    vmax = max(cov_global.values.max(), cov_a.values.max(), cov_b.values.max())
+    
+    cmap = 'viridis'
+    
+    # Global Plot
+    sns.heatmap(cov_global, cmap=cmap, square=True, ax=axes[0], vmin=vmin, vmax=vmax, 
+                cbar=False, xticklabels=False, yticklabels=False)
+    axes[0].set_title(f"Global (H0)\np={cov_global.shape[0]}", fontsize=14)
+    
+    # Group A Plot
+    sns.heatmap(cov_a, cmap=cmap, square=True, ax=axes[1], vmin=vmin, vmax=vmax, 
+                cbar=False, xticklabels=False, yticklabels=False)
+    axes[1].set_title(f"Group A\np={cov_a.shape[0]}", fontsize=14)
+    
+    # Group B Plot (Include colorbar only on the last one to save space)
+    sns.heatmap(cov_b, cmap=cmap, square=True, ax=axes[2], vmin=vmin, vmax=vmax, 
+                cbar=True, xticklabels=False, yticklabels=False)
+    axes[2].set_title(f"Group B\np={cov_b.shape[0]}", fontsize=14)
+
+    # Main Title
+    node_name = split_info.get('node_name', 'Unknown Node')
+    plt.suptitle(f"Embedding Feature Covariances (pPCA Space): {node_name}", fontsize=16, y=1.05)
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    
+    print(f"Side-by-side embedding covariance plot saved to {output_path}")
+
+
 def load_matrix(data):
     """
     Helper: Loads data using pandas for robustness.
