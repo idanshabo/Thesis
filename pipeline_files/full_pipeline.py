@@ -113,7 +113,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     # Define exact target paths first
     fasta_path = os.path.join(calc_dir, f"{args.family}.fasta")
     tree_path = os.path.join(calc_dir, f"{args.family}.tree")
-    cov_path = os.path.join(calc_dir, f"{args.family}_cov.csv") 
+    cov_path = os.path.join(calc_dir, f"{args.family}_cov_mat.csv") 
     cov_ordered_path = os.path.join(calc_dir, f"{args.family}_cov_mat_tree_ordered.csv")
 
     # 1. Fasta
