@@ -9,7 +9,7 @@ from sklearn.decomposition import PCA
 from estimate_matrix_normal.estimate_matrix_normal import matrix_normal_mle_fixed_u
 from utils.align_embeddings_with_covariance import align_embeddings_with_covariance
 from evaluate_split_options.utils import load_matrix_tensor, get_log_det, calculate_matrix_normal_ll, calculate_bic_matrix_normal
-
+from evaluate_split_options.lrt_statistics import compute_gls_operators, compute_mle_and_lrt, simulate_null_data, add_jitter
 
 def calculate_jaccard(set1, set2):
     """Calculates Jaccard Index: Intersection / Union"""
@@ -425,92 +425,142 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
     print(f"Global LL: {ll_global:.2f}")
     print(f"Global BIC: {bic_global:.2f}")
 
-    # --- PHASE 4: Split Testing (H1) ---
+    # --- PHASE 4: LRT Split Testing and Parametric Bootstrap ---
     print("\n" + "="*40)
-    print("PHASE 4: Split Testing (H1)")
+    print("PHASE 4: LRT Split Testing (H1) & Bootstrap")
     print("="*40)
     
-    # 1. Fetch ALL valid candidates based on size and support
     raw_candidates = find_candidate_splits(tree_path, k=k, min_support=0.8, min_prop=0.1)
     
-    # 2. Pre-filter for redundancy
     candidates = []
     accepted_split_sets = []
     
     print(f"Found {len(raw_candidates)} raw candidate splits meeting size and support criteria.")
-    print(f"Filtering out splits with >={similarity_threshold*100:.0f}% similarity to each other...")
     
     for split in raw_candidates:
         current_sets = (split['group_a'], split['group_b'])
         is_redundant, reason = is_split_redundant(current_sets, accepted_split_sets, threshold=similarity_threshold)
-        
         if not is_redundant:
             candidates.append(split)
             accepted_split_sets.append(current_sets)
             
-    print(f"--> Kept {len(candidates)} unique splits for MLE evaluation.\n")
+    print(f"--> Kept {len(candidates)} unique splits for LRT evaluation.\n")
 
+    # 1. Setup Global Null Model Parameters for Bootstrap
+    # Get global U and global X
+    U_global = load_matrix_tensor(cov_path)
+    X_global = emb_transformed_full_raw
+    n_global, p_global = X_global.shape
+    
+    U_inv_g, P_g, t1_g, t2_g = compute_gls_operators(U_global)
+    mu_hat_global = (t1_g @ t2_g @ X_global).squeeze() # shape (p,)
+    
+    # Global V_hat under H0
+    S_global_H0 = X_global.T @ P_g @ X_global
+    V_hat_global = S_global_H0 / n_global
+
+    # Cholesky factors for bootstrap simulation
+    L_U = torch.linalg.cholesky(add_jitter(U_global))
+    L_V = torch.linalg.cholesky(add_jitter(V_hat_global))
+
+    # 2. Precompute Operators and Calculate Observed Lambda for all candidates
+    split_data = []
+    df_global_index = pd.read_csv(cov_path, index_col=0).index.astype(str)
+
+    def get_valid_indices(tree_leaves, csv_index):
+        valid_idx = []
+        csv_lookup = list(csv_index)
+        for leaf in tree_leaves:
+            leaf = str(leaf).strip()
+            if leaf in csv_lookup:
+                valid_idx.append(csv_lookup.index(leaf))
+            else:
+                alt_leaf = leaf.replace('/', '_')
+                if alt_leaf in csv_lookup:
+                    valid_idx.append(csv_lookup.index(alt_leaf))
+        return valid_idx
+
+    print("   Precomputing operators and calculating observed statistics...")
+    for i, split in enumerate(candidates):
+        idx_A = get_valid_indices(split['group_a'], df_global_index)
+        idx_B = get_valid_indices(split['group_b'], df_global_index)
+        
+        if not idx_A or not idx_B:
+            continue
+            
+        # Extract sub-matrices directly from global U
+        U_A = U_global[idx_A][:, idx_A]
+        U_B = U_global[idx_B][:, idx_B]
+        
+        X_A = X_global[idx_A]
+        X_B = X_global[idx_B]
+        
+        # Precompute projection operators
+        _, P_A, _, _ = compute_gls_operators(U_A)
+        _, P_B, _, _ = compute_gls_operators(U_B)
+        
+        # Calculate observed Lambda
+        lambda_obs = compute_mle_and_lrt(X_A, X_B, P_A, P_B, len(idx_A), len(idx_B))
+        
+        split_data.append({
+            'rank': i + 1,
+            'node_name': split.get('node_name', f'Node_{i}'),
+            'split_dict': split,
+            'idx_A': idx_A,
+            'idx_B': idx_B,
+            'P_A': P_A,
+            'P_B': P_B,
+            'n_A': len(idx_A),
+            'n_B': len(idx_B),
+            'lambda_obs': lambda_obs.item(),
+            'support': split.get('support', 0.0)
+        })
+
+    # 3. Parametric Bootstrap (Westfall-Young)
+    C_replicates = 500  # Number of bootstrap replicates. Adjust based on compute budget.
+    print(f"\n   Running Parametric Bootstrap with {C_replicates} replicates...")
+    max_lambdas_null = []
+
+    for c in range(C_replicates):
+        if c % 50 == 0:
+            print(f"      Bootstrap iteration {c}/{C_replicates}")
+            
+        # Simulate data under H0
+        X_sim = simulate_null_data(n_global, p_global, mu_hat_global, L_U, L_V)
+        
+        lambda_sims = []
+        for sd in split_data:
+            X_A_sim = X_sim[sd['idx_A']]
+            X_B_sim = X_sim[sd['idx_B']]
+            
+            lam_sim = compute_mle_and_lrt(X_A_sim, X_B_sim, sd['P_A'], sd['P_B'], sd['n_A'], sd['n_B'])
+            lambda_sims.append(lam_sim.item())
+            
+        # Record the maximum Lambda across all splits for this replicate
+        max_lambdas_null.append(max(lambda_sims))
+
+    max_lambdas_null = np.array(max_lambdas_null)
+
+    # 4. Calculate p-values and output
+    alpha_level = 0.05
     results = []
 
-    # 3. Main Evaluation Loop
-    for i, split in enumerate(candidates):
-        rank = i + 1
-        node_name = split.get('node_name', f'Node_{i}')
+    for sd in split_data:
+        # Adjusted p-value: proportion of null max-lambdas >= observed lambda
+        # Adding 1 to numerator and denominator prevents p=0
+        count_exceed = np.sum(max_lambdas_null >= sd['lambda_obs'])
+        p_adj = (count_exceed + 1) / (C_replicates + 1)
         
-        print(f"\n--- Evaluating Unique Split {rank}/{len(candidates)}: {node_name} (Len: {split.get('length', 0):.4f}) ---")
-
-        split_folder_name = f"rank{rank}"
-        split_dir = os.path.join(base_eval_dir, split_folder_name)
+        is_sig = p_adj <= alpha_level
+        
+        print(f"   Split {sd['rank']} ({sd['node_name']}): Lambda_obs={sd['lambda_obs']:.2f}, p_adj={p_adj:.4f} [{'SIGNIFICANT' if is_sig else 'NO'}]")
+        
+        # Determine folder structure based on significance
+        split_folder_name = f"rank{sd['rank']}"
+        dest_dir = sig_splits_dir if is_sig else non_sig_splits_dir
+        split_dir = os.path.join(dest_dir, split_folder_name)
         os.makedirs(split_dir, exist_ok=True)
         
-        # Create calculations folder
-        calc_dir = os.path.join(split_dir, "calculations")
-        os.makedirs(calc_dir, exist_ok=True)
-
-        suffix_a = f"_rank{rank}_subA"
-        suffix_b = f"_rank{rank}_subB"
-
-        cov_a, cov_b = split_covariance_matrix(cov_path, split, suffix_a, suffix_b, output_dir=calc_dir)
-        pt_a, pt_b = split_protein_embeddings(pt_path, split, suffix_a, suffix_b, output_dir=calc_dir)
-
-        if cov_a is None: continue
-
-        aligned_path_a = os.path.join(calc_dir, f"aligned{suffix_a}.pt")
-        aligned_path_b = os.path.join(calc_dir, f"aligned{suffix_b}.pt")
-        
-        emb_tensor_a = align_embeddings_with_covariance(cov_a, pt_a, aligned_path_a).float()
-        emb_tensor_b = align_embeddings_with_covariance(cov_b, pt_b, aligned_path_b).float()
-
-        # Apply pPCA
-        if pca_for_splits is not None:
-            emb_transformed_a_raw = torch.from_numpy(pca_for_splits.transform(emb_tensor_a.cpu().numpy())).float()
-            emb_transformed_b_raw = torch.from_numpy(pca_for_splits.transform(emb_tensor_b.cpu().numpy())).float()
-        else:
-            emb_transformed_a_raw, emb_transformed_b_raw = emb_tensor_a, emb_tensor_b
-
-        # Run MLE
-        print("   Running MLE for Sub-trees")
-        _, v_path_a, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_a_raw], U_path=cov_a, name_comments=suffix_a, output_dir=calc_dir)
-        _, v_path_b, _ = matrix_normal_mle_fixed_u(X=[emb_transformed_b_raw], U_path=cov_b, name_comments=suffix_b, output_dir=calc_dir)
-
-        # Calculate Stats
-        u_tensor_a = load_matrix_tensor(cov_a)
-        u_tensor_b = load_matrix_tensor(cov_b)
-        v_tensor_a = load_matrix_tensor(v_path_a)
-        v_tensor_b = load_matrix_tensor(v_path_b)
-        
-        pd.DataFrame(v_tensor_a.cpu().numpy()).to_csv(os.path.join(calc_dir, f"embedding_cov{suffix_a}.csv"))
-        pd.DataFrame(v_tensor_b.cpu().numpy()).to_csv(os.path.join(calc_dir, f"embedding_cov{suffix_b}.csv"))
-
-        ll_split = calculate_matrix_normal_ll(u_tensor_a.shape[0], p_current, u_tensor_a, v_tensor_a) + \
-                   calculate_matrix_normal_ll(u_tensor_b.shape[0], p_current, u_tensor_b, v_tensor_b)
-        
-        bic_split = calculate_bic_matrix_normal(ll_split, N_total, p_current, num_models=2)
-        delta_bic = bic_global - bic_split
-        is_sig = bic_split < bic_global
-        
-        print(f"   Delta BIC: {delta_bic:.2f} [{'SIGNIFICANT' if is_sig else 'NO'}]")
-
         if is_sig:
             print(f"   -> SIGNIFICANT! Moving folder.")
             new_split_dir = os.path.join(sig_splits_dir, split_folder_name)
@@ -545,42 +595,18 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
                 print("   [!] Warning: Could not extract leaf names to save JSON.")
 
         results.append({
-            'rank': rank,
-            'node': node_name,
-            'bic': bic_split,
-            'delta': delta_bic,
+            'rank': sd['rank'],
+            'node': sd['node_name'],
+            'lambda': sd['lambda_obs'],
+            'p_adj': p_adj,
             'sig': is_sig,
             'folder': split_dir 
         })
 
-    print("\n" + "="*40)
-    print("Moving Non-Significant Splits")
-    print("="*40)
-    for res in results:
-        # If not significant, not skipped (folder exists), and still in the base folder
-        if not res['sig'] and res['folder'] is not None:
-            # Check if it currently resides in the base eval dir (meaning it wasn't moved to significant)
-            if os.path.dirname(res['folder']) == base_eval_dir:
-                split_name = os.path.basename(res['folder'])
-                dest_path = os.path.join(non_sig_splits_dir, split_name)
-                
-                if os.path.exists(dest_path):
-                    shutil.rmtree(dest_path)
-                
-                try:
-                    shutil.move(res['folder'], dest_path)
-                    res['folder'] = dest_path # Update path in results
-                except Exception as e:
-                    print(f"Error moving {split_name} to non_significant_splits: {e}")
-
     # Summary
     print("\n" + "="*40 + "\nFINAL SUMMARY\n" + "="*40)
     for res in results:
-        note = res.get('note', '')
-        if note:
-            print(f"{res['rank']:<5} | {res['node']:<15} | {note}")
-        else:
-            print(f"{res['rank']:<5} | {res['node']:<15} | {res['delta']:<15.2f} | {'YES' if res['sig'] else 'NO'}")
+        print(f"{res['rank']:<5} | {res['node']:<15} | L: {res['lambda']:<10.2f} | p: {res['p_adj']:<6.4f} | {'YES' if res['sig'] else 'NO'}")
 
     # Define the counts based on your lists
     raw_splits_count = len(raw_candidates)
