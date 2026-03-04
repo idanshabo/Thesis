@@ -12,10 +12,28 @@ def compute_gls_operators(U):
     S_i = X_i^T P_i X_i (where P_i handles the GLS mean centering automatically).
     """
     n = U.shape[0]
-    U_reg = add_jitter(U)
     
-    # Use Cholesky for stable inversion
-    L = torch.linalg.cholesky(U_reg)
+    # 1. Force Perfect Symmetry First
+    U_sym = (U + U.T) / 2.0
+    
+    # 2. Adaptive Jitter for Robust Cholesky Decomposition
+    jitter_init = 1e-6
+    max_retries = 5
+    L = None
+    
+    for i in range(max_retries):
+        jitter = jitter_init * (10 ** i)  # Scales: 1e-6, 1e-5, 1e-4...
+        U_reg = add_jitter(U_sym, jitter=jitter)
+        
+        try:
+            L = torch.linalg.cholesky(U_reg)
+            break  # Success! Exit the loop.
+        except torch._C._LinAlgError:
+            continue # Matrix still not positive-definite, try higher jitter
+            
+    if L is None:
+        raise RuntimeError(f"Cholesky factorization failed for matrix of size {n}x{n} even with max jitter {jitter}.")
+        
     U_inv = torch.cholesky_inverse(L)
     
     ones = torch.ones((n, 1), dtype=U.dtype, device=U.device)
@@ -27,6 +45,9 @@ def compute_gls_operators(U):
     # Projection matrix P such that X^T P X = S (the scatter matrix)
     # P = U^-1 - U^-1 1 (1^T U^-1 1)^-1 1^T U^-1
     P = U_inv - (term2.T @ term1 @ term2)
+    
+    # Force symmetry on the final projection operator to be safe
+    P = (P + P.T) / 2.0
     
     return U_inv, P, term1, term2
 
