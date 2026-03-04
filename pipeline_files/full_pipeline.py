@@ -114,7 +114,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     fasta_path = os.path.join(calc_dir, f"{args.family}.fasta")
     tree_path = os.path.join(calc_dir, f"{args.family}.tree")
     cov_path = os.path.join(calc_dir, f"{args.family}_cov.csv") 
-    cov_ordered_path = os.path.join(calc_dir, f"{args.family}_cov_ordered.csv") # Check your actual extension (.csv or .npy?)
+    cov_ordered_path = os.path.join(calc_dir, f"{args.family}_cov_mat_tree_ordered.csv")
 
     # 1. Fasta
     # Assuming convert_stockholm_to_fasta accepts output_path. 
@@ -235,7 +235,7 @@ def main():
         if args.operation in ['visualize', 'full']:
             # Determine paths needed for visualization based on previous steps
             fasta_path = os.path.join(calc_dir, f"{args.family}.fasta")
-            cov_ordered_path = os.path.join(calc_dir, f"{args.family}_cov_ordered.csv")
+            cov_ordered_path = os.path.join(calc_dir, f"{args.family}_cov_mat_tree_ordered.csv")
             run_visualize(args, tracker, fasta_path, cov_ordered_path, out_mode_dir)
 
     except Exception as e:
