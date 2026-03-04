@@ -184,23 +184,24 @@ def main():
     parser = argparse.ArgumentParser(description="MSA to Split Modular Pipeline")
     
     # Core arguments matching your mentor's request
-    parser.add_argument('-input', type=str, required=True, help="Path to the MSA file")
-    parser.add_argument('-family', type=str, required=True, help="Family name (e.g., pf00228)")
-    parser.add_argument('-operation', type=str, required=True, 
+    parser.add_argument('--input', type=str, required=True, help="Path to the MSA file")
+    parser.add_argument('--family', type=str, required=True, help="Family name (e.g., pf00228)")
+    parser.add_argument('--operation', type=str, required=True, 
                         choices=['preprocess', 'find_best_split', 'visualize', 'full'], 
                         help="Which part of the pipeline to run")
     
-    # Algorithmic Parameters
+    # Parameters
     parser.add_argument('--embedding', type=str, default="sequence", help="Embedding mode (e.g., sequence, structure)")
     parser.add_argument('--nodes', type=int, default=3, help="Number of nodes to evaluate")
     parser.add_argument('--pca_comp', type=int, default=None, help="PCA minimum components, if not entered and --pca_var not entered - no ppca is calculated")
     parser.add_argument('--pca_var', type=float, default=None, help="PCA minimum variance, if not entered and --pca_comp not entered - no ppca is calculated")
-    parser.add_argument('--standardize', type=bool, default=True, help="Standardize data")
-    
-    # Flags
-    parser.add_argument('-generate_plots', type=bool, default=True, help="Generate plots during visualization")
+    parser.add_argument('--standardize', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Standardize data")
+    parser.add_argument('--generate_plots', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Generate plots during visualization")
 
     args = parser.parse_args()
+
+    args.standardize = args.standardize == "TRUE"
+    args.generate_plots = args.generate_plots == "TRUE"
 
     # Setup directories
     base_dir = os.path.dirname(os.path.abspath(args.input))
