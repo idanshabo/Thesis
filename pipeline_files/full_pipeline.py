@@ -197,7 +197,7 @@ def main():
     
     # Parameters
     parser.add_argument('--embedding', type=str, default="sequence", help="Embedding mode (e.g., sequence, structure)")
-    parser.add_argument('--nodes', type=int, default=3, help="Number of nodes to evaluate")
+    parser.add_argument('--nodes', type=int, default=None, help="Number of nodes to evaluate")
     parser.add_argument('--pca_comp', type=int, default=None, help="PCA minimum components, if not entered and --pca_var not entered - no ppca is calculated")
     parser.add_argument('--pca_var', type=float, default=None, help="PCA minimum variance, if not entered and --pca_comp not entered - no ppca is calculated")
     parser.add_argument('--standardize', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Standardize data")
