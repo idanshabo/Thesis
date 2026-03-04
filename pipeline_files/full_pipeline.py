@@ -128,12 +128,8 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     run_fasttree(fasta_path, output_path=tree_path)
     tracker.calc_and_add_tree_stats(tree_path)
     
-    # 3. Covariance
-    temp_cov = tree_to_covariance_matrix(tree_path)
-    if temp_cov != cov_path:
-        shutil.move(temp_cov, cov_path)
-        
-    cov_ordered_path = order_covariance_matrix_by_tree(cov_path, tree_path)
+    # 3. Covariance 
+    cov_path = tree_to_covariance_matrix(tree_path, output_path=cov_path)
     
     emb_out_dir = os.path.join(calc_dir, f'embeddings_{args.embedding}')
     norm_emb_path = create_normalized_mean_embeddings_matrix(fasta_path, mode=args.embedding, output_path=emb_out_dir)
@@ -238,8 +234,8 @@ def main():
             
         if args.operation in ['visualize', 'full']:
             # Determine paths needed for visualization based on previous steps
-            fasta_path = os.path.join(calc_dir, f"{args.family}.fasta") # Adjust extension/name to match your util
-            cov_ordered_path = os.path.join(calc_dir, f"{args.family}_cov_ordered.npy") # Adjust to match your util
+            fasta_path = os.path.join(calc_dir, f"{args.family}.fasta")
+            cov_ordered_path = os.path.join(calc_dir, f"{args.family}_cov_ordered.csv")
             run_visualize(args, tracker, fasta_path, cov_ordered_path, out_mode_dir)
 
     except Exception as e:
