@@ -421,6 +421,9 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
         Y_local = emb_tensor_full[idx_tensor]
         U_local = C_global[idx_tensor][:, idx_tensor]
         
+        # Shift to the local root and clamp floating-point noise
+        U_local = torch.clamp(U_local - torch.min(U_local), min=0.0)
+        
         if n_sf < 10:
             print(f"   -> Sub-family {sf_idx} too small for meaningful covariance testing. Skipping.")
             continue
