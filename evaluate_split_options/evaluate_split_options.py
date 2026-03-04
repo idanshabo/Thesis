@@ -460,7 +460,11 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
     V_hat_global = S_global_H0 / n_global
 
     # Cholesky factors for bootstrap simulation
-    L_U = torch.linalg.cholesky(add_jitter(U_global))
+    # forcing symmetry
+    U_global_sym = (U_global + U_global.T) / 2.0
+    V_hat_global = (V_hat_global + V_hat_global.T) / 2.0
+    
+    L_U = torch.linalg.cholesky(add_jitter(U_global_sym))
     L_V = torch.linalg.cholesky(add_jitter(V_hat_global))
 
     # 2. Precompute Operators and Calculate Observed Lambda for all candidates
