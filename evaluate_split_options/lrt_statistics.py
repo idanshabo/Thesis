@@ -30,10 +30,7 @@ def compute_gls_operators(U):
     
     return U_inv, P, term1, term2
 
-def compute_mle_and_lrt(X_A, X_B, P_A, P_B, n_A, n_B):
-    """
-    Computes the LRT statistic Lambda for a single split.
-    """
+def compute_mle_and_lrt(X_A, X_B, P_A, P_B, n_A, n_B, return_matrices=False):
     n = n_A + n_B
     
     # Scatter matrices
@@ -45,14 +42,19 @@ def compute_mle_and_lrt(X_A, X_B, P_A, P_B, n_A, n_B):
     V_B = S_B / n_B
     V_global = (S_A + S_B) / n
     
-    # Log determinants (using your existing robust get_log_det logic conceptually)
-    # Adding small jitter to V matrices to prevent log(0) during bootstrap
+    # Force symmetry before Cholesky/slogdet (Crucial fix!)
+    V_global = (V_global + V_global.T) / 2.0
+    V_A = (V_A + V_A.T) / 2.0
+    V_B = (V_B + V_B.T) / 2.0
+    
     logdet_V = torch.linalg.slogdet(add_jitter(V_global))[1]
     logdet_V_A = torch.linalg.slogdet(add_jitter(V_A))[1]
     logdet_V_B = torch.linalg.slogdet(add_jitter(V_B))[1]
     
-    # Lambda = n*log|V| - n_A*log|V_A| - n_B*log|V_B|
     Lambda = n * logdet_V - n_A * logdet_V_A - n_B * logdet_V_B
+    
+    if return_matrices:
+        return Lambda, V_A, V_B
     return Lambda
 
 def simulate_null_data(n, p, mu_hat, L_U, L_V):
