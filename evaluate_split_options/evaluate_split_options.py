@@ -337,294 +337,206 @@ class PhylogeneticPCA:
 
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None, 
                         pca_min_variance=None, pca_min_components=None, 
-                        standardize=True, similarity_threshold=0.85):
+                        standardize=True, similarity_threshold=0.85,
+                        anova_alpha=0.05, anova_permutations=999):
     """
-    Evaluates splits using Matrix Normal MLE estimation.
-    Includes logic to skip splits that are highly similar to previously identified significant splits.
+    Evaluates splits using a Two-Stage Procedure:
+    1. Recursive Mean Shift Testing (Phylogenetic ANOVA) to find stable sub-families.
+    2. Local pPCA + Covariance Shift Testing (LRT & Bootstrap) on each sub-family.
     """
     
-    # --- 0. Setup Output Directories ---
-    base_eval_dir = output_path
-    sig_splits_dir = os.path.join(base_eval_dir, "significant_splits")
-    non_sig_splits_dir = os.path.join(base_eval_dir, "non_significant_splits")
+    # --- PHASE 1: Initial Load & Alignment ---
+    print("\n" + "="*40)
+    print("PHASE 1: Global Alignment (No pPCA yet)")
+    print("="*40)
     
-    os.makedirs(base_eval_dir, exist_ok=True)
-    os.makedirs(sig_splits_dir, exist_ok=True)
-    os.makedirs(non_sig_splits_dir, exist_ok=True)
-
-    # --- Initial Load ---
+    # Load Tree
+    try:
+        tree = Tree(tree_path, format=1)
+    except Exception:
+        tree = Tree(tree_path, format=0)
+    try:
+        tree.set_outgroup(tree.get_midpoint_outgroup())
+    except: pass
+    
+    # Load and Align Embeddings to the Covariance Matrix
     data_full = torch.load(pt_path, map_location='cpu')
-    emb_raw_full = data_full['embeddings'].float()
     all_names = data_full.get('file_names') or data_full.get('names') or data_full.get('ids')
     
-    N_total, p_initial = emb_raw_full.shape
-    p_current = p_initial
-    print(f"Initial Data Dimensions: N={N_total}, p={p_initial}")
-
-    dir_out = os.path.dirname(pt_path)
-
-    # --- PHASE 1: Alignment ---
-    print("\n" + "="*40)
-    print("PHASE 1: Alignment (Standardization is now handled by pPCA)")
-    print("="*40)
-    
-    aligned_full_path = os.path.join(dir_out, "aligned_global_embeddings.pt")
+    aligned_full_path = os.path.join(os.path.dirname(pt_path), "aligned_global_embeddings.pt")
     emb_tensor_full = align_embeddings_with_covariance(cov_path, pt_path, aligned_full_path).float()
     
-    # Load the aligned covariance matrix 'C' early so pPCA can use it
-    u_tensor_full = load_matrix_tensor(cov_path)
+    C_global = load_matrix_tensor(cov_path).float()
+    df_global_index = list(pd.read_csv(cov_path, index_col=0).index.astype(str))
     
-    # --- PHASE 2: Dimensionality Reduction (pPCA) ---
-    pca_for_splits = None
-    if pca_min_variance is not None or pca_min_components is not None:
-        print("\n" + "="*40)
-        print("PHASE 2: Dimensionality Reduction (Phylogenetic PCA)")
-        print("="*40)
-        
-        # Determine mode based on your 'standardize' flag
-        p_mode = 'corr' if standardize else 'cov'
-        
-        pca_for_splits = PhylogeneticPCA(
-            min_variance=pca_min_variance, 
-            min_components=pca_min_components, 
-            mode=p_mode
-        )
-        
-        # Fit the pPCA using both the embeddings and the phylogenetic covariance matrix
-        pca_for_splits.fit(emb_tensor_full.cpu().numpy(), u_tensor_full.cpu().numpy())
-        
-        # Transform the full dataset
-        transformed_full_np = pca_for_splits.transform(emb_tensor_full.cpu().numpy())
-        emb_transformed_full_raw = torch.from_numpy(transformed_full_np).float()
-        
-        p_current = pca_for_splits.final_n_components
-        print(f"Final Dimension (p'): {p_current}")
-    else:
-        emb_transformed_full_raw = emb_tensor_full
+    print(f"Loaded {len(df_global_index)} aligned sequences with {emb_tensor_full.shape[1]} dimensions.")
 
-    # --- PHASE 3: LRT Split Testing and Parametric Bootstrap ---
+    # --- PHASE 2: Recursive Mean Shift Testing ---
     print("\n" + "="*40)
-    print("PHASE 3: LRT Split Testing (H1) & Bootstrap")
+    print("PHASE 2: Recursive Mean Shift Testing (Phylogenetic ANOVA)")
     print("="*40)
     
-    raw_candidates = find_candidate_splits(tree_path, k=k, min_support=0.8, min_prop=0.1)
+    stable_subfamilies = recursive_mean_split(
+        tree_node=tree, 
+        Y_global=emb_tensor_full, 
+        C_global=C_global, 
+        global_names=df_global_index, 
+        min_prop=0.1, 
+        alpha=anova_alpha, 
+        n_permutations=anova_permutations
+    )
     
-    candidates = []
-    accepted_split_sets = []
-    
-    print(f"Found {len(raw_candidates)} raw candidate splits meeting size and support criteria.")
-    
-    for split in raw_candidates:
-        current_sets = (split['group_a'], split['group_b'])
-        is_redundant, reason = is_split_redundant(current_sets, accepted_split_sets, threshold=similarity_threshold)
-        if not is_redundant:
-            candidates.append(split)
-            accepted_split_sets.append(current_sets)
-            
-    print(f"--> Kept {len(candidates)} unique splits for LRT evaluation.\n")
+    print(f"\n=> Divided family into {len(stable_subfamilies)} stable sub-families based on global mean shifts.")
 
-    # 1. Setup Global Null Model Parameters for Bootstrap
-    # Get global U and global X
-    U_global = load_matrix_tensor(cov_path).float()
-    X_global = emb_transformed_full_raw.float()
-    n_global, p_global = X_global.shape
-    
-    U_inv_g, P_g, t1_g, t2_g = compute_gls_operators(U_global)
-    mu_hat_global = (t1_g @ t2_g @ X_global).squeeze() # shape (p,)
-    
-    # Global V_hat under H0
-    S_global_H0 = X_global.T @ P_g @ X_global
-    V_hat_global = S_global_H0 / n_global
+    # Tracking variables to return to the pipeline
+    all_results = []
+    total_raw_splits = 0
+    total_unique_splits = 0
+    final_p_dims = {}
 
-    # Save the global V_hat matrix for downstream visualization
-    family_name = os.path.basename(tree_path).split('.')[0]
-    calc_dir = os.path.dirname(tree_path)
-    global_cov_filename = f"{family_name}_calculations_global_H0_PCA_embeddings_cov_mat.csv"
-    pd.DataFrame(V_hat_global.cpu().numpy()).to_csv(os.path.join(calc_dir, global_cov_filename))
-    
-    # Cholesky factors for bootstrap simulation
-    # forcing symmetry
-    U_global_sym = (U_global + U_global.T) / 2.0
-    V_hat_global_sym = (V_hat_global + V_hat_global.T) / 2.0
-    
-    L_U = torch.linalg.cholesky(add_jitter(U_global_sym))                      
-    L_V = torch.linalg.cholesky(add_jitter(V_hat_global_sym))
-
-    # 2. Precompute Operators and Calculate Observed Lambda for all candidates
-    split_data = []
-    df_global_index = pd.read_csv(cov_path, index_col=0).index.astype(str)
-
-    def get_valid_indices(tree_leaves, csv_index):
-        valid_idx = []
-        csv_lookup = list(csv_index)
-        for leaf in tree_leaves:
-            leaf = str(leaf).strip()
-            if leaf in csv_lookup:
-                valid_idx.append(csv_lookup.index(leaf))
-            else:
-                alt_leaf = leaf.replace('/', '_')
-                if alt_leaf in csv_lookup:
-                    valid_idx.append(csv_lookup.index(alt_leaf))
-        return valid_idx
-
-    print("   Precomputing operators and calculating observed statistics...")
-    for i, split in enumerate(candidates):
-        idx_A = get_valid_indices(split['group_a'], df_global_index)
-        idx_B = get_valid_indices(split['group_b'], df_global_index)
+    # --- PHASE 3 & 4: Sub-Family Processing ---
+    for sf_idx, subfamily in enumerate(stable_subfamilies, 1):
+        sf_node = subfamily['node']
+        sf_leaves = list(subfamily['leaves'])
+        sf_indices = subfamily['indices']
+        n_sf = len(sf_leaves)
         
-        if not idx_A or not idx_B:
+        print("\n" + "="*40)
+        print(f"PROCESSING SUB-FAMILY {sf_idx}/{len(stable_subfamilies)} ({n_sf} leaves)")
+        print("="*40)
+        
+        # 1. Setup Sub-Family Directory & Save Tree
+        sf_dir = os.path.join(output_path, f"subfamily_{sf_idx}")
+        sf_sig_dir = os.path.join(sf_dir, "significant_splits")
+        sf_non_sig_dir = os.path.join(sf_dir, "non_significant_splits")
+        os.makedirs(sf_sig_dir, exist_ok=True)
+        os.makedirs(sf_non_sig_dir, exist_ok=True)
+        
+        sf_tree_path = os.path.join(sf_dir, f"subfamily_{sf_idx}.tree")
+        sf_node.write(outfile=sf_tree_path)
+        print(f"   -> Saved physical tree to {sf_tree_path}")
+        
+        # 2. Extract Local Matrices
+        idx_tensor = torch.tensor(sf_indices, dtype=torch.long, device=emb_tensor_full.device)
+        Y_local = emb_tensor_full[idx_tensor]
+        U_local = C_global[idx_tensor][:, idx_tensor]
+        
+        if n_sf < 10:
+            print(f"   -> Sub-family {sf_idx} too small for meaningful covariance testing. Skipping.")
             continue
             
-        # Extract sub-matrices directly from global U
-        U_A = U_global[idx_A][:, idx_A]
-        U_B = U_global[idx_B][:, idx_B]
+        # --- PHASE 3: Local pPCA ---
+        print("   -> Running Local pPCA...")
+        p_current = Y_local.shape[1]
+        X_sf = Y_local
         
-        X_A = X_global[idx_A]
-        X_B = X_global[idx_B]
-        
-        # Precompute projection operators
-        _, P_A, _, _ = compute_gls_operators(U_A)
-        _, P_B, _, _ = compute_gls_operators(U_B)
-        
-        # Calculate observed Lambda AND capture the V matrices
-        lambda_obs, V_A, V_B = compute_mle_and_lrt(
-            X_A, X_B, P_A, P_B, len(idx_A), len(idx_B), return_matrices=True
-        )
-        
-        split_data.append({
-            'rank': i + 1,
-            'node_name': split.get('node_name', f'Node_{i}'),
-            'split_dict': split,
-            'idx_A': idx_A,
-            'idx_B': idx_B,
-            'P_A': P_A,
-            'P_B': P_B,
-            'n_A': len(idx_A),
-            'n_B': len(idx_B),
-            'lambda_obs': lambda_obs.item(),
-            'support': split.get('support', 0.0),
-            'V_A': V_A.cpu().numpy(),  # Store as numpy for easy saving later
-            'V_B': V_B.cpu().numpy()
-        })
-
-    # 3. Parametric Bootstrap (Westfall-Young)
-    C_replicates = 10000  # Number of bootstrap replicates.
-    print(f"\n   Running Parametric Bootstrap with {C_replicates} replicates...")
-    max_lambdas_null = []
-
-    for c in range(C_replicates):
-        if c % 50 == 0:
-            print(f"      Bootstrap iteration {c}/{C_replicates}")
+        if pca_min_variance is not None or pca_min_components is not None:
+            p_mode = 'corr' if standardize else 'cov'
+            pca_sf = PhylogeneticPCA(min_variance=pca_min_variance, min_components=pca_min_components, mode=p_mode)
+            pca_sf.fit(Y_local.cpu().numpy(), U_local.cpu().numpy())
             
-        # Simulate data under H0
-        X_sim = simulate_null_data(n_global, p_global, mu_hat_global, L_U, L_V)
+            X_sf = torch.from_numpy(pca_sf.transform(Y_local.cpu().numpy())).float()
+            p_current = pca_sf.final_n_components
+            
+        final_p_dims[f"subfamily_{sf_idx}"] = p_current
+        print(f"   -> Local dimension reduced to {p_current}")
+
+        # --- PHASE 4: Local Covariance Shift Test ---
+        print("   -> Finding candidate covariance splits...")
+        raw_candidates = find_candidate_splits_from_node(sf_node, k=k, min_support=0.8, min_prop=0.1)
+        total_raw_splits += len(raw_candidates)
         
-        lambda_sims = []
+        candidates = []
+        accepted_split_sets = []
+        for split in raw_candidates:
+            current_sets = (split['group_a'], split['group_b'])
+            is_redundant, reason = is_split_redundant(current_sets, accepted_split_sets, threshold=similarity_threshold)
+            if not is_redundant:
+                candidates.append(split)
+                accepted_split_sets.append(current_sets)
+                
+        total_unique_splits += len(candidates)
+        
+        if not candidates:
+            print("   -> No valid candidate splits found in this sub-family.")
+            continue
+            
+        # Global Null parameters FOR THIS SUB-FAMILY
+        U_inv_g, P_g, t1_g, t2_g = compute_gls_operators(U_local)
+        mu_hat_sf = (t1_g @ t2_g @ X_sf).squeeze()
+        V_hat_sf = (X_sf.T @ P_g @ X_sf) / n_sf
+        
+        U_local_sym = (U_local + U_local.T) / 2.0
+        V_hat_sf_sym = (V_hat_sf + V_hat_sf.T) / 2.0
+        L_U = torch.linalg.cholesky(add_jitter(U_local_sym))                      
+        L_V = torch.linalg.cholesky(add_jitter(V_hat_sf_sym))
+        
+        # Calculate Observed Lambda
+        split_data = []
+        for i, split in enumerate(candidates):
+            # Map leaf names directly to local indices (0 to n_sf-1)
+            local_idx_A = [sf_leaves.index(name) for name in split['group_a'] if name in sf_leaves]
+            local_idx_B = [sf_leaves.index(name) for name in split['group_b'] if name in sf_leaves]
+            
+            U_A = U_local[local_idx_A][:, local_idx_A]
+            U_B = U_local[local_idx_B][:, local_idx_B]
+            X_A, X_B = X_sf[local_idx_A], X_sf[local_idx_B]
+            
+            _, P_A, _, _ = compute_gls_operators(U_A)
+            _, P_B, _, _ = compute_gls_operators(U_B)
+            
+            lambda_obs, V_A, V_B = compute_mle_and_lrt(X_A, X_B, P_A, P_B, len(local_idx_A), len(local_idx_B), return_matrices=True)
+            
+            split_data.append({
+                'rank': i + 1, 'node_name': split['node_name'], 'split_dict': split,
+                'idx_A': local_idx_A, 'idx_B': local_idx_B, 'P_A': P_A, 'P_B': P_B,
+                'lambda_obs': lambda_obs.item(), 'V_A': V_A.cpu().numpy(), 'V_B': V_B.cpu().numpy()
+            })
+            
+        # Parametric Bootstrap
+        C_replicates = 1000  # Default to 1000 for standard testing, adjust as needed
+        print(f"   -> Bootstrapping Covariance LRT ({C_replicates} replicates)...")
+        max_lambdas_null = []
+        for c in range(C_replicates):
+            X_sim = simulate_null_data(n_sf, p_current, mu_hat_sf, L_U, L_V)
+            lambda_sims = [compute_mle_and_lrt(X_sim[sd['idx_A']], X_sim[sd['idx_B']], sd['P_A'], sd['P_B'], len(sd['idx_A']), len(sd['idx_B'])).item() for sd in split_data]
+            max_lambdas_null.append(max(lambda_sims))
+            
+        max_lambdas_null = np.array(max_lambdas_null)
+        
+        # Save Results
         for sd in split_data:
-            X_A_sim = X_sim[sd['idx_A']]
-            X_B_sim = X_sim[sd['idx_B']]
+            p_adj = (np.sum(max_lambdas_null >= sd['lambda_obs']) + 1) / (C_replicates + 1)
+            is_sig = p_adj <= 0.05
             
-            lam_sim = compute_mle_and_lrt(X_A_sim, X_B_sim, sd['P_A'], sd['P_B'], sd['n_A'], sd['n_B'])
-            lambda_sims.append(lam_sim.item())
+            print(f"      Split {sd['rank']} ({sd['node_name']}): L_obs={sd['lambda_obs']:.2f}, p={p_adj:.4f} [{'SIG' if is_sig else 'NO'}]")
             
-        # Record the maximum Lambda across all splits for this replicate
-        max_lambdas_null.append(max(lambda_sims))
-
-    max_lambdas_null = np.array(max_lambdas_null)
-
-    # 4. Calculate p-values and output
-    alpha_level = 0.05
-    results = []
-
-    for sd in split_data:
-        # Adjusted p-value: proportion of null max-lambdas >= observed lambda
-        # Adding 1 to numerator and denominator prevents p=0
-        count_exceed = np.sum(max_lambdas_null >= sd['lambda_obs'])
-        p_adj = (count_exceed + 1) / (C_replicates + 1)
-        
-        is_sig = p_adj <= alpha_level
-        
-        print(f"   Split {sd['rank']} ({sd['node_name']}): Lambda_obs={sd['lambda_obs']:.2f}, p_adj={p_adj:.4f} [{'SIGNIFICANT' if is_sig else 'NO'}]")
-        
-        # Determine folder structure based on significance
-        split_folder_name = f"rank{sd['rank']}"
-        dest_dir = sig_splits_dir if is_sig else non_sig_splits_dir
-        split_dir = os.path.join(dest_dir, split_folder_name)
-        
-        # Clean up directory if it exists from a previous run, then create
-        if os.path.exists(split_dir): shutil.rmtree(split_dir)
-        os.makedirs(split_dir, exist_ok=True)
-        
-        if is_sig:
-            print(f"   -> SIGNIFICANT! Saving matrices and JSON.")
+            dest_dir = sf_sig_dir if is_sig else sf_non_sig_dir
+            split_dir = os.path.join(dest_dir, f"rank{sd['rank']}")
+            if os.path.exists(split_dir): shutil.rmtree(split_dir)
+            os.makedirs(split_dir, exist_ok=True)
             
-            # --- 1. Reconstruct and Save Matrices for Phase 5 ---
-            calc_dir = os.path.join(split_dir, "calculations")
-            os.makedirs(calc_dir, exist_ok=True)
-            
-            # Save V_A and V_B directly from memory
-            pd.DataFrame(sd['V_A']).to_csv(os.path.join(calc_dir, f"embedding_cov_rank{sd['rank']}_subA.csv"))
-            pd.DataFrame(sd['V_B']).to_csv(os.path.join(calc_dir, f"embedding_cov_rank{sd['rank']}_subB.csv"))
-            
-            # Extract and Save U_A and U_B with original string IDs
-            names_A = df_global_index[sd['idx_A']]
-            names_B = df_global_index[sd['idx_B']]
-            
-            U_A_np = U_global[sd['idx_A']][:, sd['idx_A']].cpu().numpy()
-            U_B_np = U_global[sd['idx_B']][:, sd['idx_B']].cpu().numpy()
-            
-            basename = os.path.splitext(os.path.basename(cov_path))[0]
-            pd.DataFrame(U_A_np, index=names_A, columns=names_A).to_csv(
-                os.path.join(calc_dir, f"{basename}_rank{sd['rank']}_subA.csv")
-            )
-            pd.DataFrame(U_B_np, index=names_B, columns=names_B).to_csv(
-                os.path.join(calc_dir, f"{basename}_rank{sd['rank']}_subB.csv")
-            )
-            
-            # --- 2. Save JSON ---
-            split = sd['split_dict']
-            raw_group_a = split.get('taxa') or split.get('leaves') or split.get('group_a')
-            if raw_group_a and all_names and len(all_names) > 0:
-                group_a_names = [name.replace("/", "_") for name in raw_group_a]
-                set_a = set(group_a_names)
-                group_b_names = [x for x in all_names if x not in set_a]
+            if is_sig:
+                calc_dir = os.path.join(split_dir, "calculations")
+                os.makedirs(calc_dir, exist_ok=True)
+                pd.DataFrame(sd['V_A']).to_csv(os.path.join(calc_dir, f"embedding_cov_rank{sd['rank']}_subA.csv"))
+                pd.DataFrame(sd['V_B']).to_csv(os.path.join(calc_dir, f"embedding_cov_rank{sd['rank']}_subB.csv"))
+                
+                # Extract original names for JSON
+                group_a_names = [sf_leaves[idx] for idx in sd['idx_A']]
+                group_b_names = [sf_leaves[idx] for idx in sd['idx_B']]
                 
                 split_data_out = {
-                    "rank": sd['rank'],
-                    "node_name": sd['node_name'],
-                    "support": split.get('support', 0.0),
-                    "lambda_obs": sd['lambda_obs'],
-                    "p_adj": p_adj,
-                    "group_a": group_a_names,
-                    "group_b": group_b_names,
-                    "folder_path": split_dir
+                    "subfamily": sf_idx, "rank": sd['rank'], "node_name": sd['node_name'],
+                    "lambda_obs": sd['lambda_obs'], "p_adj": p_adj,
+                    "group_a": group_a_names, "group_b": group_b_names, "folder_path": split_dir
                 }
-                
-                json_filename = f"split_rank{sd['rank']}.json"
-                json_path = os.path.join(split_dir, json_filename)
-                
-                with open(json_path, 'w') as f:
+                with open(os.path.join(split_dir, f"split_rank{sd['rank']}.json"), 'w') as f:
                     json.dump(split_data_out, f, indent=4)
-                print(f"   -> JSON saved to {json_path}")
-            else:
-                print("   [!] Warning: Could not extract leaf names to save JSON.")
+                    
+            all_results.append({
+                'subfamily': sf_idx, 'rank': sd['rank'], 'node': sd['node_name'],
+                'lambda': sd['lambda_obs'], 'p_adj': p_adj, 'sig': is_sig, 'folder': split_dir 
+            })
 
-        results.append({
-            'rank': sd['rank'],
-            'node': sd['node_name'],
-            'lambda': sd['lambda_obs'],
-            'p_adj': p_adj,
-            'sig': is_sig,
-            'folder': split_dir 
-        })
-
-    # Summary
-    print("\n" + "="*40 + "\nFINAL SUMMARY\n" + "="*40)
-    for res in results:
-        print(f"{res['rank']:<5} | {res['node']:<15} | L: {res['lambda']:<10.2f} | p: {res['p_adj']:<6.4f} | {'YES' if res['sig'] else 'NO'}")
-
-    # Define the counts based on your lists
-    raw_splits_count = len(raw_candidates)
-    unique_splits_count = len(candidates)
-
-    return results, raw_splits_count, unique_splits_count, p_current
+    return all_results, total_raw_splits, total_unique_splits, final_p_dims
