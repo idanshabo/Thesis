@@ -130,6 +130,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     
     # 3. Covariance 
     cov_path = tree_to_covariance_matrix(tree_path, output_path=cov_path)
+    cov_ordered_path = order_covariance_matrix_by_tree(cov_path, tree_path)
     
     emb_out_dir = os.path.join(calc_dir, f'embeddings_{args.embedding}')
     norm_emb_path = create_normalized_mean_embeddings_matrix(fasta_path, mode=args.embedding, output_path=emb_out_dir)
