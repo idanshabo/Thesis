@@ -137,8 +137,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
         k=args.nodes, 
         pca_min_variance=args.pca_var, 
         pca_min_components=args.pca_comp, 
-        standardize=args.standardize,
-        run_ppca=args.run_ppca
+        standardize=args.standardize
     )
     
     tracker.add_stat("pipeline_stats", "num_raw_candidate_splits", raw_splits_count)
@@ -194,10 +193,9 @@ def main():
     # Algorithmic Parameters
     parser.add_argument('--embedding', type=str, default="sequence", help="Embedding mode (e.g., sequence, structure)")
     parser.add_argument('--nodes', type=int, default=3, help="Number of nodes to evaluate")
-    parser.add_argument('--pca_comp', type=int, default=100, help="PCA minimum components")
-    parser.add_argument('--pca_var', type=float, default=0.99, help="PCA minimum variance")
+    parser.add_argument('--pca_comp', type=int, default=None, help="PCA minimum components, if not entered and --pca_var not entered - no ppca is calculated")
+    parser.add_argument('--pca_var', type=float, default=None, help="PCA minimum variance, if not entered and --pca_comp not entered - no ppca is calculated")
     parser.add_argument('--standardize', type=bool, default=True, help="Standardize data")
-    parser.add_argument('--run_ppca', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Whether to apply pPCA dimensionality reduction on embeddings")
     
     # Flags
     parser.add_argument('-generate_plots', type=bool, default=True, help="Generate plots during visualization")
