@@ -499,8 +499,10 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
         _, P_A, _, _ = compute_gls_operators(U_A)
         _, P_B, _, _ = compute_gls_operators(U_B)
         
-        # Calculate observed Lambda
-        lambda_obs = compute_mle_and_lrt(X_A, X_B, P_A, P_B, len(idx_A), len(idx_B))
+        # Calculate observed Lambda AND capture the V matrices
+        lambda_obs, V_A, V_B = compute_mle_and_lrt(
+            X_A, X_B, P_A, P_B, len(idx_A), len(idx_B), return_matrices=True
+        )
         
         split_data.append({
             'rank': i + 1,
@@ -513,7 +515,9 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
             'n_A': len(idx_A),
             'n_B': len(idx_B),
             'lambda_obs': lambda_obs.item(),
-            'support': split.get('support', 0.0)
+            'support': split.get('support', 0.0),
+            'V_A': V_A.cpu().numpy(),  # Store as numpy for easy saving later
+            'V_B': V_B.cpu().numpy()
         })
 
     # 3. Parametric Bootstrap (Westfall-Young)
@@ -559,16 +563,39 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
         split_folder_name = f"rank{sd['rank']}"
         dest_dir = sig_splits_dir if is_sig else non_sig_splits_dir
         split_dir = os.path.join(dest_dir, split_folder_name)
+        
+        # Clean up directory if it exists from a previous run, then create
+        if os.path.exists(split_dir): shutil.rmtree(split_dir)
         os.makedirs(split_dir, exist_ok=True)
         
         if is_sig:
-            print(f"   -> SIGNIFICANT! Moving folder.")
-            new_split_dir = os.path.join(sig_splits_dir, split_folder_name)
-            if os.path.exists(new_split_dir): shutil.rmtree(new_split_dir)
-            shutil.move(split_dir, new_split_dir)
-            split_dir = new_split_dir
+            print(f"   -> SIGNIFICANT! Saving matrices and JSON.")
             
-            # Save JSON
+            # --- 1. Reconstruct and Save Matrices for Phase 5 ---
+            calc_dir = os.path.join(split_dir, "calculations")
+            os.makedirs(calc_dir, exist_ok=True)
+            
+            # Save V_A and V_B directly from memory
+            pd.DataFrame(sd['V_A']).to_csv(os.path.join(calc_dir, f"embedding_cov_rank{sd['rank']}_subA.csv"))
+            pd.DataFrame(sd['V_B']).to_csv(os.path.join(calc_dir, f"embedding_cov_rank{sd['rank']}_subB.csv"))
+            
+            # Extract and Save U_A and U_B with original string IDs
+            names_A = df_global_index[sd['idx_A']]
+            names_B = df_global_index[sd['idx_B']]
+            
+            U_A_np = U_global[sd['idx_A']][:, sd['idx_A']].cpu().numpy()
+            U_B_np = U_global[sd['idx_B']][:, sd['idx_B']].cpu().numpy()
+            
+            basename = os.path.splitext(os.path.basename(cov_path))[0]
+            pd.DataFrame(U_A_np, index=names_A, columns=names_A).to_csv(
+                os.path.join(calc_dir, f"{basename}_rank{sd['rank']}_subA.csv")
+            )
+            pd.DataFrame(U_B_np, index=names_B, columns=names_B).to_csv(
+                os.path.join(calc_dir, f"{basename}_rank{sd['rank']}_subB.csv")
+            )
+            
+            # --- 2. Save JSON ---
+            split = sd['split_dict']
             raw_group_a = split.get('taxa') or split.get('leaves') or split.get('group_a')
             if raw_group_a and all_names and len(all_names) > 0:
                 group_a_names = [name.replace("/", "_") for name in raw_group_a]
@@ -576,16 +603,17 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
                 group_b_names = [x for x in all_names if x not in set_a]
                 
                 split_data_out = {
-                    "rank": rank,
-                    "node_name": node_name,
+                    "rank": sd['rank'],
+                    "node_name": sd['node_name'],
                     "support": split.get('support', 0.0),
-                    "delta_bic": delta_bic,
+                    "lambda_obs": sd['lambda_obs'],
+                    "p_adj": p_adj,
                     "group_a": group_a_names,
                     "group_b": group_b_names,
                     "folder_path": split_dir
                 }
                 
-                json_filename = f"split_rank{rank}.json"
+                json_filename = f"split_rank{sd['rank']}.json"
                 json_path = os.path.join(split_dir, json_filename)
                 
                 with open(json_path, 'w') as f:
