@@ -403,7 +403,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
 
     # --- PHASE 3: LRT Split Testing and Parametric Bootstrap ---
     print("\n" + "="*40)
-    print("PHASE 4: LRT Split Testing (H1) & Bootstrap")
+    print("PHASE 3: LRT Split Testing (H1) & Bootstrap")
     print("="*40)
     
     raw_candidates = find_candidate_splits(tree_path, k=k, min_support=0.8, min_prop=0.1)
@@ -438,10 +438,13 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
     # Cholesky factors for bootstrap simulation
     # forcing symmetry
     U_global_sym = (U_global + U_global.T) / 2.0
-    V_hat_global = (V_hat_global + V_hat_global.T) / 2.0
-    
+    V_hat_global_sym = (V_hat_global + V_hat_global.T) / 2.0
+    print(f"--> Trying cholesky for symmetry U.\n")
     L_U = torch.linalg.cholesky(add_jitter(U_global_sym))
-    L_V = torch.linalg.cholesky(add_jitter(V_hat_global))
+    print(f"--> Worked!\n")
+    print(f"--> Trying cholesky for symmetry V_HAT.\n")                        
+    L_V = torch.linalg.cholesky(add_jitter(V_hat_global_sym))
+    print(f"--> Worked!\n")
 
     # 2. Precompute Operators and Calculate Observed Lambda for all candidates
     split_data = []
