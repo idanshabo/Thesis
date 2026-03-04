@@ -109,21 +109,30 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     """Step 2: Run computations and evaluate splits."""
     print(f"--- Running Split Finding for {args.family} using {args.embedding} ---")
     tracker.start_timer("Calculations")
-    
-    # --- Insert your Calculation Logic Here (Fasta, Tree, Covariance, Embeddings) ---
+
+    # Define exact target paths first
+    fasta_path = os.path.join(calc_dir, f"{args.family}.fasta")
+    tree_path = os.path.join(calc_dir, f"{args.family}.tree")
+    cov_path = os.path.join(calc_dir, f"{args.family}_cov.csv") 
+    cov_ordered_path = os.path.join(calc_dir, f"{args.family}_cov_ordered.csv") # Check your actual extension (.csv or .npy?)
+
+    # 1. Fasta
+    # Assuming convert_stockholm_to_fasta accepts output_path. 
+    # If not, use: if temp_fasta != fasta_path: shutil.move(temp_fasta, fasta_path)
     temp_fasta = convert_stockholm_to_fasta(MSA_file_path)
-    fasta_path = os.path.join(calc_dir, os.path.basename(temp_fasta))
-    shutil.move(temp_fasta, fasta_path)
+    if temp_fasta != fasta_path: 
+        shutil.move(temp_fasta, fasta_path)
     tracker.calc_and_add_sequence_similarity(fasta_path)
     
-    temp_tree = run_fasttree(fasta_path)
-    tree_path = os.path.join(calc_dir, os.path.basename(temp_tree))
-    shutil.move(temp_tree, tree_path)
+    # 2. Tree (Using the output_path argument your function already has!)
+    run_fasttree(fasta_path, output_path=tree_path)
     tracker.calc_and_add_tree_stats(tree_path)
     
+    # 3. Covariance
     temp_cov = tree_to_covariance_matrix(tree_path)
-    cov_path = os.path.join(calc_dir, os.path.basename(temp_cov))
-    shutil.move(temp_cov, cov_path)
+    if temp_cov != cov_path:
+        shutil.move(temp_cov, cov_path)
+        
     cov_ordered_path = order_covariance_matrix_by_tree(cov_path, tree_path)
     
     emb_out_dir = os.path.join(calc_dir, f'embeddings_{args.embedding}')
