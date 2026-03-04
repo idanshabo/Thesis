@@ -504,7 +504,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
         })
 
     # 3. Parametric Bootstrap (Westfall-Young)
-    C_replicates = 500  # Number of bootstrap replicates. Adjust based on compute budget.
+    C_replicates = 10000  # Number of bootstrap replicates.
     print(f"\n   Running Parametric Bootstrap with {C_replicates} replicates...")
     max_lambdas_null = []
 
