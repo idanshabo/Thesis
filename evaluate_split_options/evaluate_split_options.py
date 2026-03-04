@@ -401,31 +401,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
     else:
         emb_transformed_full_raw = emb_tensor_full
 
-    # --- PHASE 3: Global Baseline (H0) ---
-    print("\n" + "="*40)
-    print("PHASE 3: Global Baseline (H0)")
-    print("="*40)
-
-    name_comment = '_global_H0'
-    if pca_min_variance or pca_min_components:
-        name_comment += '_PCA'
-
-    _, v_path_full, _ = matrix_normal_mle_fixed_u(
-        X=[emb_transformed_full_raw], 
-        U_path=cov_path, 
-        name_comments=name_comment
-    )
-    
-    u_tensor_full = load_matrix_tensor(cov_path)
-    v_tensor_full = load_matrix_tensor(v_path_full) 
-    
-    ll_global = calculate_matrix_normal_ll(N_total, p_current, u_tensor_full, v_tensor_full)
-    bic_global = calculate_bic_matrix_normal(ll_global, N_total, p_current, num_models=1)
-    
-    print(f"Global LL: {ll_global:.2f}")
-    print(f"Global BIC: {bic_global:.2f}")
-
-    # --- PHASE 4: LRT Split Testing and Parametric Bootstrap ---
+    # --- PHASE 3: LRT Split Testing and Parametric Bootstrap ---
     print("\n" + "="*40)
     print("PHASE 4: LRT Split Testing (H1) & Bootstrap")
     print("="*40)
