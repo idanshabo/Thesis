@@ -448,8 +448,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
 
     # 1. Setup Global Null Model Parameters for Bootstrap
     # Get global U and global X
-    U_global = load_matrix_tensor(cov_path)
-    X_global = emb_transformed_full_raw
+    U_global = load_matrix_tensor(cov_path).float()
+    X_global = emb_transformed_full_raw.float()
     n_global, p_global = X_global.shape
     
     U_inv_g, P_g, t1_g, t2_g = compute_gls_operators(U_global)
