@@ -435,6 +435,12 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
     S_global_H0 = X_global.T @ P_g @ X_global
     V_hat_global = S_global_H0 / n_global
 
+    # Save the global V_hat matrix for downstream visualization
+    family_name = os.path.basename(tree_path).split('.')[0]
+    calc_dir = os.path.dirname(tree_path)
+    global_cov_filename = f"{family_name}_calculations_global_H0_PCA_embeddings_cov_mat.csv"
+    pd.DataFrame(V_hat_global.cpu().numpy()).to_csv(os.path.join(calc_dir, global_cov_filename))
+    
     # Cholesky factors for bootstrap simulation
     # forcing symmetry
     U_global_sym = (U_global + U_global.T) / 2.0
