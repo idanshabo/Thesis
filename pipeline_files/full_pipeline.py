@@ -156,7 +156,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
 def run_visualize(args, tracker, fasta_path, cov_ordered_path, out_mode_dir):
     """Step 3: Generate plots and analyze structures."""
     if not args.generate_plots:
-        print("Skipping visualization (-generate_plots is False)")
+        print("Skipping visualization (--generate_plots is False)")
         return
         
     print(f"--- Running Visualizations for {args.family} ---")
