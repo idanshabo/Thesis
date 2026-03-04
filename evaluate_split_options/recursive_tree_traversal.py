@@ -71,6 +71,9 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0
     # Slice rows and columns to get the local covariance matrix
     C_local = C_global[idx_tensor][:, idx_tensor]
     
+    # Shift to the local root and clamp floating-point noise
+    C_local = torch.clamp(C_local - torch.min(C_local), min=0.0)
+    
     # 3. Find candidate splits in this clade
     candidates = find_candidate_splits_from_node(tree_node, min_support=0.8, min_prop=min_prop)
     
