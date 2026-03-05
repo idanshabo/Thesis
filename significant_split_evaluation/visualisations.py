@@ -11,7 +11,6 @@ from scipy.spatial.distance import pdist
 from matplotlib.patches import Rectangle
 from itertools import groupby
 
-
 def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
     """
     Visualizes an MSA split with hierarchical clustering.
@@ -396,11 +395,10 @@ def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder):
     plt.close()
     print(f"Covariance plot saved to {output_path}")
 
-
 def plot_side_by_side_embedding_covariance(folder_path, split_info):
     """
     Plots the Global, Group A, and Group B embedding covariance matrices side-by-side.
-    Note: These are p x p feature covariance matrices across PCA dimensions.
+    Uses robust percentile scaling to prevent PC1 from washing out the visual resolution.
     """
     # --- 1. Path Deduction ---
     split_name = os.path.basename(folder_path)
@@ -429,40 +427,51 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
         print(f"Error loading embedding covariance matrices: {e}")
         return
 
-    # --- 3. Plotting ---
+    # --- 3. Robust Scaling for Better Resolution ---
+    # Combine all values to find a shared scale
+    all_values = np.concatenate([
+        cov_global.values.flatten(), 
+        cov_a.values.flatten(), 
+        cov_b.values.flatten()
+    ])
+    
+    # Calculate the 98th percentile of absolute values to ignore extreme PC1 outliers
+    robust_max = np.percentile(np.abs(all_values), 98)
+    
+    # Set symmetric min and max around 0
+    vmin = -robust_max
+    vmax = robust_max
+
+    # --- 4. Plotting ---
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     
-    # Calculate global min/max so the colorbar scale is identical across all three subplots
-    vmin = min(cov_global.values.min(), cov_a.values.min(), cov_b.values.min())
-    vmax = max(cov_global.values.max(), cov_a.values.max(), cov_b.values.max())
-    
-    cmap = 'viridis'
+    # Use a diverging colormap centered at 0
+    cmap = 'RdBu_r' 
     
     # Global Plot
     sns.heatmap(cov_global, cmap=cmap, square=True, ax=axes[0], vmin=vmin, vmax=vmax, 
-                cbar=False, xticklabels=False, yticklabels=False)
+                center=0, cbar=False, xticklabels=False, yticklabels=False)
     axes[0].set_title(f"Global (H0)\np={cov_global.shape[0]}", fontsize=14)
     
     # Group A Plot
     sns.heatmap(cov_a, cmap=cmap, square=True, ax=axes[1], vmin=vmin, vmax=vmax, 
-                cbar=False, xticklabels=False, yticklabels=False)
+                center=0, cbar=False, xticklabels=False, yticklabels=False)
     axes[1].set_title(f"Group A\np={cov_a.shape[0]}", fontsize=14)
     
-    # Group B Plot (Include colorbar only on the last one to save space)
+    # Group B Plot (Include colorbar here)
     sns.heatmap(cov_b, cmap=cmap, square=True, ax=axes[2], vmin=vmin, vmax=vmax, 
-                cbar=True, xticklabels=False, yticklabels=False)
+                center=0, cbar=True, xticklabels=False, yticklabels=False)
     axes[2].set_title(f"Group B\np={cov_b.shape[0]}", fontsize=14)
 
     # Main Title
     node_name = split_info.get('node_name', 'Unknown Node')
-    plt.suptitle(f"Embedding Feature Covariances (pPCA Space): {node_name}", fontsize=16, y=1.05)
+    plt.suptitle(f"Embedding Feature Covariances (pPCA Space): {node_name}\n(Colors capped at 98th percentile for visibility)", fontsize=16, y=1.1)
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
     
     print(f"Side-by-side embedding covariance plot saved to {output_path}")
-
 
 def load_matrix(data):
     """
