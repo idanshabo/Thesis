@@ -155,7 +155,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     tracker.stop_timer()
     print("Split finding complete.")
 
-def run_visualize(args, tracker, fasta_path, cov_ordered_path, out_mode_dir):
+def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out_mode_dir):
     """Step 3: Generate plots and analyze structures."""
     if not args.generate_plots:
         print("Skipping visualization (--generate_plots is False)")
@@ -164,28 +164,49 @@ def run_visualize(args, tracker, fasta_path, cov_ordered_path, out_mode_dir):
     print(f"--- Running Visualizations for {args.family} ---")
     tracker.start_timer("Visualization_and_Analysis")
     
-    sig_splits_path = os.path.join(out_mode_dir, 'significant_splits')
-    sig_count = 0
+    # --- VISUALIZATION 1: Global Macro View (Mean Shifts) ---
+    subfamilies_summary_path = os.path.join(out_mode_dir, "subfamilies_summary.json")
+    from significant_split_evaluation.visualisations import plot_global_subfamilies
+    plot_global_subfamilies(cov_ordered_path_global, subfamilies_summary_path, out_mode_dir)
     
-    if os.path.exists(sig_splits_path):
-        splits = [d for d in os.listdir(sig_splits_path) if os.path.isdir(os.path.join(sig_splits_path, d))]
-        sig_count = len(splits)
+    # --- VISUALIZATION 2: Local Micro View (Covariance Splits) ---
+    total_sig_count = 0
+    
+    # Iterate through all sub-family folders
+    for sf_folder in os.listdir(out_mode_dir):
+        if not sf_folder.startswith("subfamily_"):
+            continue
+            
+        sf_dir = os.path.join(out_mode_dir, sf_folder)
+        sig_splits_path = os.path.join(sf_dir, 'significant_splits')
         
-        for folder_name in splits:
-            folder_path = os.path.join(sig_splits_path, folder_name)
-            split_info = get_split_info(folder_path)
+        # Point to the CROPPED local assets we saved in evaluate_top_splits
+        sf_idx = sf_folder.split("_")[1]
+        local_fasta_path = os.path.join(sf_dir, f"subfamily_{sf_idx}.fasta")
+        local_cov_path = os.path.join(sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
+        
+        if os.path.exists(sig_splits_path):
+            splits = [d for d in os.listdir(sig_splits_path) if os.path.isdir(os.path.join(sig_splits_path, d))]
+            total_sig_count += len(splits)
             
-            visualize_split_msa_sorted(fasta_path, split_info, folder_path)
-            plot_split_covariance(cov_ordered_path, split_info, folder_path)
-            plot_side_by_side_embedding_covariance(folder_path, split_info)
-            
-            tm_stats = visualize_structures_pipeline(fasta_path, split_info, folder_path, cov_ordered_path)
-            if tm_stats:
-                tracker.add_split_stat(folder_name, tm_stats)
-            
-            run_variance_analysis(folder_path)
+            for folder_name in splits:
+                folder_path = os.path.join(sig_splits_path, folder_name)
+                split_info = get_split_info(folder_path)
+                
+                print(f"Visualizing {sf_folder} -> {folder_name}...")
+                
+                # Pass the LOCAL paths to your existing functions
+                visualize_split_msa_sorted(local_fasta_path, split_info, folder_path)
+                plot_split_covariance(local_cov_path, split_info, folder_path)
+                plot_side_by_side_embedding_covariance(folder_path, split_info)
+                
+                tm_stats = visualize_structures_pipeline(local_fasta_path, split_info, folder_path, local_cov_path)
+                if tm_stats:
+                    tracker.add_split_stat(f"{sf_folder}_{folder_name}", tm_stats)
+                
+                run_variance_analysis(folder_path)
 
-    tracker.add_stat("pipeline_stats", "num_significant_splits", sig_count)
+    tracker.add_stat("pipeline_stats", "num_significant_covariance_splits", total_sig_count)
     tracker.stop_timer()
     print("Visualization complete.")
 
