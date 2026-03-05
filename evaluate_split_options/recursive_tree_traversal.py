@@ -84,6 +84,7 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0
     C_local = torch.clamp(C_local - torch.min(C_local), min=0.0)
     
     # 3. Find candidate splits in this clade
+    print(f"\n   -> Analyzing Clade with {len(current_leaves_list)} sequences for mean shifts...")
     candidates = find_candidate_splits_from_node(tree_node, min_support=0.8, min_prop=min_prop)
     
     if not candidates:
@@ -116,20 +117,22 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0
     # 5. Recursive Step
     if best_split and best_p <= alpha:
         node_name = best_split['node_name']
-        print(f"   -> Significant mean shift at node '{node_name}' (p={best_p:.4f}, F={best_F:.2f}). Splitting tree...")
+        size_parent = len(current_leaves_list)
+        size_A = len(best_split['group_a'])
+        size_B = len(best_split['group_b'])
         
-        # Physically detach Group A's node from the tree. 
-        # This elegantly leaves `tree_node` containing ONLY Group B.
+        print(f"      [!] SIGNIFICANT SPLIT ACCEPTED:")
+        print(f"          Parent Clade ({size_parent}) --> Group A ({size_A}) & Group B ({size_B})")
+        print(f"          Stats: Node '{node_name}' | p={best_p:.4f}, F={best_F:.2f}")
+        
         node_A = best_split['node'].detach() 
         node_B = tree_node 
         
-        # Recurse on both new sub-trees
         stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, min_prop, alpha, n_permutations)
         stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, min_prop, alpha, n_permutations)
         
         return stable_A + stable_B
         
     else:
-        # BASE CASE: No split was statistically significant.
-        print(f"   -> Clade with {len(current_leaves_list)} leaves is stable (no mean shifts).")
+        print(f"      [=] Clade of {len(current_leaves_list)} sequences is stable (No further mean shifts).")
         return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices}]
