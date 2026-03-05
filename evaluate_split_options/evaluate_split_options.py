@@ -335,7 +335,7 @@ class PhylogeneticPCA:
         return X_centered @ self.V
 
 
-def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None, 
+def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, k=None, 
                         pca_min_variance=None, pca_min_components=None, 
                         standardize=True, similarity_threshold=0.85,
                         anova_alpha=0.05, anova_permutations=999):
@@ -405,14 +405,20 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, k=None,
         print(f"PROCESSING SUB-FAMILY {sf_idx}/{len(stable_subfamilies)} ({n_sf} leaves)")
         print("="*40)
         
-        # 1. Setup Sub-Family Directory & Save Tree
-        sf_dir = os.path.join(output_path, f"subfamily_{sf_idx}")
-        sf_sig_dir = os.path.join(sf_dir, "significant_splits")
-        sf_non_sig_dir = os.path.join(sf_dir, "non_significant_splits")
+        # 1. Setup Sub-Family Directories
+        # Outputs go to output_path
+        sf_out_dir = os.path.join(output_path, f"subfamily_{sf_idx}")
+        sf_sig_dir = os.path.join(sf_out_dir, "significant_splits")
+        sf_non_sig_dir = os.path.join(sf_out_dir, "non_significant_splits")
         os.makedirs(sf_sig_dir, exist_ok=True)
         os.makedirs(sf_non_sig_dir, exist_ok=True)
         
-        sf_tree_path = os.path.join(sf_dir, f"subfamily_{sf_idx}.tree")
+        # Calculations go to calc_dir
+        sf_calc_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
+        os.makedirs(sf_calc_dir, exist_ok=True)
+        
+        # Save physical tree to the CALCULATIONS folder
+        sf_tree_path = os.path.join(sf_calc_dir, f"subfamily_{sf_idx}.tree")
         sf_node.write(outfile=sf_tree_path)
         print(f"   -> Saved physical tree to {sf_tree_path}")
         
