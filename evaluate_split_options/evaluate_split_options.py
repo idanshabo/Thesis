@@ -560,5 +560,12 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
                 'subfamily': sf_idx, 'rank': sd['rank'], 'node': sd['node_name'],
                 'lambda': sd['lambda_obs'], 'p_adj': p_adj, 'sig': is_sig, 'folder': split_dir 
             })
+    # Save a summary JSON of all subfamilies for the macro-visualization
+    subfamilies_summary = {}
+    for sf_idx, subfamily in enumerate(stable_subfamilies, 1):
+        subfamilies_summary[f"subfamily_{sf_idx}"] = list(subfamily['leaves'])
+        
+    with open(os.path.join(output_path, "subfamilies_summary.json"), 'w') as f:
+        json.dump(subfamilies_summary, f, indent=4)
 
     return all_results, total_raw_splits, total_unique_splits, final_p_dims
