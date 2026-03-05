@@ -2,31 +2,36 @@ import torch
 from evaluate_split_options.phylogenetic_anova import phylogenetic_anova_rrpp
 from ete3 import Tree
 
-def find_candidate_splits_from_node(node, min_support=0.8, min_prop=0.1):
+def find_candidate_splits_from_node(node, min_support=0.8, min_prop=0.1, min_absolute_size=10):
     """
     Helper to find candidate splits directly from an ete3 TreeNode.
-    Evaluates splits within the current clade based on support and size.
+    Evaluates splits based on support, proportional size, and absolute size.
     """
     all_leaves = set(node.get_leaf_names())
     total_leaves = len(all_leaves)
+    
+    # If the entire sub-tree is already too small, don't even try to split it
+    if total_leaves < min_absolute_size * 2: 
+        return []
+        
     candidates = []
     
     for child in node.traverse("postorder"):
-        # Skip leaves and the root of the current sub-tree
         if child.is_leaf() or child == node:
             continue
             
-        # Handle nodes that might be missing support values
         support = getattr(child, "support", 1.0) 
         if support < min_support:
             continue
             
         clade_leaves = set(child.get_leaf_names())
         clade_size = len(clade_leaves)
-        min_size = min_prop * total_leaves
         
-        # Enforce the size rule for the current sub-tree
-        if clade_size < min_size or (total_leaves - clade_size) < min_size:
+        # Enforce BOTH the 10% rule and the absolute minimum size
+        min_allowed_by_prop = min_prop * total_leaves
+        actual_min_allowed = max(min_allowed_by_prop, min_absolute_size)
+        
+        if clade_size < actual_min_allowed or (total_leaves - clade_size) < actual_min_allowed:
             continue
             
         candidates.append({
