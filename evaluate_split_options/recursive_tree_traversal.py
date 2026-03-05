@@ -2,7 +2,7 @@ import torch
 from evaluate_split_options.phylogenetic_anova import phylogenetic_anova_rrpp
 from ete3 import Tree
 
-def find_candidate_splits_from_node(node, min_support=0.8, min_prop=0.1, min_absolute_size=20):
+def find_candidate_splits_from_node(node, min_support=0.8, min_prop=0.1, min_absolute_size=10, k=None):
     """
     Helper to find candidate splits directly from an ete3 TreeNode.
     Evaluates splits based on support, proportional size, and absolute size.
@@ -42,8 +42,12 @@ def find_candidate_splits_from_node(node, min_support=0.8, min_prop=0.1, min_abs
             'node_name': getattr(child, "name", "Unnamed")
         })
         
+    # Apply the k limit if specified
+    if k is not None:
+        candidates = candidates[:k]
+        
     return candidates
-
+    
 def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0.1, alpha=0.05, n_permutations=999):
     """
     Recursively divides a phylogenetic tree into stable sub-families based on 
