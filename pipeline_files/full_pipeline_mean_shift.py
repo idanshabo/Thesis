@@ -156,7 +156,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     tracker.stop_timer()
     print("Split finding complete.")
 
-def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out_mode_dir):
+def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out_mode_dir, calc_dir):
     """Step 3: Generate plots and analyze structures."""
     if not args.generate_plots:
         print("Skipping visualization (--generate_plots is False)")
@@ -167,13 +167,15 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
     
     # --- VISUALIZATION 1: Global Macro View (Mean Shifts) ---
     subfamilies_summary_path = os.path.join(out_mode_dir, "subfamilies_summary.json")
-    from significant_split_evaluation.visualisations import plot_global_subfamilies
-    plot_global_subfamilies(cov_ordered_path_global, subfamilies_summary_path, out_mode_dir)
+    try:
+        from significant_split_evaluation.visualisations import plot_global_subfamilies
+        plot_global_subfamilies(cov_ordered_path_global, subfamilies_summary_path, out_mode_dir)
+    except Exception as e:
+        print(f"Warning: Could not plot global subfamilies: {e}")
     
     # --- VISUALIZATION 2: Local Micro View (Covariance Splits) ---
     total_sig_count = 0
     
-    # Iterate through all sub-family folders
     for sf_folder in os.listdir(out_mode_dir):
         if not sf_folder.startswith("subfamily_"):
             continue
@@ -181,10 +183,11 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
         sf_dir = os.path.join(out_mode_dir, sf_folder)
         sig_splits_path = os.path.join(sf_dir, 'significant_splits')
         
-        # Point to the CROPPED local assets we saved in evaluate_top_splits
+        # FIX: Point to the cropped local assets in calc_dir, NOT out_mode_dir
         sf_idx = sf_folder.split("_")[1]
-        local_fasta_path = os.path.join(sf_dir, f"subfamily_{sf_idx}.fasta")
-        local_cov_path = os.path.join(sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
+        calc_sf_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
+        local_fasta_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}.fasta")
+        local_cov_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
         
         if os.path.exists(sig_splits_path):
             splits = [d for d in os.listdir(sig_splits_path) if os.path.isdir(os.path.join(sig_splits_path, d))]
@@ -196,7 +199,6 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
                 
                 print(f"Visualizing {sf_folder} -> {folder_name}...")
                 
-                # Pass the LOCAL paths to your existing functions
                 visualize_split_msa_sorted(local_fasta_path, split_info, folder_path)
                 plot_split_covariance(local_cov_path, split_info, folder_path)
                 plot_side_by_side_embedding_covariance(folder_path, split_info)
@@ -262,7 +264,7 @@ def main():
             # Determine paths needed for visualization based on previous steps
             fasta_path = os.path.join(calc_dir, f"{args.family}.fasta")
             cov_ordered_path = os.path.join(calc_dir, f"{args.family}_cov_mat_tree_ordered.csv")
-            run_visualize(args, tracker, fasta_path, cov_ordered_path, out_mode_dir)
+            run_visualize(args, tracker, fasta_path, cov_ordered_path, out_mode_dir, calc_dir)
 
     except Exception as e:
         print(f"!!! Pipeline Crashed !!! Error: {e}")
