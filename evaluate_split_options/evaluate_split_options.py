@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import numpy as np
 import shutil
+from Bio import SeqIO
 from sklearn.decomposition import PCA
 from estimate_matrix_normal.estimate_matrix_normal import matrix_normal_mle_fixed_u
 from utils.align_embeddings_with_covariance import align_embeddings_with_covariance
