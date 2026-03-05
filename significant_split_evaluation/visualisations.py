@@ -461,6 +461,10 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
     split_name = os.path.basename(folder_path)
     sig_splits_dir = os.path.dirname(folder_path)
     protein_outputs_dir = os.path.dirname(os.path.dirname(sig_splits_dir))
+
+    sf_dir = os.path.dirname(sig_splits_dir) 
+    embed_dir = os.path.dirname(sf_dir)
+    protein_outputs_dir = os.path.dirname(embed_dir)
     
     dir_name = os.path.basename(protein_outputs_dir)
     protein_id = dir_name.replace("_outputs", "")
@@ -571,6 +575,10 @@ def run_variance_analysis(folder_path):
     # Current: .../{pf}_outputs/splits_evaluations/significant_splits/{split}
     sig_splits_dir = os.path.dirname(folder_path)
     protein_outputs_dir = os.path.dirname(os.path.dirname(sig_splits_dir)) # This ends in {pf}_outputs
+
+    sf_dir = os.path.dirname(sig_splits_dir) 
+    embed_dir = os.path.dirname(sf_dir)
+    protein_outputs_dir = os.path.dirname(embed_dir)
     
     # Extract Protein ID by stripping "_outputs"
     # e.g., "PF07361_outputs" -> "PF07361"
