@@ -335,7 +335,7 @@ class PhylogeneticPCA:
         return X_centered @ self.V
 
 
-def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, k=None, 
+def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fasta_path, k=None, 
                         pca_min_variance=None, pca_min_components=None, 
                         standardize=True, similarity_threshold=0.85,
                         anova_alpha=0.05, anova_permutations=999):
@@ -421,6 +421,21 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, k=N
         sf_tree_path = os.path.join(sf_calc_dir, f"subfamily_{sf_idx}.tree")
         sf_node.write(outfile=sf_tree_path)
         print(f"   -> Saved physical tree to {sf_tree_path}")
+
+        # --- Save Cropped FASTA ---
+        global_records = list(SeqIO.parse(fasta_path, "fasta"))
+        sf_records = [rec for rec in global_records if str(rec.id).replace('/', '_') in sf_leaves or str(rec.id) in sf_leaves]
+        sf_fasta_path = os.path.join(sf_dir, f"subfamily_{sf_idx}.fasta")
+        SeqIO.write(sf_records, sf_fasta_path, "fasta")
+        print(f"   -> Saved cropped FASTA to {sf_fasta_path}")
+
+        # --- Save Local Covariance Matrix ---
+        # U_local is the unshifted matrix, we shift it to the local root for saving
+        U_local_shifted = U_local - torch.min(U_local)
+        sf_cov_df = pd.DataFrame(U_local_shifted.cpu().numpy(), index=sf_leaves, columns=sf_leaves)
+        sf_cov_path = os.path.join(sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
+        sf_cov_df.to_csv(sf_cov_path)
+        print(f"   -> Saved local covariance matrix to {sf_cov_path}")
         
         # 2. Extract Local Matrices
         idx_tensor = torch.tensor(sf_indices, dtype=torch.long, device=emb_tensor_full.device)
