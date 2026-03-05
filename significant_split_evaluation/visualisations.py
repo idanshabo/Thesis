@@ -11,6 +11,62 @@ from scipy.spatial.distance import pdist
 from matplotlib.patches import Rectangle
 from itertools import groupby
 
+def plot_global_subfamilies(global_cov_ordered_path, subfamilies_json_path, output_dir):
+    """
+    Plots the global covariance matrix and overlays boxes/lines showing 
+    the stable sub-families identified by the mean-shift ANOVA.
+    """
+    if not os.path.exists(global_cov_ordered_path) or not os.path.exists(subfamilies_json_path):
+        print("Missing files for global subfamily visualization. Skipping.")
+        return
+
+    # Load data
+    df_cov = pd.read_csv(global_cov_ordered_path, index_col=0)
+    with open(subfamilies_json_path, 'r') as f:
+        subfamilies_dict = json.load(f) # Expected format: {"subfamily_1": ["seq1", "seq2"], ...}
+
+    plt.figure(figsize=(12, 12))
+    ax = plt.gca()
+    
+    # Draw Global Heatmap
+    sns.heatmap(df_cov, cmap='viridis', cbar=True, 
+                xticklabels=False, yticklabels=False, square=True, ax=ax)
+
+    # Find boundaries for each subfamily based on the tree-ordered index
+    ordered_ids = list(df_cov.index)
+    
+    for sf_name, leaves in subfamilies_dict.items():
+        # Clean leaves to match index format
+        clean_leaves = {str(leaf).replace("/", "_") for leaf in leaves}
+        
+        # Find start and end indices in the global matrix
+        indices = [i for i, uid in enumerate(ordered_ids) if str(uid).replace("/", "_") in clean_leaves]
+        
+        if not indices:
+            continue
+            
+        start = min(indices)
+        end = max(indices) + 1 # +1 to cover the last cell
+        size = end - start
+        
+        # Draw a bounding box around the sub-family on the diagonal
+        rect = Rectangle((start, start), size, size, fill=False, edgecolor='white', linestyle='-', linewidth=2.5, alpha=0.9)
+        ax.add_patch(rect)
+        
+        # Add Label inside or near the box
+        center = start + (size / 2)
+        ax.text(center, start - 1, sf_name.replace("_", " ").title(), 
+                ha='center', va='bottom', fontsize=12, fontweight='bold', color='black',
+                bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', pad=2))
+
+    plt.title("Global Family Covariance\nDivided by Stable Mean-Shift Sub-Families", fontsize=16, pad=20)
+    
+    output_path = os.path.join(output_dir, "global_mean_shift_subfamilies.png")
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"Global sub-families plot saved to: {output_path}")
+    
 def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
     """
     Visualizes an MSA split with hierarchical clustering.
