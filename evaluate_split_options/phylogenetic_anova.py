@@ -36,7 +36,7 @@ def get_sscp_trace(X, Y):
 def phylogenetic_anova_rrpp(Y, C, group_a_indices, group_b_indices, n_permutations=999):
     """
     Performs Phylogenetic ANOVA using Randomized Residual Permutation Procedure (RRPP).
-    Tests H0: \mu_A = \mu_B.
+    Tests H0: \\mu_A = \\mu_B.
     
     Args:
         Y: torch.Tensor of shape (N, p) containing embeddings.
