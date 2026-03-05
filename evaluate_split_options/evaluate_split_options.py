@@ -406,45 +406,42 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         print(f"PROCESSING SUB-FAMILY {sf_idx}/{len(stable_subfamilies)} ({n_sf} leaves)")
         print("="*40)
         
-        # 1. Setup Sub-Family Directories
-        # Outputs go to output_path
-        sf_out_dir = os.path.join(output_path, f"subfamily_{sf_idx}")
-        sf_sig_dir = os.path.join(sf_out_dir, "significant_splits")
-        sf_non_sig_dir = os.path.join(sf_out_dir, "non_significant_splits")
+        # 1. Setup Directories
+        # --> OUTPUT DIR (for results.json, plots, and significant splits)
+        out_sf_dir = os.path.join(output_path, f"subfamily_{sf_idx}")
+        sf_sig_dir = os.path.join(out_sf_dir, "significant_splits")
+        sf_non_sig_dir = os.path.join(out_sf_dir, "non_significant_splits")
         os.makedirs(sf_sig_dir, exist_ok=True)
         os.makedirs(sf_non_sig_dir, exist_ok=True)
         
-        # Calculations go to calc_dir
-        sf_calc_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
-        os.makedirs(sf_calc_dir, exist_ok=True)
+        # --> CALCULATION DIR (for .fasta, .tree, and .csv matrices)
+        calc_sf_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
+        os.makedirs(calc_sf_dir, exist_ok=True)
         
-        # Save physical tree to the CALCULATIONS folder
-        sf_tree_path = os.path.join(sf_calc_dir, f"subfamily_{sf_idx}.tree")
+        # 2. Extract and Save Local Assets
+        # Save Tree
+        sf_tree_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}.tree")
         sf_node.write(outfile=sf_tree_path)
         print(f"   -> Saved physical tree to {sf_tree_path}")
-
-        # --- Save Cropped FASTA ---
+        
+        # Save Cropped FASTA
         global_records = list(SeqIO.parse(fasta_path, "fasta"))
         sf_records = [rec for rec in global_records if str(rec.id).replace('/', '_') in sf_leaves or str(rec.id) in sf_leaves]
-        sf_fasta_path = os.path.join(sf_dir, f"subfamily_{sf_idx}.fasta")
+        sf_fasta_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}.fasta")
         SeqIO.write(sf_records, sf_fasta_path, "fasta")
         print(f"   -> Saved cropped FASTA to {sf_fasta_path}")
 
-        # --- Save Local Covariance Matrix ---
-        # U_local is the unshifted matrix, we shift it to the local root for saving
-        U_local_shifted = U_local - torch.min(U_local)
-        sf_cov_df = pd.DataFrame(U_local_shifted.cpu().numpy(), index=sf_leaves, columns=sf_leaves)
-        sf_cov_path = os.path.join(sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
-        sf_cov_df.to_csv(sf_cov_path)
-        print(f"   -> Saved local covariance matrix to {sf_cov_path}")
-        
-        # 2. Extract Local Matrices
+        # Extract Local Matrices (Embeddings and Covariance)
         idx_tensor = torch.tensor(sf_indices, dtype=torch.long, device=emb_tensor_full.device)
         Y_local = emb_tensor_full[idx_tensor]
         U_local = C_global[idx_tensor][:, idx_tensor]
         
-        # Shift to the local root and clamp floating-point noise
-        U_local = torch.clamp(U_local - torch.min(U_local), min=0.0)
+        # Save Shifted Local Covariance Matrix
+        U_local_shifted = U_local - torch.min(U_local)
+        sf_cov_df = pd.DataFrame(U_local_shifted.cpu().numpy(), index=sf_leaves, columns=sf_leaves)
+        sf_cov_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
+        sf_cov_df.to_csv(sf_cov_path)
+        print(f"   -> Saved local covariance matrix to {sf_cov_path}")
         
         if n_sf < 10:
             print(f"   -> Sub-family {sf_idx} too small for meaningful covariance testing. Skipping.")
