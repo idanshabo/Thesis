@@ -1,22 +1,22 @@
 import torch
 
-def compute_phylogenetic_transformation(C, jitter=1e-6):
+def compute_phylogenetic_transformation(C, tol=1e-6):
     """
-    Computes the phylogenetic transformation matrix P such that P^T P = C^{-1}.
-    Uses Eigen decomposition for numerical stability with ill-conditioned matrices.
+    Computes the phylogenetic transformation matrix P.
+    Uses Eigen decomposition and drops zero-eigenvalues to handle singular matrices
+    (which naturally occur after shifting the covariance matrix to the local root).
     """
-    # Add jitter to the diagonal for stability
-    C_stab = C + torch.eye(C.shape[0], device=C.device) * jitter
-    
     # Eigen decomposition: C = V * L * V^T
-    L, V = torch.linalg.eigh(C_stab)
+    L, V = torch.linalg.eigh(C)
     
-    # Clamp negative eigenvalues (often a result of floating-point inaccuracies)
-    L = torch.clamp(L, min=1e-8)
+    # Only keep eigenvalues significantly greater than 0
+    mask = L > tol
+    L_pos = L[mask]
+    V_pos = V[:, mask]
     
     # P = Lambda^{-1/2} * V^T
-    L_inv_sqrt = torch.diag(1.0 / torch.sqrt(L))
-    P = L_inv_sqrt @ V.T
+    L_inv_sqrt = torch.diag(1.0 / torch.sqrt(L_pos))
+    P = L_inv_sqrt @ V_pos.T
     
     return P
 
