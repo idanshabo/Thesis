@@ -2,7 +2,7 @@ import torch
 from evaluate_split_options.phylogenetic_anova import phylogenetic_anova_rrpp
 from ete3 import Tree
 
-def find_candidate_splits_from_node(node, min_support=0.8, min_prop=0.1, min_absolute_size=10, k=None):
+def find_candidate_splits_from_node(node, min_support=0.8, min_prop=0.1, min_absolute_size=20, k=None):
     """
     Helper to find candidate splits directly from an ete3 TreeNode.
     Evaluates splits based on support, proportional size, and absolute size.
