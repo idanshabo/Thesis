@@ -487,6 +487,10 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         U_inv_g, P_g, t1_g, t2_g = compute_gls_operators(U_local)
         mu_hat_sf = (t1_g @ t2_g @ X_sf).squeeze()
         V_hat_sf = (X_sf.T @ P_g @ X_sf) / n_sf
+
+        # Save the baseline H0 PCA matrix for this sub-family
+        sf_h0_cov_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_global_H0_PCA_cov_mat.csv")
+        pd.DataFrame(V_hat_sf.cpu().numpy()).to_csv(sf_h0_cov_path)
         
         U_local_sym = (U_local + U_local.T) / 2.0
         V_hat_sf_sym = (V_hat_sf + V_hat_sf.T) / 2.0
