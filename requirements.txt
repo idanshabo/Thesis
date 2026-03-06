@@ -7,3 +7,12 @@ logomaker
 transformers
 sentencepiece
 mdtraj
+numpy
+matplotlib
+scipy
+seaborn
+pandas
+torch
+scikit-learn
+requests
+httpx
