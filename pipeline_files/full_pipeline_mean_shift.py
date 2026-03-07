@@ -200,7 +200,7 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
                 print(f"Visualizing {sf_folder} -> {folder_name}...")
                 
                 visualize_split_msa_sorted(local_fasta_path, split_info, folder_path)
-                plot_split_covariance(local_cov_path, split_info, folder_path)
+                plot_split_covariance(local_cov_path, split_info, folder_path, cov_ordered_path_global)
                 plot_side_by_side_embedding_covariance(folder_path, split_info)
                 
                 tm_stats = visualize_structures_pipeline(local_fasta_path, split_info, folder_path, local_cov_path)
