@@ -398,16 +398,25 @@ def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder, global
         print(f"Error loading matrix: {e}")
         return
     
+    # --- Restore the true covariance/tree order ---
     if global_ordered_cov_path and os.path.exists(global_ordered_cov_path):
-        # Load the index from the globally ordered tree matrix
-        global_cov = pd.read_csv(global_ordered_cov_path, index_col=0, nrows=0) # nrows=0 to just get headers/index fast
-        global_ordered_ids = list(global_cov.index)
+        # Use nrows=0 for speed, but read from .columns, not .index!
+        global_cov = pd.read_csv(global_ordered_cov_path, index_col=0, nrows=0)
+        global_ordered_ids = [str(x) for x in global_cov.columns] # Read columns instead!
+        
+        # Ensure local indices are strings for perfect matching
+        df_cov.index = df_cov.index.astype(str)
+        df_cov.columns = df_cov.columns.astype(str)
         
         # Filter the global order to only include sequences in this sub-family
         ordered_indices = [x for x in global_ordered_ids if x in df_cov.index]
         
-        # Re-slice the local dataframe so it matches the perfect phylogenetic order
-        df_cov = df_cov.loc[ordered_indices, ordered_indices]
+        # Safe re-slice
+        if ordered_indices:
+            df_cov = df_cov.loc[ordered_indices, ordered_indices]
+        else:
+            print("WARNING: Could not match IDs between global and local covariance. Using local order.")
+    # -------------------------------------------------------
         
     # 2. Identify Blocks
     group_a_ids = set(split_info.get('group_a', []))
