@@ -399,8 +399,24 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
     for sf_idx, subfamily in enumerate(stable_subfamilies, 1):
         sf_node = subfamily['node']
         unordered_leaves = set(subfamily['leaves'])
-        sf_leaves = [name for name in df_global_index if name in unordered_leaves]
-        sf_indices = [df_global_index.index(name) for name in sf_leaves]
+        normalized_target_leaves = {str(leaf).replace('/', '_'): str(leaf) for leaf in unordered_leaves}
+        # Also map the exact string just in case
+        for leaf in unordered_leaves:
+            normalized_target_leaves[str(leaf)] = str(leaf)
+            
+        sf_leaves = []
+        sf_indices = []
+        
+        # Scan the global index to pull out matches in perfect phylogenetic order
+        for idx, global_name in enumerate(df_global_index):
+            g_name = str(global_name)
+            g_name_norm = g_name.replace('/', '_')
+            
+            # If we find a match (exact or normalized), keep it in the global order
+            if g_name in normalized_target_leaves or g_name_norm in normalized_target_leaves:
+                sf_leaves.append(g_name) 
+                sf_indices.append(idx)
+                
         n_sf = len(sf_leaves)
         
         print("\n" + "="*40)
