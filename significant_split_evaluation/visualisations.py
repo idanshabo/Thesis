@@ -410,22 +410,37 @@ def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder, global
     
     # --- Restore the true covariance/tree order ---
     if global_ordered_cov_path and os.path.exists(global_ordered_cov_path):
-        # Use nrows=0 for speed, but read from .columns, not .index!
+        # Use nrows=0 for speed, read from .columns
         global_cov = pd.read_csv(global_ordered_cov_path, index_col=0, nrows=0)
-        global_ordered_ids = [str(x) for x in global_cov.columns] # Read columns instead!
+        global_ordered_ids = [str(x) for x in global_cov.columns]
         
-        # Ensure local indices are strings for perfect matching
+        # Ensure local indices are strings
         df_cov.index = df_cov.index.astype(str)
         df_cov.columns = df_cov.columns.astype(str)
         
-        # Filter the global order to only include sequences in this sub-family
-        ordered_indices = [x for x in global_ordered_ids if x in df_cov.index]
+        # Robust matching: create a normalized lookup dictionary for the local matrix
+        local_id_map = {}
+        for x in df_cov.index:
+            local_id_map[str(x)] = str(x)                   # Exact match
+            local_id_map[str(x).replace('/', '_')] = str(x) # Sanitized match
+            
+        ordered_indices = []
+        for gx in global_ordered_ids:
+            gx_str = str(gx)
+            gx_norm = gx_str.replace('/', '_')
+            
+            # Find the corresponding local ID using the map
+            if gx_str in local_id_map:
+                ordered_indices.append(local_id_map[gx_str])
+            elif gx_norm in local_id_map:
+                ordered_indices.append(local_id_map[gx_norm])
         
         # Safe re-slice
-        if ordered_indices:
+        if ordered_indices and len(ordered_indices) == len(df_cov.index):
+            # Only slice if we successfully matched everything
             df_cov = df_cov.loc[ordered_indices, ordered_indices]
         else:
-            print("WARNING: Could not match IDs between global and local covariance. Using local order.")
+            print(f"WARNING: Matched {len(ordered_indices)} out of {len(df_cov.index)} IDs. Falling back to local order.")
     # -------------------------------------------------------
         
     # 2. Identify Blocks
