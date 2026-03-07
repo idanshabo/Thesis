@@ -543,10 +543,10 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
             os.makedirs(split_dir, exist_ok=True)
             
             if is_sig:
-                calc_dir = os.path.join(split_dir, "calculations")
-                os.makedirs(calc_dir, exist_ok=True)
-                pd.DataFrame(sd['V_A']).to_csv(os.path.join(calc_dir, f"embedding_cov_rank{sd['rank']}_subA.csv"))
-                pd.DataFrame(sd['V_B']).to_csv(os.path.join(calc_dir, f"embedding_cov_rank{sd['rank']}_subB.csv"))
+                split_calc_dir = os.path.join(split_dir, "calculations")
+                os.makedirs(split_calc_dir, exist_ok=True)
+                pd.DataFrame(sd['V_A']).to_csv(os.path.join(split_calc_dir, f"embedding_cov_rank{sd['rank']}_subA.csv"))
+                pd.DataFrame(sd['V_B']).to_csv(os.path.join(split_calc_dir, f"embedding_cov_rank{sd['rank']}_subB.csv"))
                 
                 # Extract original names for JSON
                 group_a_names = [sf_leaves[idx] for idx in sd['idx_A']]
