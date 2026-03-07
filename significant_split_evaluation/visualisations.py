@@ -84,9 +84,19 @@ def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
     # Map ID -> Sequence (Sanitized)
     id_to_seq = {rec.id.replace('/', '_'): str(rec.seq) for rec in msa_records}
     
-    # 2. Define Groups
-    group_a_ids = [x for x in split_info['group_a'] if x in id_to_seq]
-    group_b_ids = [x for x in split_info['group_b'] if x in id_to_seq]
+    # 2. Define Groups with Robust ID Sanitization
+    def get_matching_ids(split_group, id_dict):
+        matched = []
+        for x in split_group:
+            clean_x = str(x).replace('/', '_')
+            if clean_x in id_dict:
+                matched.append(clean_x)
+            elif str(x) in id_dict:
+                matched.append(str(x))
+        return matched
+
+    group_a_ids = get_matching_ids(split_info['group_a'], id_to_seq)
+    group_b_ids = get_matching_ids(split_info['group_b'], id_to_seq)
 
     print(f"Loaded {len(id_to_seq)} sequences from FASTA.")
     
