@@ -396,7 +396,7 @@ def get_group_intervals(ordered_ids, group_a_set, group_b_set):
         
     return intervals
 
-def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder, global_ordered_cov_path=None):
+def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder):
     """
     Plots the covariance matrix (preserving input order).
     Draws dashed lines at the boundaries between Group A and Group B.
@@ -407,48 +407,14 @@ def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder, global
     except Exception as e:
         print(f"Error loading matrix: {e}")
         return
-    
-    # --- Restore the true covariance/tree order ---
-    if global_ordered_cov_path and os.path.exists(global_ordered_cov_path):
-        # Use nrows=0 for speed, read from .columns
-        global_cov = pd.read_csv(global_ordered_cov_path, index_col=0, nrows=0)
-        global_ordered_ids = [str(x) for x in global_cov.columns]
-        
-        # Ensure local indices are strings
-        df_cov.index = df_cov.index.astype(str)
-        df_cov.columns = df_cov.columns.astype(str)
-        
-        # Robust matching: create a normalized lookup dictionary for the local matrix
-        local_id_map = {}
-        for x in df_cov.index:
-            local_id_map[str(x)] = str(x)                   # Exact match
-            local_id_map[str(x).replace('/', '_')] = str(x) # Sanitized match
-            
-        ordered_indices = []
-        for gx in global_ordered_ids:
-            gx_str = str(gx)
-            gx_norm = gx_str.replace('/', '_')
-            
-            # Find the corresponding local ID using the map
-            if gx_str in local_id_map:
-                ordered_indices.append(local_id_map[gx_str])
-            elif gx_norm in local_id_map:
-                ordered_indices.append(local_id_map[gx_norm])
-        
-        # Safe re-slice
-        if ordered_indices and len(ordered_indices) == len(df_cov.index):
-            # Only slice if we successfully matched everything
-            df_cov = df_cov.loc[ordered_indices, ordered_indices]
-        else:
-            print(f"WARNING: Matched {len(ordered_indices)} out of {len(df_cov.index)} IDs. Falling back to local order.")
-    # -------------------------------------------------------
-        
+
     # 2. Identify Blocks
     group_a_ids = set(split_info.get('group_a', []))
     group_b_ids = set(split_info.get('group_b', []))
-
-    intervals = get_group_intervals(df_cov.index, group_a_ids, group_b_ids)
     
+    # Calculate where the boundaries are in the CURRENT order
+    intervals = get_group_intervals(df_cov.index, group_a_ids, group_b_ids)
+
     # 3. Setup Plot
     plt.figure(figsize=(10, 10))
     ax = plt.gca()
