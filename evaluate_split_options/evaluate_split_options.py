@@ -398,8 +398,9 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
     # --- PHASE 3 & 4: Sub-Family Processing ---
     for sf_idx, subfamily in enumerate(stable_subfamilies, 1):
         sf_node = subfamily['node']
-        sf_leaves = list(subfamily['leaves'])
-        sf_indices = subfamily['indices']
+        unordered_leaves = set(subfamily['leaves'])
+        sf_leaves = [name for name in df_global_index if name in unordered_leaves]
+        sf_indices = [df_global_index.index(name) for name in sf_leaves]
         n_sf = len(sf_leaves)
         
         print("\n" + "="*40)
