@@ -138,7 +138,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
 
     tracker.start_timer("Split_Evaluation")
     results, raw_splits_count, unique_splits_count, final_p_dim = evaluate_top_splits(
-        tree_path, cov_path, norm_emb_path, 
+        tree_path, cov_ordered_path, norm_emb_path, 
         output_path=out_mode_dir, 
         k=args.nodes, 
         pca_min_variance=args.pca_var, 
