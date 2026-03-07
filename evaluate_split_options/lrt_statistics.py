@@ -39,7 +39,7 @@ def compute_gls_operators(U):
     ones = torch.ones((n, 1), dtype=U.dtype, device=U.device)
     
     # mu_hat = (1^T U^-1 1)^-1 * 1^T U^-1 X
-    term1 = torch.inverse(ones.T @ U_inv @ ones) # Scalar/1x1 matrix
+    term1 = torch.linalg.pinv(ones.T @ U_inv @ ones) # Scalar/1x1 matrix
     term2 = ones.T @ U_inv
     
     # Projection matrix P such that X^T P X = S (the scatter matrix)
