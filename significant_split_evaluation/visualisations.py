@@ -386,7 +386,7 @@ def get_group_intervals(ordered_ids, group_a_set, group_b_set):
         
     return intervals
 
-def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder):
+def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder, global_ordered_cov_path=None):
     """
     Plots the covariance matrix (preserving input order).
     Draws dashed lines at the boundaries between Group A and Group B.
@@ -397,14 +397,24 @@ def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder):
     except Exception as e:
         print(f"Error loading matrix: {e}")
         return
-
+    
+    if global_ordered_cov_path and os.path.exists(global_ordered_cov_path):
+        # Load the index from the globally ordered tree matrix
+        global_cov = pd.read_csv(global_ordered_cov_path, index_col=0, nrows=0) # nrows=0 to just get headers/index fast
+        global_ordered_ids = list(global_cov.index)
+        
+        # Filter the global order to only include sequences in this sub-family
+        ordered_indices = [x for x in global_ordered_ids if x in df_cov.index]
+        
+        # Re-slice the local dataframe so it matches the perfect phylogenetic order
+        df_cov = df_cov.loc[ordered_indices, ordered_indices]
+        
     # 2. Identify Blocks
     group_a_ids = set(split_info.get('group_a', []))
     group_b_ids = set(split_info.get('group_b', []))
-    
-    # Calculate where the boundaries are in the CURRENT order
-    intervals = get_group_intervals(df_cov.index, group_a_ids, group_b_ids)
 
+    intervals = get_group_intervals(df_cov.index, group_a_ids, group_b_ids)
+    
     # 3. Setup Plot
     plt.figure(figsize=(10, 10))
     ax = plt.gca()
