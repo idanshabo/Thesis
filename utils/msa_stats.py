@@ -1,5 +1,24 @@
-from Bio import AlignIO
 import numpy as np
+import random
+from itertools import combinations
+from Bio import SeqIO, AlignIO
+from ete3 import Tree
+
+def calc_msa_similarity(fasta_path, max_pairs=1000):
+    records = list(SeqIO.parse(fasta_path, "fasta"))
+    if len(records) < 2: return 100.0
+    seqs = [str(rec.seq) for rec in records]
+    pairs = list(combinations(range(len(seqs)), 2))
+    if len(pairs) > max_pairs: pairs = random.sample(pairs, max_pairs)
+    total_sim = sum(sum(1 for a, b in zip(seqs[i], seqs[j]) if a == b) / max(len(seqs[i]), 1) for i, j in pairs)
+    return (total_sim / len(pairs)) * 100.0
+
+def calc_norm_branch_length(tree_path):
+    try: t = Tree(tree_path, format=1)
+    except Exception: t = Tree(tree_path, format=0)
+    total_dist = sum([node.dist for node in t.traverse() if not node.is_root()])
+    num_leaves = len(t.get_leaves())
+    return total_dist / num_leaves if num_leaves > 0 else 0.0
 
 def get_msa_stats(msa_path):
     """
