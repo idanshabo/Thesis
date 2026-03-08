@@ -4,10 +4,39 @@ import torch
 from evaluate_split_options.phylogenetic_anova import phylogenetic_anova_rrpp
 from ete3 import Tree
 
-def find_candidate_splits_from_node(node, min_support=0.8, min_prop=0.1, min_absolute_size=20, k=None):
+def get_induced_branch_length(tree, leaf_subset, node_leaves_cache=None):
+    """
+    Calculates the exact branch length for the subtree induced by a subset of leaves.
+    """
+    if len(leaf_subset) <= 1:
+        return 0.0
+        
+    induced_length = 0.0
+    for node in tree.traverse():
+        if node.is_root():
+            continue
+            
+        if node_leaves_cache is not None:
+            node_leaves = node_leaves_cache[node]
+        else:
+            node_leaves = set(node.get_leaf_names())
+            
+        in_subset = len(node_leaves.intersection(leaf_subset))
+        out_subset = len(leaf_subset) - in_subset
+        
+        # If the edge separates elements of the subset, it connects them in the induced tree
+        if in_subset > 0 and out_subset > 0:
+            induced_length += getattr(node, "dist", 0.0)
+            
+    return induced_length
+
+
+def find_candidate_splits_from_node(node, tree_alpha=0.1, min_absolute_size=20, k=None):
     """
     Helper to find candidate splits directly from an ete3 TreeNode.
-    Evaluates splits based on support, proportional size, and absolute size.
+    Evaluates splits based on absolute size, and the alpha rule 
+    (tree_alpha) applied to BOTH proportional species count and induced branch length.
+    Support condition has been removed.
     """
     all_leaves = set(node.get_leaf_names())
     total_leaves = len(all_leaves)
@@ -16,31 +45,40 @@ def find_candidate_splits_from_node(node, min_support=0.8, min_prop=0.1, min_abs
     if total_leaves < min_absolute_size * 2: 
         return []
         
+    total_tree_length = sum(getattr(n, "dist", 0.0) for n in node.traverse() if not n.is_root())
+    
+    # Pre-cache leaves for massive speedup during branch length calculations
+    node_leaves_cache = {n: set(n.get_leaf_names()) for n in node.traverse() if not n.is_root()}
+        
     candidates = []
     
     for child in node.traverse("postorder"):
         if child.is_leaf() or child == node:
             continue
             
-        support = getattr(child, "support", 1.0) 
-        if support < min_support:
-            continue
-            
-        clade_leaves = set(child.get_leaf_names())
+        clade_leaves = node_leaves_cache[child]
         clade_size = len(clade_leaves)
+        group_b_leaves = all_leaves - clade_leaves
         
-        # Enforce BOTH the 10% rule and the absolute minimum size
-        min_allowed_by_prop = min_prop * total_leaves
+        # 1. Enforce Leaf Count Rule
+        min_allowed_by_prop = tree_alpha * total_leaves
         actual_min_allowed = max(min_allowed_by_prop, min_absolute_size)
         
         if clade_size < actual_min_allowed or (total_leaves - clade_size) < actual_min_allowed:
             continue
             
+        # 2. Enforce Branch Length Rule (tree_alpha alpha)
+        clade_A_len = get_induced_branch_length(node, clade_leaves, node_leaves_cache)
+        clade_B_len = get_induced_branch_length(node, group_b_leaves, node_leaves_cache)
+        
+        if clade_A_len < tree_alpha * total_tree_length or clade_B_len < tree_alpha * total_tree_length:
+            continue
+            
         candidates.append({
             'node': child,
             'group_a': clade_leaves,
-            'group_b': all_leaves - clade_leaves,
-            'support': support,
+            'group_b': group_b_leaves,
+            'length': getattr(child, "dist", 0.0),
             'node_name': getattr(child, "name", "Unnamed")
         })
         
@@ -49,11 +87,8 @@ def find_candidate_splits_from_node(node, min_support=0.8, min_prop=0.1, min_abs
         candidates = candidates[:k]
         
     return candidates
-    
-import random
-from itertools import combinations
 
-def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0.1, alpha=0.05, n_permutations=999, id_to_seq=None):
+def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha=0.1, anova_alpha=0.05, n_permutations=999, id_to_seq=None):
     """
     Recursively divides a phylogenetic tree into stable sub-families based on 
     significant mean shifts (Phylogenetic ANOVA).
@@ -123,7 +158,7 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0
         print(f"      sequence similarity is {sim_pct:.2f}%")
         print(f"      normalized_total_branch_length is {norm_branch_len:.4f}")
 
-    candidates = find_candidate_splits_from_node(tree_node, min_support=0.8, min_prop=min_prop)
+    candidates = find_candidate_splits_from_node(tree_node, tree_alpha=tree_alpha)
     
     if not candidates:
         # BASE CASE: No valid candidate splits found. This is a stable sub-family.
@@ -154,7 +189,7 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0
             best_split = split
             
     # 5. Recursive Step
-    if best_split and best_p <= alpha:
+    if best_split and best_p <= anova_alpha:
         node_name = best_split['node_name']
         size_parent = len(current_leaves_list)
         size_A = len(best_split['group_a'])
@@ -172,9 +207,8 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0
         node_B = tree_node.copy()
         node_B.prune([str(leaf) for leaf in best_split['group_b']], preserve_branch_length=True)
         
-        stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, min_prop, alpha, n_permutations, id_to_seq)
-        stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, min_prop, alpha, n_permutations, id_to_seq)
-        
+        stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq)
+        stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq)
         return stable_A + stable_B
         
     else:
