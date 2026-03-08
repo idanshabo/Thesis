@@ -13,96 +13,119 @@ from evaluate_split_options.utils import load_matrix_tensor, get_log_det, calcul
 from evaluate_split_options.lrt_statistics import compute_gls_operators, compute_mle_and_lrt, simulate_null_data, add_jitter
 from evaluate_split_options.recursive_tree_traversal import find_candidate_splits_from_node, recursive_mean_split
 
-def calculate_jaccard(set1, set2):
-    """Calculates Jaccard Index: Intersection / Union"""
-    intersection = len(set1.intersection(set2))
-    union = len(set1.union(set2))
-    if union == 0: return 0.0
-    return intersection / union
-
-
-def is_split_redundant(current_split_sets, history_splits, threshold=0.85):
+def get_induced_branch_length(tree, leaf_subset, node_leaves_cache=None):
     """
-    Checks if current split is similar to any previously accepted split.
+    Calculates the exact branch length for the subtree induced by a subset of leaves.
+    An edge is part of the induced tree if it separates at least one leaf in the subset 
+    from another leaf in the subset.
+    """
+    if len(leaf_subset) <= 1:
+        return 0.0
+        
+    induced_length = 0.0
+    for node in tree.traverse():
+        if node.is_root():
+            continue
+            
+        # Use cache for O(1) lookups if provided, else calculate on the fly
+        if node_leaves_cache is not None:
+            node_leaves = node_leaves_cache[node]
+        else:
+            node_leaves = set(node.get_leaf_names())
+            
+        in_subset = len(node_leaves.intersection(leaf_subset))
+        out_subset = len(leaf_subset) - in_subset
+        
+        # If the edge separates elements of the subset, it connects them in the induced tree
+        if in_subset > 0 and out_subset > 0:
+            induced_length += node.dist
+            
+    return induced_length
+
+
+def is_split_redundant(current_split_sets, history_splits, tree, alpha=0.10, node_leaves_cache=None):
+    """
+    Checks if current split is similar to any previously accepted split based on 
+    the mentor's (1 - alpha) non-overlap requirement for BOTH branch length and species count.
     """
     cur_a, cur_b = current_split_sets
+    total_tree_length = sum(n.dist for n in tree.traverse() if not n.is_root())
+    total_species = len(cur_a) + len(cur_b)
 
     for idx, (hist_a, hist_b) in enumerate(history_splits):
-        # Check Direct Match (A vs A)
-        sim_direct = calculate_jaccard(cur_a, hist_a)
+        # Non-overlap 1: (A1 ∩ B2) ∪ (A2 ∩ B1)
+        group_1 = (cur_a.intersection(hist_b)).union(cur_b.intersection(hist_a))
+        # Non-overlap 2: (A1 ∩ B1) ∪ (A2 ∩ B2)
+        group_2 = (cur_a.intersection(hist_a)).union(cur_b.intersection(hist_b))
         
-        # Check Inverse Match (A vs B)
-        sim_inverse = calculate_jaccard(cur_a, hist_b)
+        len_1 = get_induced_branch_length(tree, group_1, node_leaves_cache)
+        len_2 = get_induced_branch_length(tree, group_2, node_leaves_cache)
         
-        if sim_direct >= threshold:
-            return True, f"Too similar to accepted Split #{idx+1} (Direct match: {sim_direct:.2%})"
+        species_1 = len(group_1)
+        species_2 = len(group_2)
         
-        if sim_inverse >= threshold:
-            return True, f"Too similar to accepted Split #{idx+1} (Inverse match: {sim_inverse:.2%})"
+        # If EITHER non-overlap is smaller than alpha, they are too similar (overlap > 1-alpha)
+        if len_1 <= alpha * total_tree_length or species_1 <= alpha * total_species:
+            return True, f"Too similar to Split #{idx+1} (Non-overlap 1: len={len_1:.2f}, species={species_1})"
+            
+        if len_2 <= alpha * total_tree_length or species_2 <= alpha * total_species:
+            return True, f"Too similar to Split #{idx+1} (Non-overlap 2: len={len_2:.2f}, species={species_2})"
             
     return False, ""
 
 
-def find_candidate_splits(newick_path, k=None, min_support=0.8, min_prop=0.1):
+def find_candidate_splits(newick_path, k=None, alpha=0.1):
     """
-    Finds candidate splits from a phylogenetic tree, ordered bottom-up (leaves to root).
-    Filters out splits where the smallest group is less than `min_prop` (e.g., 10%) of total leaves.
+    Finds candidate splits from a tree, ordered bottom-up (leaves to root).
+    Filters out splits where the smallest group violates the alpha threshold 
+    for either relative size or relative branch length.
+    *Support condition entirely removed.*
     """
-    # 1. Load the tree and set the root
     try:
         tree = Tree(newick_path, format=1)
-    except Exception as e:
-        print(f"Error loading tree with format=1: {e}")
-        print("Falling back to format=0...")
+    except Exception:
         tree = Tree(newick_path, format=0)
 
-    # 2. Set the root objectively using midpoint rooting
     try:
         tree.set_outgroup(tree.get_midpoint_outgroup())
-    except Exception as e:
-        print(f"Could not midpoint root the tree: {e}")
+    except Exception:
+        pass
 
     all_leaves = set(tree.get_leaf_names())
     total_leaves = len(all_leaves)
+    total_tree_length = sum(n.dist for n in tree.traverse() if not n.is_root())
+    
+    # Pre-cache to massively speed up get_induced_branch_length during generation
+    node_leaves_cache = {n: set(n.get_leaf_names()) for n in tree.traverse() if not n.is_root()}
     candidate_splits = []
 
-    # 3. Iterate over all internal nodes
-    # "postorder" inherently visits child nodes (leaves) before parent nodes (root)
     for node in tree.traverse("postorder"):
         if node.is_leaf() or node.is_root():
             continue
 
-        # 4. Filter candidates based on support and size
-        support = node.support
-        length = node.dist
-
-        if support < min_support:
-            continue
-
-        clade_leaves = set(node.get_leaf_names())
+        clade_leaves = node_leaves_cache[node]
         clade_size = len(clade_leaves)
-        min_size = min_prop * total_leaves
         
-        # Enforce the 10% rule: filter out splits where the smaller part is < 10%
-        if clade_size < min_size or (total_leaves - clade_size) < min_size:
+        # 1. Enforce alpha rule on species count
+        if clade_size < alpha * total_leaves or (total_leaves - clade_size) < alpha * total_leaves:
             continue
 
-        # 5. Store the valid candidate split
-        group_a_leaves = clade_leaves
-        group_b_leaves = all_leaves - group_a_leaves
+        # 2. Enforce alpha rule on branch lengths
+        group_b_leaves = all_leaves - clade_leaves
+        clade_A_len = get_induced_branch_length(tree, clade_leaves, node_leaves_cache)
+        clade_B_len = get_induced_branch_length(tree, group_b_leaves, node_leaves_cache)
+        
+        if clade_A_len < alpha * total_tree_length or clade_B_len < alpha * total_tree_length:
+            continue
 
         split_info = {
-            'support': support,
-            'length': length,
-            'group_a': group_a_leaves,
+            'length': node.dist,
+            'group_a': clade_leaves,
             'group_b': group_b_leaves,
             'node_name': node.name 
         }
         candidate_splits.append(split_info)
 
-    # Note: Sorting by length was removed here to preserve the bottom-up order!
-
-    # 6. Return candidates (cap at k if specified, otherwise return all)
     if k is not None:
         return candidate_splits[:k]
     return candidate_splits
@@ -338,7 +361,7 @@ class PhylogeneticPCA:
 
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fasta_path, k=None, 
                         pca_min_variance=None, pca_min_components=None, 
-                        standardize=True, similarity_threshold=0.85,
+                        standardize=True, alpha=0.1,
                         anova_alpha=0.05, anova_permutations=999):
     """
     Evaluates splits using a Two-Stage Procedure:
@@ -487,14 +510,21 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
 
         # --- PHASE 4: Local Covariance Shift Test ---
         print("   -> Finding candidate covariance splits...")
-        raw_candidates = find_candidate_splits_from_node(sf_node, k=k, min_support=0.8, min_prop=0.1)
+        raw_candidates = find_candidate_splits_from_node(sf_node, k=k, min_support=0.8, alpha=alpha)
         total_raw_splits += len(raw_candidates)
         
         candidates = []
         accepted_split_sets = []
+        sf_node_leaves_cache = {n: set(n.get_leaf_names()) for n in sf_node.traverse() if not n.is_root()}
         for split in raw_candidates:
             current_sets = (split['group_a'], split['group_b'])
-            is_redundant, reason = is_split_redundant(current_sets, accepted_split_sets, threshold=similarity_threshold)
+            is_redundant, reason = is_split_redundant(
+                current_sets, 
+                accepted_split_sets, 
+                tree=sf_node,
+                alpha=alpha,
+                node_leaves_cache=sf_node_leaves_cache
+            )
             if not is_redundant:
                 candidates.append(split)
                 accepted_split_sets.append(current_sets)
