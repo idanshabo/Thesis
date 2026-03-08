@@ -5,8 +5,6 @@ import torch
 from evaluate_split_options.phylogenetic_anova import phylogenetic_anova_rrpp
 from ete3 import Tree
 
-
-
 def benjamini_hochberg_correction(p_values, alpha=0.05):
     """
     Applies the Benjamini-Hochberg FDR correction.
@@ -260,9 +258,11 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
         print(f"      normalized_total_branch_length is {norm_branch_len:.4f}")
 
     candidates = find_candidate_splits_from_node(tree_node, tree_alpha=tree_alpha)
-    
+
+    print(f"      Found {len(candidates)} valid candidate splits to evaluate.")
     if not candidates:
         # BASE CASE: No valid candidate splits found. This is a stable sub-family.
+        print(f"      [=] Clade of {len(current_leaves_list)} sequences is stable (No valid splits meet size/alpha criteria).")
         return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices, 
                  'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len}] # <-- ADDED METRICS
         
@@ -296,6 +296,6 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
         return stable_A + stable_B
         
     else:
-        print(f"      [=] Clade of {len(current_leaves_list)} sequences is stable (No further mean shifts).")
+        print(f"      [=] Clade of {len(current_leaves_list)} sequences is stable (No splits survived FDR correction).")
         return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices, 
-                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len}] # <-- ADDED METRICS
+                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len}]
