@@ -1,9 +1,110 @@
 import random
+import numpy as np
 from itertools import combinations
 import torch
 from evaluate_split_options.phylogenetic_anova import phylogenetic_anova_rrpp
 from ete3 import Tree
 
+
+
+def benjamini_hochberg_correction(p_values, alpha=0.05):
+    """
+    Applies the Benjamini-Hochberg FDR correction.
+    Returns a boolean array of significance and the adjusted p-values.
+    """
+    p_values = np.array(p_values)
+    n = len(p_values)
+    
+    # Sort p-values and keep track of original indices
+    sorted_indices = np.argsort(p_values)
+    sorted_p = p_values[sorted_indices]
+    
+    # Calculate BH critical values: (i / m) * alpha
+    ranks = np.arange(1, n + 1)
+    critical_values = (ranks / n) * alpha
+    
+    # Find the largest p-value that is less than or equal to its critical value
+    significant_flags = sorted_p <= critical_values
+    max_sig_index = np.max(np.where(significant_flags)[0]) if np.any(significant_flags) else -1
+    
+    # Create the final boolean array for significance
+    is_significant = np.zeros(n, dtype=bool)
+    if max_sig_index >= 0:
+        # Everything up to the max_sig_index is considered significant under FDR
+        is_significant[sorted_indices[:max_sig_index + 1]] = True
+        
+    # Calculate adjusted p-values (q-values)
+    # q = min(p * m / i, 1.0), evaluated from right to left to ensure monotonicity
+    adjusted_p = np.zeros(n)
+    min_q = 1.0
+    for i in range(n - 1, -1, -1):
+        idx = sorted_indices[i]
+        q_val = min(1.0, sorted_p[i] * n / ranks[i])
+        min_q = min(min_q, q_val)
+        adjusted_p[idx] = min_q
+        
+    return is_significant, adjusted_p
+
+def evaluate_splits_adaptively(candidates, Y_local, C_local, current_leaves_list, 
+                               anova_alpha=0.05, pass1_perms=999, pass2_perms=9999):
+    """
+    Evaluates candidate splits using a 2-pass adaptive RRPP to save time, 
+    then applies an FDR correction to prevent multiple testing bias.
+    """
+    total_candidates = len(candidates)
+    if total_candidates == 0:
+        return None, 1.0, -1.0
+        
+    p_values = np.ones(total_candidates)
+    F_values = np.zeros(total_candidates)
+    
+    # --- PASS 1: Low Resolution (Identify Promising Splits) ---
+    promising_indices = []
+    for i, split in enumerate(candidates):
+        local_idx_a = [idx for idx, name in enumerate(current_leaves_list) if name in split['group_a']]
+        local_idx_b = [idx for idx, name in enumerate(current_leaves_list) if name in split['group_b']]
+        
+        if not local_idx_a or not local_idx_b:
+            continue
+            
+        F_obs, p_val = phylogenetic_anova_rrpp(
+            Y_local, C_local, local_idx_a, local_idx_b, n_permutations=pass1_perms
+        )
+        p_values[i] = p_val
+        F_values[i] = F_obs
+        
+        # If the split is even remotely close to significant, keep it for Pass 2
+        # A threshold of 0.15 is generous enough to prevent false negatives at this stage
+        if p_val <= 0.15: 
+            promising_indices.append((i, local_idx_a, local_idx_b))
+
+    # --- PASS 2: High Resolution (For FDR Correction) ---
+    for i, local_idx_a, local_idx_b in promising_indices:
+        F_obs, p_val = phylogenetic_anova_rrpp(
+            Y_local, C_local, local_idx_a, local_idx_b, n_permutations=pass2_perms
+        )
+        p_values[i] = p_val
+        F_values[i] = F_obs
+
+    # --- Multiple Testing Correction (FDR) ---
+    is_sig, adjusted_p = benjamini_hochberg_correction(p_values, alpha=anova_alpha)
+    
+    # Find the BEST split among those that survived the FDR correction
+    best_split = None
+    best_adj_p = 1.0
+    best_F = -1.0
+    
+    for i in range(total_candidates):
+        if is_sig[i]: # Only consider splits that survived FDR
+            # Break ties using the F-statistic
+            if adjusted_p[i] < best_adj_p or (adjusted_p[i] == best_adj_p and F_values[i] > best_F):
+                best_adj_p = adjusted_p[i]
+                best_F = F_values[i]
+                best_split = candidates[i]
+                best_split['raw_p'] = p_values[i]
+                
+    return best_split, best_adj_p, best_F
+                                   
 def get_induced_branch_length(tree, leaf_subset, node_leaves_cache=None):
     """
     Calculates the exact branch length for the subtree induced by a subset of leaves.
