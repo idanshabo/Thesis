@@ -20,7 +20,7 @@ from significant_split_evaluation.structures.visualize_structures_pipeline impor
 
 # --- Metadata Utilities ---
 from utils.metadata_tracker import MetadataTracker
-from utils.msa_stats import get_msa_stats
+from utils.msa_stats import get_msa_stats, calc_norm_branch_length, calc_msa_similarity
 
 
 def extract_protein_flags(clean_desc):
@@ -137,7 +137,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     tracker.stop_timer()
 
     tracker.start_timer("Split_Evaluation")
-    results, raw_splits_count, unique_splits_count, final_p_dim = evaluate_top_splits(
+    results, raw_splits_count, unique_splits_count, final_p_dim, sf_stats = evaluate_top_splits(
         tree_path, cov_ordered_path, norm_emb_path, 
         output_path=out_mode_dir, 
         calc_dir=calc_dir,
@@ -150,6 +150,11 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     
     tracker.add_stat("pipeline_stats", "num_raw_candidate_splits", raw_splits_count)
     tracker.add_stat("pipeline_stats", "num_unique_candidate_splits", unique_splits_count)
+
+    for sf_name, stats in sf_stats.items():
+        tracker.add_stat("msa_stats", f"{sf_name}_avg_sequence_similarity_pct", stats["avg_sequence_similarity_pct"])
+        tracker.add_stat("msa_stats", f"{sf_name}_normalized_total_branch_length", stats["normalized_total_branch_length"])
+    
     for sf_name, dim in final_p_dim.items():
       tracker.add_stat("pipeline_stats", f"{sf_name}_final_embedding_dim", dim)
     save_results_json(results, os.path.join(out_mode_dir, "results.json"))
