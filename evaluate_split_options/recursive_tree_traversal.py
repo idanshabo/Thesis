@@ -1,3 +1,5 @@
+import random
+from itertools import combinations
 import torch
 from evaluate_split_options.phylogenetic_anova import phylogenetic_anova_rrpp
 from ete3 import Tree
@@ -48,7 +50,10 @@ def find_candidate_splits_from_node(node, min_support=0.8, min_prop=0.1, min_abs
         
     return candidates
     
-def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0.1, alpha=0.05, n_permutations=999):
+import random
+from itertools import combinations
+
+def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0.1, alpha=0.05, n_permutations=999, id_to_seq=None):
     """
     Recursively divides a phylogenetic tree into stable sub-families based on 
     significant mean shifts (Phylogenetic ANOVA).
@@ -85,11 +90,45 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0
     
     # 3. Find candidate splits in this clade
     print(f"\n   -> Analyzing Clade with {len(current_leaves_list)} sequences for mean shifts...")
+
+    norm_branch_len = 0.0
+    sim_pct = 100.0
+    
+    if id_to_seq is not None:
+        # Calculate Branch Length
+        total_dist = sum([n.dist for n in tree_node.traverse() if n != tree_node])
+        norm_branch_len = total_dist / max(len(current_leaves_list), 1)
+
+        # Calculate Sequence Similarity
+        seqs = []
+        for leaf in current_leaves_list:
+            clean_leaf = str(leaf).replace('/', '_')
+            if clean_leaf in id_to_seq:
+                seqs.append(id_to_seq[clean_leaf])
+            elif str(leaf) in id_to_seq:
+                seqs.append(id_to_seq[str(leaf)])
+
+        if len(seqs) >= 2:
+            pairs = list(combinations(range(len(seqs)), 2))
+            if len(pairs) > 500:  # Cap for speed during deep recursion
+                pairs = random.sample(pairs, 500)
+            
+            total_sim = 0
+            for i, j in pairs:
+                s1, s2 = seqs[i], seqs[j]
+                matches = sum(1 for a, b in zip(s1, s2) if a == b)
+                total_sim += matches / max(len(s1), 1)
+            sim_pct = (total_sim / len(pairs)) * 100.0
+
+        print(f"      sequence similarity is {sim_pct:.2f}%")
+        print(f"      normalized_total_branch_length is {norm_branch_len:.4f}")
+
     candidates = find_candidate_splits_from_node(tree_node, min_support=0.8, min_prop=min_prop)
     
     if not candidates:
         # BASE CASE: No valid candidate splits found. This is a stable sub-family.
-        return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices}]
+        return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices, 
+                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len}] # <-- ADDED METRICS
         
     # 4. Evaluate candidates using the Phylogenetic ANOVA
     best_p = 1.0
@@ -128,11 +167,13 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0
         node_A = best_split['node'].detach() 
         node_B = tree_node 
         
-        stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, min_prop, alpha, n_permutations)
-        stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, min_prop, alpha, n_permutations)
+        # Pass id_to_seq down the recursion tree!
+        stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, min_prop, alpha, n_permutations, id_to_seq)
+        stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, min_prop, alpha, n_permutations, id_to_seq)
         
         return stable_A + stable_B
         
     else:
         print(f"      [=] Clade of {len(current_leaves_list)} sequences is stable (No further mean shifts).")
-        return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices}]
+        return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices, 
+                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len}] # <-- ADDED METRICS
