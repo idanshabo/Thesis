@@ -10,7 +10,7 @@ from sklearn.decomposition import PCA
 from estimate_matrix_normal.estimate_matrix_normal import matrix_normal_mle_fixed_u
 from utils.align_embeddings_with_covariance import align_embeddings_with_covariance
 from evaluate_split_options.utils import load_matrix_tensor, get_log_det, calculate_matrix_normal_ll, calculate_bic_matrix_normal
-from evaluate_split_options.lrt_statistics import compute_gls_operators, compute_mle_and_lrt, simulate_null_data, add_jitter
+from evaluate_split_options.lrt_statistics import compute_gls_operators, compute_mle_and_lrt, simulate_null_data, add_jitter, robust_cholesky
 from evaluate_split_options.recursive_tree_traversal import find_candidate_splits_from_node, recursive_mean_split
 
 def get_induced_branch_length(tree, leaf_subset, node_leaves_cache=None):
@@ -546,8 +546,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         
         U_local_sym = (U_local + U_local.T) / 2.0
         V_hat_sf_sym = (V_hat_sf + V_hat_sf.T) / 2.0
-        L_U = torch.linalg.cholesky(add_jitter(U_local_sym))                      
-        L_V = torch.linalg.cholesky(add_jitter(V_hat_sf_sym))
+        L_U = robust_cholesky(U_local_sym)                      
+        L_V = robust_cholesky(V_hat_sf_sym)
         
         # Calculate Observed Lambda
         split_data = []
