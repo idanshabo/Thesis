@@ -369,7 +369,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
     
     C_global = load_matrix_tensor(cov_path).float()
     df_global_index = list(pd.read_csv(cov_path, index_col=0).index.astype(str))
-    
+    print(f"\n[DEBUG] Global Matrix Loaded. Total IDs: {len(df_global_index)}")
+    print(f"[DEBUG] Global ID Sample (first 3): {df_global_index[:3]}")
     print(f"Loaded {len(df_global_index)} aligned sequences with {emb_tensor_full.shape[1]} dimensions.")
 
     # --- PHASE 2: Recursive Mean Shift Testing ---
@@ -401,6 +402,9 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         sf_indices = sorted(subfamily['indices'])
         sf_leaves = [df_global_index[i] for i in sf_indices]
         n_sf = len(sf_leaves)
+        print(f"   [DEBUG] Sub-family {sf_idx} original unordered size: {len(subfamily['leaves'])}")
+        print(f"   [DEBUG] Sub-family {sf_idx} ordered size: {n_sf}")
+        print(f"   [DEBUG] Ordered Leaf Sample (first 3): {sf_leaves[:3]}")
         
         print("\n" + "="*40)
         print(f"PROCESSING SUB-FAMILY {sf_idx}/{len(stable_subfamilies)} ({n_sf} leaves)")
@@ -428,6 +432,10 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         global_records = list(SeqIO.parse(fasta_path, "fasta"))
         sf_leaves_norm = {str(l).replace('/', '_') for l in sf_leaves}
         sf_records = [rec for rec in global_records if str(rec.id).replace('/', '_') in sf_leaves_norm]
+        
+        print(f"   [DEBUG] FASTA cropping: Expected {n_sf} sequences, matched {len(sf_records)} sequences.")
+        if len(sf_records) != n_sf:
+            print(f"   [DEBUG] MISMATCH! Sample FASTA IDs: {[rec.id for rec in global_records[:3]]}")
         
         sf_fasta_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}.fasta")
         SeqIO.write(sf_records, sf_fasta_path, "fasta")
@@ -515,8 +523,14 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
             
             local_idx_A = get_local_indices(split['group_a'])
             local_idx_B = get_local_indices(split['group_b'])
+
+            print(f"      [DEBUG] Split {i+1} mapping -> Tree Group A (n={len(split['group_a'])}) mapped to {len(local_idx_A)} local indices.")
+            print(f"      [DEBUG] Split {i+1} mapping -> Tree Group B (n={len(split['group_b'])}) mapped to {len(local_idx_B)} local indices.")
             
             if not local_idx_A or not local_idx_B:
+                print(f"      [DEBUG ERROR] EMPTY GROUP DETECTED IN SPLIT {i+1}!")
+                print(f"      [DEBUG ERROR] Sample Tree ID (Group A): {list(split['group_a'])[:1]}")
+                print(f"      [DEBUG ERROR] Sample Local ID: {sf_leaves[:1]}")
                 print(f"      Warning: Split {i+1} has an empty group due to ID mismatch. Skipping.")
                 continue
             
