@@ -398,25 +398,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
     # --- PHASE 3 & 4: Sub-Family Processing ---
     for sf_idx, subfamily in enumerate(stable_subfamilies, 1):
         sf_node = subfamily['node']
-        unordered_leaves = set(subfamily['leaves'])
-        normalized_target_leaves = {str(leaf).replace('/', '_'): str(leaf) for leaf in unordered_leaves}
-        # Also map the exact string just in case
-        for leaf in unordered_leaves:
-            normalized_target_leaves[str(leaf)] = str(leaf)
-            
-        sf_leaves = []
-        sf_indices = []
-        
-        # Scan the global index to pull out matches in perfect phylogenetic order
-        for idx, global_name in enumerate(df_global_index):
-            g_name = str(global_name)
-            g_name_norm = g_name.replace('/', '_')
-            
-            # If we find a match (exact or normalized), keep it in the global order
-            if g_name in normalized_target_leaves or g_name_norm in normalized_target_leaves:
-                sf_leaves.append(g_name) 
-                sf_indices.append(idx)
-                
+        sf_indices = sorted(subfamily['indices'])
+        sf_leaves = [df_global_index[i] for i in sf_indices]
         n_sf = len(sf_leaves)
         
         print("\n" + "="*40)
@@ -443,11 +426,13 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         
         # Save Cropped FASTA
         global_records = list(SeqIO.parse(fasta_path, "fasta"))
-        sf_records = [rec for rec in global_records if str(rec.id).replace('/', '_') in sf_leaves or str(rec.id) in sf_leaves]
+        sf_leaves_norm = {str(l).replace('/', '_') for l in sf_leaves}
+        sf_records = [rec for rec in global_records if str(rec.id).replace('/', '_') in sf_leaves_norm]
+        
         sf_fasta_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}.fasta")
         SeqIO.write(sf_records, sf_fasta_path, "fasta")
         print(f"   -> Saved cropped FASTA to {sf_fasta_path}")
-
+        
         # Extract Local Matrices (Embeddings and Covariance)
         idx_tensor = torch.tensor(sf_indices, dtype=torch.long, device=emb_tensor_full.device)
         Y_local = emb_tensor_full[idx_tensor]
@@ -518,8 +503,22 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         split_data = []
         for i, split in enumerate(candidates):
             # Map leaf names directly to local indices (0 to n_sf-1)
-            local_idx_A = [sf_leaves.index(name) for name in split['group_a'] if name in sf_leaves]
-            local_idx_B = [sf_leaves.index(name) for name in split['group_b'] if name in sf_leaves]
+            def get_local_indices(split_group):
+                indices = []
+                for name in split_group:
+                    name_norm = str(name).replace('/', '_')
+                    for j, leaf in enumerate(sf_leaves):
+                        if str(leaf).replace('/', '_') == name_norm:
+                            indices.append(j)
+                            break
+                return indices
+            
+            local_idx_A = get_local_indices(split['group_a'])
+            local_idx_B = get_local_indices(split['group_b'])
+            
+            if not local_idx_A or not local_idx_B:
+                print(f"      Warning: Split {i+1} has an empty group due to ID mismatch. Skipping.")
+                continue
             
             U_A = U_local[local_idx_A][:, local_idx_A]
             U_B = U_local[local_idx_B][:, local_idx_B]
