@@ -4,6 +4,7 @@ def compute_phylogenetic_transformation(C):
     """
     Computes the phylogenetic transformation matrix P.
     Uses robust 64-bit Eigen decomposition and dynamically drops zero-eigenvalues.
+    Returns P and the rank of the matrix (k).
     """
     # Force 64-bit precision to prevent overflow
     C_double = C.double()
@@ -13,6 +14,9 @@ def compute_phylogenetic_transformation(C):
     tol = 1e-5 * L.max() 
     mask = L > tol
     
+    # Calculate the rank (number of positive eigenvalues)
+    k = mask.sum().item()
+    
     L_pos = L[mask]
     V_pos = V[:, mask]
     
@@ -20,7 +24,7 @@ def compute_phylogenetic_transformation(C):
     L_inv_sqrt = torch.diag(1.0 / torch.sqrt(L_pos))
     P = L_inv_sqrt @ V_pos.T
     
-    return P
+    return P, k
 
 def get_sscp_trace(X, Y):
     """
@@ -61,7 +65,7 @@ def phylogenetic_anova_rrpp(Y, C, group_a_indices, group_b_indices, n_permutatio
     X_F[:, 0] = 1.0
     X_F[group_a_indices, 1] = 1.0
     
-    P = compute_phylogenetic_transformation(C)
+    P, k = compute_phylogenetic_transformation(C)
     PX_0 = P @ X_0
     PX_F = P @ X_F
     PY = P @ Y
@@ -78,7 +82,7 @@ def phylogenetic_anova_rrpp(Y, C, group_a_indices, group_b_indices, n_permutatio
     ss_resid_F_safe = torch.clamp(ss_resid_F, min=1e-10)
     
     df_model = 1.0 
-    df_resid = max(1.0, N - 2.0)
+    df_resid = max(1.0, k - 2.0)
     
     F_obs = (ss_model / df_model) / (ss_resid_F_safe / df_resid)
     if torch.isnan(F_obs): F_obs = torch.tensor(0.0, dtype=torch.float64)
