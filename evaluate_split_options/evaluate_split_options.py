@@ -361,7 +361,7 @@ class PhylogeneticPCA:
 
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fasta_path, k=None, 
                         pca_min_variance=None, pca_min_components=None, 
-                        standardize=True, alpha=0.1,
+                        standardize=True, tree_alpha=0.1,
                         anova_alpha=0.05, anova_permutations=999):
     """
     Evaluates splits using a Two-Stage Procedure:
@@ -411,7 +411,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         Y_global=emb_tensor_full, 
         C_global=C_global, 
         global_names=df_global_index, 
-        tree_alpha=0.1,
+        tree_alpha=tree_alpha,
         anova_alpha=anova_alpha, 
         n_permutations=anova_permutations,
         id_to_seq=id_to_seq
@@ -510,7 +510,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
 
         # --- PHASE 4: Local Covariance Shift Test ---
         print("   -> Finding candidate covariance splits...")
-        raw_candidates = find_candidate_splits_from_node(sf_node, k=k, alpha=alpha)
+        raw_candidates = find_candidate_splits_from_node(sf_node, k=k, tree_alpha=tree_alpha)
         total_raw_splits += len(raw_candidates)
         
         candidates = []
@@ -522,7 +522,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
                 current_sets, 
                 accepted_split_sets, 
                 tree=sf_node,
-                alpha=alpha,
+                alpha=tree_alpha,
                 node_leaves_cache=sf_node_leaves_cache
             )
             if not is_redundant:
