@@ -6,6 +6,24 @@ def add_jitter(matrix, jitter=1e-6):
     d = matrix.shape[0]
     return matrix + torch.eye(d, device=matrix.device, dtype=matrix.dtype) * jitter
 
+def robust_cholesky(matrix, max_retries=8, initial_jitter=1e-6):
+    """
+    Attempts Cholesky decomposition with progressively increasing jitter.
+    Falls back to Eigen-decomposition if it still fails (e.g., when p >= n).
+    """
+    for i in range(max_retries):
+        jitter = initial_jitter * (10 ** i)
+        try:
+            return torch.linalg.cholesky(add_jitter(matrix, jitter=jitter))
+        except torch._C._LinAlgError:
+            continue
+            
+    # Absolute fallback: Eigen-decomposition to force positive-definiteness
+    print("      [WARNING] Cholesky failed. Forcing PSD via Eigen-decomposition.")
+    evals, evecs = torch.linalg.eigh(matrix)
+    evals = torch.clamp(evals, min=1e-6) # Force all eigenvalues to be strictly > 0
+    return evecs @ torch.diag(torch.sqrt(evals))
+
 def compute_gls_operators(U):
     """
     Precomputes the inverse and the projection operator for a given U matrix.
@@ -16,23 +34,8 @@ def compute_gls_operators(U):
     # 1. Force Perfect Symmetry First
     U_sym = (U + U.T) / 2.0
     
-    # 2. Adaptive Jitter for Robust Cholesky Decomposition
-    jitter_init = 1e-6
-    max_retries = 5
-    L = None
-    
-    for i in range(max_retries):
-        jitter = jitter_init * (10 ** i)  # Scales: 1e-6, 1e-5, 1e-4...
-        U_reg = add_jitter(U_sym, jitter=jitter)
-        
-        try:
-            L = torch.linalg.cholesky(U_reg)
-            break  # Success! Exit the loop.
-        except torch._C._LinAlgError:
-            continue # Matrix still not positive-definite, try higher jitter
-            
-    if L is None:
-        raise RuntimeError(f"Cholesky factorization failed for matrix of size {n}x{n} even with max jitter {jitter}.")
+    # 2. Robust Cholesky Decomposition
+    L = robust_cholesky(U_sym)
         
     U_inv = torch.cholesky_inverse(L)
     
