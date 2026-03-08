@@ -376,7 +376,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
     # --- PHASE 2: Recursive Mean Shift Testing ---
     print("\n" + "="*40)
     print("PHASE 2: Recursive Mean Shift Testing (Phylogenetic ANOVA)")
-    print("="*40
+    print("="*40)
 
     global_records = list(SeqIO.parse(fasta_path, "fasta"))
     id_to_seq = {str(rec.id).replace('/', '_'): str(rec.seq) for rec in global_records}
