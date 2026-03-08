@@ -145,7 +145,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
         k=args.nodes, 
         pca_min_variance=args.pca_var, 
         pca_min_components=args.pca_comp, 
-        standardize=args.standardize
+        standardize=args.standardize,
         alpha=args.alpha
     )
     
