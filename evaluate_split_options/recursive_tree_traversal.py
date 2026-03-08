@@ -266,39 +266,22 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
         return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices, 
                  'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len}] # <-- ADDED METRICS
         
-    # 4. Evaluate candidates using the Phylogenetic ANOVA
-    best_p = 1.0
-    best_F = -1.0
-    best_split = None
-    
-    for split in candidates:
-        # Map the split groups to local indices (0 to len(current_leaves)-1) for the ANOVA
-        local_idx_a = [i for i, name in enumerate(current_leaves_list) if name in split['group_a']]
-        local_idx_b = [i for i, name in enumerate(current_leaves_list) if name in split['group_b']]
-        
-        if not local_idx_a or not local_idx_b:
-            continue
-            
-        F_obs, p_val = phylogenetic_anova_rrpp(
-            Y_local, C_local, local_idx_a, local_idx_b, n_permutations=n_permutations
-        )
-        
-        # Track the most significant split
-        if p_val < best_p or (p_val == best_p and F_obs > best_F):
-            best_p = p_val
-            best_F = F_obs
-            best_split = split
+    # 4. Evaluate candidates using the Adaptive Phylogenetic ANOVA + FDR
+    best_split, best_p, best_F = evaluate_splits_adaptively(
+        candidates, Y_local, C_local, current_leaves_list, 
+        anova_alpha=anova_alpha, pass1_perms=999, pass2_perms=9999
+    )
             
     # 5. Recursive Step
-    if best_split and best_p <= anova_alpha:
+    if best_split is not None:
         node_name = best_split['node_name']
         size_parent = len(current_leaves_list)
         size_A = len(best_split['group_a'])
         size_B = len(best_split['group_b'])
         
-        print(f"      [!] SIGNIFICANT SPLIT ACCEPTED:")
+        print(f"      [!] SIGNIFICANT SPLIT ACCEPTED (FDR Corrected):")
         print(f"          Parent Clade ({size_parent}) --> Group A ({size_A}) & Group B ({size_B})")
-        print(f"          Stats: Node '{node_name}' | p={best_p:.4f}, F={best_F:.2f}")
+        print(f"          Stats: Node '{node_name}' | adj_p={best_p:.5f} (raw_p={best_split.get('raw_p', 'N/A'):.5f}), F={best_F:.2f}")
         
         # Group A
         node_A = tree_node.copy()
