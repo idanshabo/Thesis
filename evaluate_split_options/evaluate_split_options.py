@@ -510,7 +510,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
 
         # --- PHASE 4: Local Covariance Shift Test ---
         print("   -> Finding candidate covariance splits...")
-        raw_candidates = find_candidate_splits_from_node(sf_node, k=k, min_support=0.8, alpha=alpha)
+        raw_candidates = find_candidate_splits_from_node(sf_node, k=k, alpha=alpha)
         total_raw_splits += len(raw_candidates)
         
         candidates = []
