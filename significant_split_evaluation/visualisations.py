@@ -10,6 +10,7 @@ import pandas as pd
 from scipy.cluster.hierarchy import linkage, leaves_list
 from scipy.spatial.distance import pdist
 from matplotlib.patches import Rectangle
+import matplotlib.colors as mcolors
 from itertools import groupby
 
 def plot_global_subfamilies(global_cov_ordered_path, subfamilies_json_path, output_dir):
@@ -465,13 +466,11 @@ def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder):
 def plot_side_by_side_embedding_covariance(folder_path, split_info):
     """
     Plots the Global, Group A, and Group B embedding covariance matrices side-by-side.
-    Uses robust percentile scaling to prevent PC1 from washing out the visual resolution.
+    Uses SymLogNorm and zooms into the top principal components for maximum visual clarity.
     """
     # --- 1. Path Deduction ---
     split_name = os.path.basename(folder_path)
     sig_splits_dir = os.path.dirname(folder_path)
-    protein_outputs_dir = os.path.dirname(os.path.dirname(sig_splits_dir))
-
     sf_dir = os.path.dirname(sig_splits_dir) 
     embed_dir = os.path.dirname(sf_dir)
     protein_outputs_dir = os.path.dirname(embed_dir)
@@ -482,13 +481,10 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
     protein_data_root = os.path.dirname(protein_outputs_dir)
     calc_dir = os.path.join(protein_data_root, f"{protein_id}_calculations")
     
-    # Define Full File Paths
-    sf_name = os.path.basename(sf_dir) # extracts "subfamily_X"
+    sf_name = os.path.basename(sf_dir)
     full_cov_path = os.path.join(calc_dir, sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
-    
     child_a_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subA.csv")
     child_b_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subB.csv")
-    
     output_path = os.path.join(folder_path, "embedding_covariances_comparison.png")
 
     # --- 2. Setup & Load ---
@@ -500,52 +496,58 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
         print(f"Error loading embedding covariance matrices: {e}")
         return
 
-    # --- 3. Robust Scaling for Better Resolution ---
-    # Combine all values to find a shared scale
-    all_values = np.concatenate([
-        cov_global.values.flatten(), 
-        cov_a.values.flatten(), 
-        cov_b.values.flatten()
-    ])
+    # --- IMPROVEMENT 1: Zoom in on Active Variance ---
+    # Crop to the top 50 components (or fewer if the matrix is smaller)
+    k_max = 50
+    k = min(k_max, cov_global.shape[0])
     
-    # Calculate the 98th percentile of absolute values to ignore extreme PC1 outliers
+    cov_global_sub = cov_global.iloc[:k, :k]
+    cov_a_sub = cov_a.iloc[:k, :k]
+    cov_b_sub = cov_b.iloc[:k, :k]
+
+    # --- IMPROVEMENT 2: Calculate Frobenius Distance ---
+    # Calculate how far each group's covariance structure drifted from the global average
+    dist_a = np.linalg.norm(cov_a_sub.values - cov_global_sub.values, 'fro')
+    dist_b = np.linalg.norm(cov_b_sub.values - cov_global_sub.values, 'fro')
+
+    # --- IMPROVEMENT 3: SymLogNorm for Visual Resolution ---
+    all_values = np.concatenate([
+        cov_global_sub.values.flatten(), 
+        cov_a_sub.values.flatten(), 
+        cov_b_sub.values.flatten()
+    ])
     robust_max = np.percentile(np.abs(all_values), 98)
     
-    # Set symmetric min and max around 0
-    vmin = -robust_max
-    vmax = robust_max
+    # SymLogNorm handles extreme diagonals while preserving subtle off-diagonal signals
+    norm = mcolors.SymLogNorm(linthresh=0.01, linscale=1.0, vmin=-robust_max, vmax=robust_max, base=10)
+    cmap = 'RdBu_r' 
 
     # --- 4. Plotting ---
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     
-    # Use a diverging colormap centered at 0
-    cmap = 'RdBu_r' 
-    
     # Global Plot
-    sns.heatmap(cov_global, cmap=cmap, square=True, ax=axes[0], vmin=vmin, vmax=vmax, 
-                center=0, cbar=False, xticklabels=False, yticklabels=False)
-    axes[0].set_title(f"Global (H0)\np={cov_global.shape[0]}", fontsize=14)
+    sns.heatmap(cov_global_sub, cmap=cmap, norm=norm, square=True, ax=axes[0], 
+                cbar=False, xticklabels=False, yticklabels=False)
+    axes[0].set_title(f"Global (H0)\np=Top {k}", fontsize=14)
     
     # Group A Plot
-    sns.heatmap(cov_a, cmap=cmap, square=True, ax=axes[1], vmin=vmin, vmax=vmax, 
-                center=0, cbar=False, xticklabels=False, yticklabels=False)
-    axes[1].set_title(f"Group A\np={cov_a.shape[0]}", fontsize=14)
+    sns.heatmap(cov_a_sub, cmap=cmap, norm=norm, square=True, ax=axes[1], 
+                cbar=False, xticklabels=False, yticklabels=False)
+    axes[1].set_title(f"Group A\np=Top {k}\nDistance from H0: {dist_a:.1f}", fontsize=14)
     
-    # Group B Plot (Include colorbar here)
-    sns.heatmap(cov_b, cmap=cmap, square=True, ax=axes[2], vmin=vmin, vmax=vmax, 
-                center=0, cbar=True, xticklabels=False, yticklabels=False)
-    axes[2].set_title(f"Group B\np={cov_b.shape[0]}", fontsize=14)
+    # Group B Plot
+    sns.heatmap(cov_b_sub, cmap=cmap, norm=norm, square=True, ax=axes[2], 
+                cbar=True, xticklabels=False, yticklabels=False)
+    axes[2].set_title(f"Group B\np=Top {k}\nDistance from H0: {dist_b:.1f}", fontsize=14)
 
     # Main Title
     node_name = split_info.get('node_name', 'Unknown Node')
-    plt.suptitle(f"Embedding Feature Covariances (pPCA Space): {node_name}\n(Colors capped at 98th percentile for visibility)", fontsize=16, y=1.1)
+    plt.suptitle(f"Embedding Feature Covariances (Top {k} pPCA Dimensions): {node_name}", fontsize=16, y=1.05)
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
     
-    print(f"Side-by-side embedding covariance plot saved to {output_path}")
-
 def load_matrix(data):
     """
     Helper: Loads data using pandas for robustness.
