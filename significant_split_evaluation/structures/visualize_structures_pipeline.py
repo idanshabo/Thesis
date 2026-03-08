@@ -125,28 +125,61 @@ def get_aligned_matrices(cov_path, tm_df, sample_list, sort_by="groups"):
 def plot_side_by_side_dynamic(df_cov, df_tm, group_a_ids, group_b_ids, output_path, title_suffix=""):
     if df_cov.empty or df_tm.empty: return
     intervals = get_intervals_from_index(df_cov.index, group_a_ids, group_b_ids)
+    
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(22, 10))
+    
+    # 1. Plot Heatmaps
     sns.heatmap(df_cov, cmap='viridis', cbar=True, xticklabels=False, yticklabels=False, square=True, ax=ax1)
     ax1.set_title(f"Covariance Signal\n{title_suffix}", fontsize=14, pad=10)
+    
     if df_tm is not None:
         sns.heatmap(df_tm, cmap='RdYlBu_r', vmin=0, vmax=1.0, cbar=True, xticklabels=False, yticklabels=False, square=True, ax=ax2)
         ax2.set_title(f"Structural Similarity (TM)\n{title_suffix}", fontsize=14, pad=10)
-    for label, start, end in intervals:
-        if end < len(df_cov):
+        
+    # 2. Iterate through intervals for lines and intra-group (diagonal) scores
+    for i, (label_i, start_i, end_i) in enumerate(intervals):
+        if end_i < len(df_cov):
             for ax, color in [(ax1, 'white'), (ax2, 'black')]:
-                ax.axvline(x=end, color=color, linestyle='--', linewidth=1.5, alpha=0.8)
-                ax.axhline(y=end, color=color, linestyle='--', linewidth=1.5, alpha=0.8)
-        size = end - start
-        if size > (len(df_cov) * 0.02):
-            center = start + (size / 2)
-            group_name = "Group A" if label == "A" else ("Group B" if label == "B" else "?")
+                ax.axvline(x=end_i, color=color, linestyle='--', linewidth=1.5, alpha=0.8)
+                ax.axhline(y=end_i, color=color, linestyle='--', linewidth=1.5, alpha=0.8)
+                
+        size_i = end_i - start_i
+        
+        # Only label significant blocks to prevent clutter
+        if size_i > (len(df_cov) * 0.02):
+            center_i = start_i + (size_i / 2)
+            group_name = "Group A" if label_i == "A" else ("Group B" if label_i == "B" else "?")
+            
             for ax, color in [(ax1, 'white'), (ax2, 'black')]:
-                ax.text(-0.5, center, group_name, ha='right', va='center', fontsize=10, fontweight='bold', color='black')
-                ax.text(center, len(df_cov) + 0.5, group_name, ha='center', va='top', fontsize=10, fontweight='bold', color='black', rotation=45)
+                ax.text(-0.5, center_i, group_name, ha='right', va='center', fontsize=10, fontweight='bold', color='black')
+                ax.text(center_i, len(df_cov) + 0.5, group_name, ha='center', va='top', fontsize=10, fontweight='bold', color='black', rotation=45)
+                
             if df_tm is not None:
-                block_val = df_tm.iloc[start:end, start:end].values.mean()
+                # Intra-group mean (Diagonal)
+                block_val = df_tm.iloc[start_i:end_i, start_i:end_i].values.mean()
                 if not pd.isna(block_val):
-                    ax2.text(center, center, f"{block_val:.2f}", ha='center', va='center', fontsize=11, fontweight='bold', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+                    ax2.text(center_i, center_i, f"{block_val:.2f}", ha='center', va='center', fontsize=11, fontweight='bold', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='round,pad=0.2'))
+
+            # --- NEW: Inter-group mean (Off-diagonal) ---
+            # Compare current block 'i' with all subsequent blocks 'j'
+            for j in range(i + 1, len(intervals)):
+                label_j, start_j, end_j = intervals[j]
+                size_j = end_j - start_j
+                
+                # Check if block 'j' is large enough, and ensure we are comparing A to B (not A to A)
+                if size_j > (len(df_cov) * 0.02) and label_i in ['A', 'B'] and label_j in ['A', 'B'] and label_i != label_j:
+                    center_j = start_j + (size_j / 2)
+                    
+                    if df_tm is not None:
+                        # Calculate mean TM score of the intersection
+                        inter_block_val = df_tm.iloc[start_i:end_i, start_j:end_j].values.mean()
+                        
+                        if not pd.isna(inter_block_val):
+                            # Place text in Top-Right mirror
+                            ax2.text(center_j, center_i, f"{inter_block_val:.2f}", ha='center', va='center', fontsize=11, fontweight='bold', color='gray', bbox=dict(facecolor='white', alpha=0.85, edgecolor='gray', boxstyle='round,pad=0.2'))
+                            # Place text in Bottom-Left mirror
+                            ax2.text(center_i, center_j, f"{inter_block_val:.2f}", ha='center', va='center', fontsize=11, fontweight='bold', color='gray', bbox=dict(facecolor='white', alpha=0.85, edgecolor='gray', boxstyle='round,pad=0.2'))
+
     plt.tight_layout()
     plt.savefig(output_path, dpi=300)
     plt.close()
