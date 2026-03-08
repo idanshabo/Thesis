@@ -164,10 +164,14 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, min_prop=0
         print(f"          Parent Clade ({size_parent}) --> Group A ({size_A}) & Group B ({size_B})")
         print(f"          Stats: Node '{node_name}' | p={best_p:.4f}, F={best_F:.2f}")
         
-        node_A = best_split['node'].detach() 
-        node_B = tree_node 
+        # Group A
+        node_A = tree_node.copy()
+        node_A.prune([str(leaf) for leaf in best_split['group_a']], preserve_branch_length=True)
         
-        # Pass id_to_seq down the recursion tree!
+        # Group B
+        node_B = tree_node.copy()
+        node_B.prune([str(leaf) for leaf in best_split['group_b']], preserve_branch_length=True)
+        
         stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, min_prop, alpha, n_permutations, id_to_seq)
         stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, min_prop, alpha, n_permutations, id_to_seq)
         
