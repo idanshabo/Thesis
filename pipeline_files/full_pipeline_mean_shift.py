@@ -146,6 +146,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
         pca_min_variance=args.pca_var, 
         pca_min_components=args.pca_comp, 
         standardize=args.standardize
+        alpha=args.alpha
     )
     
     tracker.add_stat("pipeline_stats", "num_raw_candidate_splits", raw_splits_count)
@@ -235,7 +236,7 @@ def main():
     parser.add_argument('--pca_var', type=float, default=None, help="PCA minimum variance, if not entered and --pca_comp not entered - no ppca is calculated")
     parser.add_argument('--standardize', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Standardize data")
     parser.add_argument('--generate_plots', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Generate plots during visualization")
-
+    parser.add_argument('--alpha', type=float, default=0.10, help="Minimum branch size & redundancy overlap threshold (e.g., 0.10 for 10%)")
     args = parser.parse_args()
 
     args.standardize = args.standardize == "TRUE"
