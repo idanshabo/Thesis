@@ -411,7 +411,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         Y_global=emb_tensor_full, 
         C_global=C_global, 
         global_names=df_global_index, 
-        tree_alpha=tree_alpha,
+        tree_alpha=0.1,
         anova_alpha=anova_alpha, 
         n_permutations=anova_permutations,
         id_to_seq=id_to_seq
