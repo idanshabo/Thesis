@@ -395,7 +395,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
     )
     
     print(f"\n=> Divided family into {len(stable_subfamilies)} stable sub-families based on global mean shifts.")
-
+    subfamily_stats = {}
+                            
     # Tracking variables to return to the pipeline
     all_results = []
     total_raw_splits = 0
