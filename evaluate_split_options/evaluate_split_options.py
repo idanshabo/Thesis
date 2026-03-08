@@ -415,8 +415,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         out_sf_dir = os.path.join(output_path, f"subfamily_{sf_idx}")
         sf_sig_dir = os.path.join(out_sf_dir, "significant_splits")
         sf_non_sig_dir = os.path.join(out_sf_dir, "non_significant_splits")
-        os.makedirs(sf_sig_dir, exist_ok=True)
-        os.makedirs(sf_non_sig_dir, exist_ok=True)
+        #os.makedirs(sf_sig_dir, exist_ok=True)
+        #os.makedirs(sf_non_sig_dir, exist_ok=True)
         
         # --> CALCULATION DIR (for .fasta, .tree, and .csv matrices)
         calc_sf_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
