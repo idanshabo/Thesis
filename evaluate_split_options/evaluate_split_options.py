@@ -376,7 +376,12 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
     # --- PHASE 2: Recursive Mean Shift Testing ---
     print("\n" + "="*40)
     print("PHASE 2: Recursive Mean Shift Testing (Phylogenetic ANOVA)")
-    print("="*40)
+    print("="*40
+
+    global_records = list(SeqIO.parse(fasta_path, "fasta"))
+    id_to_seq = {str(rec.id).replace('/', '_'): str(rec.seq) for rec in global_records}
+    for rec in global_records:
+        id_to_seq[str(rec.id)] = str(rec.seq)
     
     stable_subfamilies = recursive_mean_split(
         tree_node=tree, 
@@ -385,7 +390,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         global_names=df_global_index, 
         min_prop=0.1, 
         alpha=anova_alpha, 
-        n_permutations=anova_permutations
+        n_permutations=anova_permutations,
+        id_to_seq=id_to_seq
     )
     
     print(f"\n=> Divided family into {len(stable_subfamilies)} stable sub-families based on global mean shifts.")
@@ -405,6 +411,11 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         print(f"   [DEBUG] Sub-family {sf_idx} original unordered size: {len(subfamily['leaves'])}")
         print(f"   [DEBUG] Sub-family {sf_idx} ordered size: {n_sf}")
         print(f"   [DEBUG] Ordered Leaf Sample (first 3): {sf_leaves[:3]}")
+
+        subfamily_stats[f"subfamily_{sf_idx}"] = {
+            "avg_sequence_similarity_pct": round(subfamily.get('sim_pct', 100.0), 2),
+            "normalized_total_branch_length": round(subfamily.get('norm_branch_len', 0.0), 4)
+        }
         
         print("\n" + "="*40)
         print(f"PROCESSING SUB-FAMILY {sf_idx}/{len(stable_subfamilies)} ({n_sf} leaves)")
@@ -602,4 +613,4 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
     with open(os.path.join(output_path, "subfamilies_summary.json"), 'w') as f:
         json.dump(subfamilies_summary, f, indent=4)
 
-    return all_results, total_raw_splits, total_unique_splits, final_p_dims
+    return all_results, total_raw_splits, total_unique_splits, final_p_dims, subfamily_stats
