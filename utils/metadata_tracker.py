@@ -5,6 +5,7 @@ import random
 from itertools import combinations
 from Bio import Phylo
 
+
 class MetadataTracker:
     def __init__(self, output_path):
         self.output_path = output_path
@@ -14,6 +15,20 @@ class MetadataTracker:
             "pipeline_stats": {},
             "split_analysis": {}
         }
+        
+        # --- NEW: Load existing metadata to prevent overwriting ---
+        if os.path.exists(self.output_path):
+            try:
+                with open(self.output_path, 'r') as f:
+                    existing_data = json.load(f)
+                    for key, val in existing_data.items():
+                        if key in self.metadata and isinstance(val, dict):
+                            self.metadata[key].update(val)
+                        else:
+                            self.metadata[key] = val
+            except Exception as e:
+                print(f"Warning: Could not load existing metadata: {e}")
+                
         self.current_stage = None
         self.start_time = None
 
