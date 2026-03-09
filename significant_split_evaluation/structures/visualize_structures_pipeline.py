@@ -246,7 +246,7 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
 
     # 2. LOGOS (Calculate raw consensus over the full groups)
     logo_path = os.path.join(sig_split_folder, "comparative_sequence_logos.png")
-    generate_comparative_logos(records, valid_a, valid_b, dir_predicted, logo_path, highlight_threshold=0.8, ss_predictor=ss_predictor)
+    generate_comparative_logos(records, valid_a, valid_b, dir_predicted, logo_path, highlight_threshold=0.8)
     
     print("Calculating TM Matrix (Predicted)...")
     df_pred, stats_pred, split_pred = calculate_tm_matrix(sample_a, sample_b, dir_predicted)
