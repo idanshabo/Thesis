@@ -410,7 +410,15 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
             subfamilies_summary = json.load(f)
             
         stable_subfamilies = []
-        for sf_name, leaves in subfamilies_summary.items():
+        for sf_name, data in subfamilies_summary.items():
+            # Handle backward compatibility (if old JSON just has a list of leaves)
+            if isinstance(data, list):
+                leaves = data
+                split_hist = []
+            else:
+                leaves = data.get("leaves", [])
+                split_hist = data.get("split_history", [])
+
             # Prune the physical tree
             sf_node = tree.copy()
             sf_node.prune(leaves, preserve_branch_length=True)
@@ -436,7 +444,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
                 'leaves': set(leaves),
                 'indices': indices,
                 'sim_pct': sim_pct,
-                'norm_branch_len': norm_branch_len
+                'norm_branch_len': norm_branch_len,
+                'split_history': split_hist
             })
     else:
         # Pre-load sequences only if standard calculation path is needed
@@ -478,7 +487,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
 
         subfamily_stats[f"subfamily_{sf_idx}"] = {
             "avg_sequence_similarity_pct": round(subfamily.get('sim_pct', 100.0), 2),
-            "normalized_total_branch_length": round(subfamily.get('norm_branch_len', 0.0), 4)
+            "normalized_total_branch_length": round(subfamily.get('norm_branch_len', 0.0), 4),
+            "split_history": subfamily.get('split_history', []) # <-- Pass it out of the pipeline
         }
         
         print("\n" + "="*40)
@@ -683,7 +693,11 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
     # Save a summary JSON of all subfamilies for the macro-visualization
     subfamilies_summary = {}
     for sf_idx, subfamily in enumerate(stable_subfamilies, 1):
-        subfamilies_summary[f"subfamily_{sf_idx}"] = list(subfamily['leaves'])
+        # Save as a dict instead of a flat list to accommodate the history
+        subfamilies_summary[f"subfamily_{sf_idx}"] = {
+            "leaves": list(subfamily['leaves']),
+            "split_history": subfamily.get('split_history', [])
+        }
         
     with open(os.path.join(output_path, "subfamilies_summary.json"), 'w') as f:
         json.dump(subfamilies_summary, f, indent=4)
