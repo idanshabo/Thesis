@@ -210,7 +210,7 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
                 plot_split_covariance(local_cov_path, split_info, folder_path)
                 plot_side_by_side_embedding_covariance(folder_path, split_info)
                 
-                tm_stats = visualize_structures_pipeline(local_fasta_path, split_info, folder_path, local_cov_path, ss_predictor=args.ss_predictor)
+                tm_stats = visualize_structures_pipeline(local_fasta_path, split_info, folder_path, local_cov_path)
                 if tm_stats:
                     tracker.add_split_stat(f"{sf_folder}_{folder_name}", tm_stats)
                 
@@ -238,8 +238,6 @@ def main():
     parser.add_argument('--standardize', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Standardize data")
     parser.add_argument('--generate_plots', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Generate plots during visualization")
     parser.add_argument('--alpha', type=float, default=0.10, help="Minimum branch size & redundancy overlap threshold (e.g., 0.10 for 10%)")
-    parser.add_argument('--ss_predictor', type=str, default="netsurfp", choices=["netsurfp", "esmfold"], 
-                        help="Predictor to use for 2D secondary structure logos (default: netsurfp)")
     args = parser.parse_args()
 
     args.standardize = args.standardize == "TRUE"
