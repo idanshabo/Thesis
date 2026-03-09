@@ -156,7 +156,8 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     for sf_name, stats in sf_stats.items():
         tracker.add_stat("msa_stats", f"{sf_name}_avg_sequence_similarity_pct", stats["avg_sequence_similarity_pct"])
         tracker.add_stat("msa_stats", f"{sf_name}_normalized_total_branch_length", stats["normalized_total_branch_length"])
-    
+        tracker.add_stat("split_analysis", f"{sf_name}_history", stats["split_history"])
+        
     for sf_name, dim in final_p_dim.items():
       tracker.add_stat("pipeline_stats", f"{sf_name}_final_embedding_dim", dim)
     save_results_json(results, os.path.join(out_mode_dir, "results.json"))
