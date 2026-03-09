@@ -146,7 +146,8 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
         pca_min_variance=args.pca_var, 
         pca_min_components=args.pca_comp, 
         standardize=args.standardize,
-        tree_alpha=args.alpha
+        tree_alpha=args.alpha,
+        existing_msa_stats=tracker.metadata.get("msa_stats", {})
     )
     
     tracker.add_stat("pipeline_stats", "num_raw_candidate_splits", raw_splits_count)
