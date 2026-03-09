@@ -482,7 +482,7 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
     calc_dir = os.path.join(protein_data_root, f"{protein_id}_calculations")
     
     sf_name = os.path.basename(sf_dir)
-    full_cov_path = os.path.join(calc_dir, sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
+    full_cov_path = os.path.join(sf_dir, "local_calculations", f"{sf_name}_global_H0_PCA_cov_mat.csv")
     child_a_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subA.csv")
     child_b_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subB.csv")
     output_path = os.path.join(folder_path, "embedding_covariances_comparison.png")
@@ -613,7 +613,7 @@ def run_variance_analysis(folder_path):
     
     # Define Full File Paths
     sf_name = os.path.basename(sf_dir) # extracts "subfamily_X"
-    full_cov_path = os.path.join(calc_dir, sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
+    full_cov_path = os.path.join(sf_dir, "local_calculations", f"{sf_name}_global_H0_PCA_cov_mat.csv")
     
     child1_path = os.path.join(folder_path, f"calculations/embedding_cov_{split_name}_subA.csv")
     child2_path = os.path.join(folder_path, f"calculations/embedding_cov_{split_name}_subB.csv")
