@@ -548,7 +548,7 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         final_p_dims[f"subfamily_{sf_idx}"] = p_current
         print(f"   -> Local dimension reduced to {p_current}")
 
-        f_embeddings_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_embeddings.pt")
+        sf_embeddings_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_embeddings.pt")
         torch.save({'embeddings': X_sf.cpu(), 'file_names': sf_leaves}, sf_embeddings_path)
         print(f"   -> Saved local embeddings to {sf_embeddings_path}")
         
