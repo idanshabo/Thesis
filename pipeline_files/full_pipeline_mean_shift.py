@@ -192,7 +192,7 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
         
         # FIX: Point to the cropped local assets in calc_dir, NOT out_mode_dir
         sf_idx = sf_folder.split("_")[1]
-        calc_sf_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
+        calc_sf_dir = os.path.join(sf_dir, "local_calculations")
         local_fasta_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}.fasta")
         local_cov_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
         
@@ -255,7 +255,7 @@ def main():
 
     # Initialize Tracker ONCE per run. 
     # If the JSON exists from a previous step (like preprocess), it should load it and append to it.
-    tracker_path = os.path.join(out_dir, "pipeline_metadata.json")
+    tracker_path = os.path.join(out_mode_dir, "pipeline_metadata.json")
     tracker = MetadataTracker(tracker_path)
     tracker.add_stat("pipeline_stats", "family_name", args.family)
     tracker.add_stat("pipeline_stats", "embedding_mode", args.embedding)
