@@ -493,8 +493,8 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         #os.makedirs(sf_sig_dir, exist_ok=True)
         #os.makedirs(sf_non_sig_dir, exist_ok=True)
         
-        # --> CALCULATION DIR (for .fasta, .tree, and .csv matrices)
-        calc_sf_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
+        # --> CALCULATION DIR (Isolated per embedding to prevent overwrites)
+        calc_sf_dir = os.path.join(output_path, f"subfamily_{sf_idx}", "local_calculations")
         os.makedirs(calc_sf_dir, exist_ok=True)
         
         # 2. Extract and Save Local Assets
