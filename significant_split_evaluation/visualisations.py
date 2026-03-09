@@ -344,11 +344,14 @@ def visualize_embeddings_pca(embeddings_path, split_info, output_plot="pca_split
     X = np.array(filtered_embeddings)
     y = np.array(labels)
     
-    print(f"Performing PCA on {len(X)} matched proteins...")
+    print(f"Extracting top 2 pPCA dimensions for {len(X)} matched proteins...")
     
-    # Perform PCA
-    pca = PCA(n_components=2)
-    X_pca = pca.fit_transform(X)
+    if X.shape[1] < 2:
+        print("Warning: Embeddings have less than 2 dimensions. Cannot plot 2D pPCA.")
+        return
+        
+    # Since X is already processed by PhylogeneticPCA, the first two columns are our top components
+    X_pca = X[:, :2]
     
     # Plotting
     plt.figure(figsize=(8, 8))
@@ -364,9 +367,11 @@ def visualize_embeddings_pca(embeddings_path, split_info, output_plot="pca_split
                 c='blue', alpha=0.7, s=50, label=f"Group B (n={len(idx_b[0])})")
     
     # Cosmetics
-    plt.title(f"PCA of Protein Embeddings (Split Support: {split_info['support']})")
-    plt.xlabel(f"PC1 ({pca.explained_variance_ratio_[0]:.2%} variance)")
-    plt.ylabel(f"PC2 ({pca.explained_variance_ratio_[1]:.2%} variance)")
+    # (Removed the support text from the title since you removed it from the split logic)
+    node_name = split_info.get('node_name', 'Unknown Node')
+    plt.title(f"Phylogenetic PCA of Embeddings: {node_name}")
+    plt.xlabel("pPCA Dimension 1")
+    plt.ylabel("pPCA Dimension 2")
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.legend()
     
