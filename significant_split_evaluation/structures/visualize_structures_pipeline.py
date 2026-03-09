@@ -211,7 +211,7 @@ def plot_experimental_grouped_tm(df_tm, group_a_pdbs, group_b_pdbs, output_path)
     plt.close()
     print(f"Saved Experimental Group Plot: {output_path}")
 
-def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path):
+def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path, ss_predictor="netsurfp"):
     """ Main Pipeline. """
     base_output = os.path.join(os.path.dirname(fasta_path), 'structures')
     dir_predicted = os.path.join(base_output, 'predicted_esm')
@@ -246,7 +246,7 @@ def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, orde
 
     # 2. LOGOS (Calculate raw consensus over the full groups)
     logo_path = os.path.join(sig_split_folder, "comparative_sequence_logos.png")
-    generate_comparative_logos(records, valid_a, valid_b, dir_predicted, logo_path, highlight_threshold=0.8)
+    generate_comparative_logos(records, valid_a, valid_b, dir_predicted, logo_path, highlight_threshold=0.8, ss_predictor=ss_predictor)
     
     print("Calculating TM Matrix (Predicted)...")
     df_pred, stats_pred, split_pred = calculate_tm_matrix(sample_a, sample_b, dir_predicted)
