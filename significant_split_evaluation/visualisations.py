@@ -492,6 +492,10 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
         cov_global = pd.read_csv(full_cov_path, index_col=0)
         cov_a = pd.read_csv(child_a_path, index_col=0)
         cov_b = pd.read_csv(child_b_path, index_col=0)
+        
+        cov_global = cov_global.dropna(axis=1, how='all').dropna(axis=0, how='all')
+        cov_a = cov_a.dropna(axis=1, how='all').dropna(axis=0, how='all')
+        cov_b = cov_b.dropna(axis=1, how='all').dropna(axis=0, how='all')
     except Exception as e:
         print(f"Error loading embedding covariance matrices: {e}")
         return
@@ -516,7 +520,7 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
         cov_a_sub.values.flatten(), 
         cov_b_sub.values.flatten()
     ])
-    robust_max = np.percentile(np.abs(all_values), 98)
+    robust_max = np.nanpercentile(np.abs(all_values), 98)
     
     # SymLogNorm handles extreme diagonals while preserving subtle off-diagonal signals
     norm = mcolors.SymLogNorm(linthresh=0.01, linscale=1.0, vmin=-robust_max, vmax=robust_max, base=10)
