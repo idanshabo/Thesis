@@ -1,6 +1,4 @@
 import os
-import time
-import requests
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -27,7 +25,7 @@ def normalize_id(identifier):
     return identifier.replace("/", "_")
 
 def get_dssp_q8_from_pdb(pdb_path):
-    """Calculates 1D secondary structure string from an ESMFold PDB using MDTraj."""
+    """Calculates 1D secondary structure string from a PDB using MDTraj."""
     try:
         traj = md.load(pdb_path)
         ss_array = md.compute_dssp(traj, simplified=False)[0]
@@ -40,52 +38,10 @@ def get_dssp_q8_from_pdb(pdb_path):
         print(f"    [MDTraj Warning] Failed for {pdb_path}: {e}")
         return None
 
-def get_netsurfp3_q8_from_sequence(sequence, seq_id, cache_dir="ss_cache", timeout=120):
-    """Predicts Q8 secondary structure from sequence via API and caches the result."""
-    os.makedirs(cache_dir, exist_ok=True)
-    cache_path = os.path.join(cache_dir, f"{seq_id}.ss")
-    
-    if os.path.exists(cache_path):
-        with open(cache_path, 'r') as f:
-            return f.read().strip()
-
-    submit_url = "https://services.healthtech.dtu.dk/cgi-bin/webface2.fcgi"
-    payload = {
-        'configfile': '/var/www/html/services/NetSurfP-3.0/webface.cf',
-        'SEQPASTE': f">{seq_id}\n{sequence}"
-    }
-    
-    try:
-        submit_res = requests.post(submit_url, data=payload, timeout=30)
-        submit_res.raise_for_status()
-        if 'jobid=' not in submit_res.url: return None
-            
-        job_id = submit_res.url.split('jobid=')[1].split('&')[0]
-        result_url = f"https://services.healthtech.dtu.dk/cgi-bin/webface2.fcgi?jobid={job_id}&wait=20"
-        json_url = f"https://services.healthtech.dtu.dk/services/NetSurfP-3.0/tmp/{job_id}/results.json"
-
-        start_time = time.time()
-        while time.time() - start_time < timeout:
-            requests.get(result_url, timeout=10)
-            json_check = requests.get(json_url, timeout=10)
-            
-            if json_check.status_code == 200:
-                data = json_check.json()
-                q8_string = "".join([residue['q8'] for residue in data[seq_id]['seq']])
-                with open(cache_path, 'w') as f:
-                    f.write(q8_string)
-                return q8_string
-            time.sleep(5) 
-        return None
-    except Exception as e:
-        print(f"    [NetSurfP Error] API call failed for {seq_id}: {e}")
-        return None
-
-
-def get_consensus_structure(aligned_sequences, seq_ids, dir_predicted, ss_predictor="netsurfp"):
+def get_consensus_structure(aligned_sequences, seq_ids, dir_predicted):
     """
     Calculates the raw, unfiltered column-by-column majority vote 
-    for the secondary structure of the group.
+    for the secondary structure of the group based on ESMFold 3D coords.
     """
     aligned_ss_strings = []
     
@@ -94,16 +50,10 @@ def get_consensus_structure(aligned_sequences, seq_ids, dir_predicted, ss_predic
         if not ungapped:
             continue
             
+        pdb_path = os.path.join(dir_predicted, f"{normalize_id(seq_id)}.pdb")
         ss_ungapped = None
-        
-        # --- TOGGLE LOGIC ---
-        if ss_predictor == "esmfold":
-            pdb_path = os.path.join(dir_predicted, f"{normalize_id(seq_id)}.pdb")
-            if os.path.exists(pdb_path):
-                ss_ungapped = get_dssp_q8_from_pdb(pdb_path)
-        else:
-            # Default to netsurfp
-            ss_ungapped = get_netsurfp3_q8_from_sequence(ungapped, normalize_id(seq_id))
+        if os.path.exists(pdb_path):
+            ss_ungapped = get_dssp_q8_from_pdb(pdb_path)
             
         if not ss_ungapped or len(ss_ungapped) != len(ungapped):
             continue
@@ -207,7 +157,7 @@ def align_matrices(df1, df2):
     all_chars = sorted(list(set(df1.columns) | set(df2.columns)))
     return df1.reindex(columns=all_chars, fill_value=0), df2.reindex(columns=all_chars, fill_value=0)
 
-def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted, output_path, highlight_threshold=0.6, ss_predictor="netsurfp"):
+def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted, output_path, highlight_threshold=0.6):
     print("\n--- Generating Comparative Sequence Logos with Raw Consensus SS ---")
     seq_map = {}
     for r in records:
@@ -248,8 +198,8 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
         divergent_positions = diff_score[diff_score > highlight_threshold].index.tolist()
 
         # Get Raw Consensus and structure count
-        ss_cons_a, num_a = get_consensus_structure(seqs_a, valid_ids_a, dir_predicted, ss_predictor)
-        ss_cons_b, num_b = get_consensus_structure(seqs_b, valid_ids_b, dir_predicted, ss_predictor)
+        ss_cons_a, num_a = get_consensus_structure(seqs_a, valid_ids_a, dir_predicted)
+        ss_cons_b, num_b = get_consensus_structure(seqs_b, valid_ids_b, dir_predicted)
 
         fig = plt.figure(figsize=(15, 8))
         gs = gridspec.GridSpec(4, 1, height_ratios=[4, 0.5, 4, 0.5], hspace=0.3)
