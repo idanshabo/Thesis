@@ -211,7 +211,7 @@ def plot_experimental_grouped_tm(df_tm, group_a_pdbs, group_b_pdbs, output_path)
     plt.close()
     print(f"Saved Experimental Group Plot: {output_path}")
 
-def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path, ss_predictor="netsurfp"):
+def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path):
     """ Main Pipeline. """
     base_output = os.path.join(os.path.dirname(fasta_path), 'structures')
     dir_predicted = os.path.join(base_output, 'predicted_esm')
