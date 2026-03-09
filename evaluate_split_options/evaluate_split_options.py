@@ -362,7 +362,7 @@ class PhylogeneticPCA:
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fasta_path, k=None, 
                         pca_min_variance=None, pca_min_components=None, 
                         standardize=True, tree_alpha=0.1,
-                        anova_alpha=0.05, anova_permutations=999):
+                        anova_alpha=0.05, anova_permutations=999, existing_msa_stats=None):
     """
     Evaluates splits using a Two-Stage Procedure:
     1. Recursive Mean Shift Testing (Phylogenetic ANOVA) to find stable sub-families.
@@ -401,21 +401,61 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
     print("PHASE 2: Recursive Mean Shift Testing (Phylogenetic ANOVA)")
     print("="*40)
 
-    global_records = list(SeqIO.parse(fasta_path, "fasta"))
-    id_to_seq = {str(rec.id).replace('/', '_'): str(rec.seq) for rec in global_records}
-    for rec in global_records:
-        id_to_seq[str(rec.id)] = str(rec.seq)
+    summary_path = os.path.join(output_path, "subfamilies_summary.json")
     
-    stable_subfamilies = recursive_mean_split(
-        tree_node=tree, 
-        Y_global=emb_tensor_full, 
-        C_global=C_global, 
-        global_names=df_global_index, 
-        tree_alpha=tree_alpha,
-        anova_alpha=anova_alpha, 
-        n_permutations=anova_permutations,
-        id_to_seq=id_to_seq
-    )
+    # Automatically check for existing JSON and skip ANOVA if found
+    if os.path.exists(summary_path):
+        print(f"   -> [SKIP ACTIVE] Found {summary_path}. Bypassing ANOVA and loading existing sub-families.")
+        with open(summary_path, 'r') as f:
+            subfamilies_summary = json.load(f)
+            
+        stable_subfamilies = []
+        for sf_name, leaves in subfamilies_summary.items():
+            # Prune the physical tree
+            sf_node = tree.copy()
+            sf_node.prune(leaves, preserve_branch_length=True)
+            
+            # Re-map local leaves to global tensor indices
+            indices = []
+            for leaf in leaves:
+                leaf_norm = str(leaf).replace('/', '_')
+                for i, g_leaf in enumerate(df_global_index):
+                    if str(g_leaf).replace('/', '_') == leaf_norm:
+                        indices.append(i)
+                        break
+                        
+            # Extract stats directly from the metadata tracker payload
+            sim_pct = 100.0
+            norm_branch_len = 0.0
+            if existing_msa_stats:
+                sim_pct = existing_msa_stats.get(f"{sf_name}_avg_sequence_similarity_pct", 100.0)
+                norm_branch_len = existing_msa_stats.get(f"{sf_name}_normalized_total_branch_length", 0.0)
+                
+            stable_subfamilies.append({
+                'node': sf_node,
+                'leaves': set(leaves),
+                'indices': indices,
+                'sim_pct': sim_pct,
+                'norm_branch_len': norm_branch_len
+            })
+    else:
+        # Pre-load sequences only if standard calculation path is needed
+        global_records = list(SeqIO.parse(fasta_path, "fasta"))
+        id_to_seq = {str(rec.id).replace('/', '_'): str(rec.seq) for rec in global_records}
+        for rec in global_records:
+            id_to_seq[str(rec.id)] = str(rec.seq)
+            
+        # Standard recursive calculation
+        stable_subfamilies = recursive_mean_split(
+            tree_node=tree, 
+            Y_global=emb_tensor_full, 
+            C_global=C_global, 
+            global_names=df_global_index, 
+            tree_alpha=tree_alpha,
+            anova_alpha=anova_alpha, 
+            n_permutations=anova_permutations,
+            id_to_seq=id_to_seq
+        )
     
     print(f"\n=> Divided family into {len(stable_subfamilies)} stable sub-families based on global mean shifts.")
     subfamily_stats = {}
