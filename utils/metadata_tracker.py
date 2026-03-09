@@ -3,7 +3,7 @@ import json
 import os
 import random
 from itertools import combinations
-from Bio import Phylo
+from ete3 import Tree
 
 
 class MetadataTracker:
@@ -105,15 +105,24 @@ class MetadataTracker:
         except Exception as e:
             print(f"Warning: Could not calculate sequence similarity: {e}")
 
-    def calc_and_add_tree_stats(self, tree_path):
-        """Calculates normalized branch length and adds it to metadata."""
+def calc_and_add_tree_stats(self, tree_path):
+        """Calculates normalized branch length using ete3 to match recursive logic."""
         try:
-            tree = Phylo.read(tree_path, "newick")
-            total_length = tree.total_branch_length()
-            num_terminals = len(tree.get_terminals())
+            # Load the tree robustly (matching the logic in evaluate_split_options)
+            try:
+                tree = Tree(tree_path, format=1)
+            except Exception:
+                tree = Tree(tree_path, format=0)
+                
+            leaves = tree.get_leaf_names()
+            
+            # Sum all branch distances except the root (matching recursive_tree_traversal)
+            total_length = sum([n.dist for n in tree.traverse() if n != tree])
+            num_terminals = len(leaves)
             
             if num_terminals > 0:
-                norm_len = total_length / num_terminals
+                norm_len = total_length / max(num_terminals, 1)
                 self.add_stat("msa_stats", "normalized_total_branch_length", round(norm_len, 4))
+                
         except Exception as e:
-            print(f"Warning: Could not calculate normalized branch length: {e}")
+            print(f"Warning: Could not calculate normalized branch length using ete3: {e}")
