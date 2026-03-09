@@ -1,5 +1,6 @@
 import os
 import json
+import torch
 from Bio import SeqIO
 import numpy as np
 import matplotlib.pyplot as plt
