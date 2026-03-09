@@ -195,6 +195,7 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
         calc_sf_dir = os.path.join(sf_dir, "local_calculations")
         local_fasta_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}.fasta")
         local_cov_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
+        local_emb_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_embeddings.pt")
         
         if os.path.exists(sig_splits_path):
             splits = [d for d in os.listdir(sig_splits_path) if os.path.isdir(os.path.join(sig_splits_path, d))]
