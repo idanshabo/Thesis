@@ -246,26 +246,26 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
                 seqs.append(id_to_seq[str(leaf)])
 
         if len(seqs) >= 2:
-            n_seqs = len(seqs)
+            pairs = list(combinations(range(len(seqs)), 2))
+            if len(pairs) > 500:  # Cap for speed during deep recursion
+                pairs = random.sample(pairs, 500)
             
-            # 100% identical sampling logic to metadata_tracker.py
-            if n_seqs <= 500:
-                pairs = list(combinations(seqs, 2))
-            else:
-                pairs = []
-                for _ in range(10000):
-                    i, j = random.sample(range(n_seqs), 2)
-                    pairs.append((seqs[i], seqs[j]))
-
             total_sim = 0
-            for seq1, seq2 in pairs:
-                min_len = min(len(seq1), len(seq2))
-                if min_len == 0:
+            for i, j in pairs:
+                s1, s2 = seqs[i], seqs[j]
+                
+                # Get lengths without gaps
+                len1 = len(s1.replace('-', ''))
+                len2 = len(s2.replace('-', ''))
+                denom = min(len1, len2)
+                
+                if denom == 0:
                     continue
-                # Ignore gap-to-gap matches
-                matches = sum(1 for a, b in zip(seq1, seq2) if a == b and a != '-')
-                total_sim += (matches / min_len) * 100
-
+                
+                # Count column-by-column matches, ignoring gap-to-gap
+                matches = sum(1 for a, b in zip(s1, s2) if a == b and a != '-')
+                total_sim += (matches / denom) * 100.0
+                
             sim_pct = total_sim / len(pairs) if pairs else 0.0
 
         print(f"      sequence similarity is {sim_pct:.2f}%")
