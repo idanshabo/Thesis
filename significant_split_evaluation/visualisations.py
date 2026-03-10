@@ -285,7 +285,7 @@ def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
         ax.tick_params(axis='y', length=0) # Hide tick marks
 
     ax.set_xlabel("Alignment Position")
-    ax.set_title(f"Re-ordered MSA View: {split_info.get('node_name', 'Split')} (n={num_seqs})")
+    ax.set_title(f"Re-ordered MSA View (n={num_seqs})")
 
     output_plot = os.path.join(sig_split_folder, "ordered_split_MSA.png")
     
@@ -452,9 +452,7 @@ def visualize_embeddings_pca(embeddings_path, split_info, output_plot="pca_split
                 c='blue', alpha=0.7, s=50, label=f"Group B (n={len(idx_b[0])})")
     
     # Cosmetics
-    # (Removed the support text from the title since you removed it from the split logic)
-    node_name = split_info.get('node_name', 'Unknown Node')
-    plt.title(f"Phylogenetic PCA of Embeddings: {node_name}")
+    plt.title(f"Phylogenetic PCA of Embeddings")
     plt.xlabel("pPCA Dimension 1")
     plt.ylabel("pPCA Dimension 2")
     plt.grid(True, linestyle='--', alpha=0.5)
@@ -543,10 +541,9 @@ def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder):
                     ha='right', va='center', fontsize=11, fontweight='bold')
 
     # 5. Titles and Save
-    node_name = split_info.get('node_name', 'Unknown Node')
     rank = split_info.get('rank', 'Unknown Rank')
     
-    plt.title(f'Covariance Structure: {node_name}\n(Rank: {rank})', fontsize=14, pad=30)
+    plt.title(f'Covariance Structure\n(Rank: {rank})', fontsize=14, pad=30)
     
     # Save   
     output_path = os.path.join(sig_split_folder, "covariance_with_split_lines.png")
