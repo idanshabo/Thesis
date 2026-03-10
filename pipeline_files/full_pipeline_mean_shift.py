@@ -133,6 +133,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     cov_ordered_path = order_covariance_matrix_by_tree(cov_path, tree_path)
     
     emb_out_dir = os.path.join(calc_dir, f'embeddings_{args.embedding}')
+    calc_mode_dir = os.path.join(calc_dir, f"{args.embedding}_embeddings_subfamilies")
     norm_emb_path = create_normalized_mean_embeddings_matrix(fasta_path, mode=args.embedding, output_path=emb_out_dir)
     tracker.stop_timer()
 
@@ -140,7 +141,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
     results, raw_splits_count, unique_splits_count, final_p_dim, sf_stats = evaluate_top_splits(
         tree_path, cov_ordered_path, norm_emb_path, 
         output_path=out_mode_dir, 
-        calc_dir=calc_dir,
+        calc_dir=calc_mode_dir,
         fasta_path=fasta_path,
         k=args.nodes, 
         pca_min_variance=args.pca_var, 
@@ -192,6 +193,7 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
     
     # --- VISUALIZATION 2: Local Micro View (Covariance Splits) ---
     total_sig_count = 0
+    calc_mode_dir = os.path.join(calc_dir, f"{args.embedding}_embeddings_subfamilies")
     
     for sf_folder in os.listdir(out_mode_dir):
         if not sf_folder.startswith("subfamily_"):
@@ -202,7 +204,7 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
         
         # FIX: Point to the cropped local assets in calc_dir, NOT out_mode_dir
         sf_idx = sf_folder.split("_")[1]
-        calc_sf_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
+        calc_sf_dir = os.path.join(calc_mode_dir, f"subfamily_{sf_idx}")
         local_fasta_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}.fasta")
         local_cov_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
         local_emb_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_embeddings.pt")
