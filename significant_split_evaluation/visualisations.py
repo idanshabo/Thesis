@@ -572,8 +572,8 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
     sf_name = os.path.basename(sf_dir)
     embed_name = os.path.basename(embed_dir)
     
-    # --- CHANGED: Insert embed_name into the path ---
-    full_cov_path = os.path.join(calc_dir, embed_name, sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
+    # --- Insert embed_name into the path ---
+    full_cov_path = os.path.join(calc_dir, f"{embed_name}_subfamilies", sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
     
     child_a_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subA.csv")
     child_b_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subB.csv")
@@ -690,7 +690,7 @@ def run_variance_analysis(folder_path):
     embed_name = os.path.basename(embed_dir)
     
     # Insert embed_name into the path ---
-    full_cov_path = os.path.join(calc_dir, embed_name, sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
+    full_cov_path = os.path.join(calc_dir, f"{embed_name}_subfamilies", sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
     
     child1_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subA.csv")
     child2_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subB.csv")
