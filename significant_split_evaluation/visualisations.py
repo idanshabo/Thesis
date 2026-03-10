@@ -636,8 +636,7 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
     axes[2].set_title(f"Group B\np=Top {k}\nDistance from H0: {dist_b:.1f}", fontsize=14)
 
     # Main Title
-    node_name = split_info.get('node_name', 'Unknown Node')
-    plt.suptitle(f"Embedding Feature Covariances (Top {k} pPCA Dimensions): {node_name}", fontsize=16, y=1.05)
+    plt.suptitle(f"Embedding Feature Covariances (Top {k} pPCA Dimensions)", fontsize=16, y=1.05)
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
