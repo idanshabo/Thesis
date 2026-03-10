@@ -314,5 +314,4 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
     else:
         print(f"      [=] Clade of {len(current_leaves_list)} sequences is stable (No splits survived FDR correction).")
         return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices, 
-                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len,
-                 'split_history': split_history}]
+                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len, 'split_history': split_history}]
