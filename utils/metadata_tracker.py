@@ -105,7 +105,7 @@ class MetadataTracker:
         except Exception as e:
             print(f"Warning: Could not calculate sequence similarity: {e}")
 
-def calc_and_add_tree_stats(self, tree_path):
+    def calc_and_add_tree_stats(self, tree_path):
         """Calculates normalized branch length using ete3 to match recursive logic."""
         try:
             # Load the tree robustly (matching the logic in evaluate_split_options)
