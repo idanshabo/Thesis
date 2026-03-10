@@ -144,7 +144,6 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
         fasta_path=fasta_path,
         k=args.nodes, 
         pca_min_variance=args.pca_var, 
-        pca_min_components=args.pca_comp, 
         standardize=args.standardize,
         tree_alpha=args.alpha,
         existing_msa_stats=tracker.metadata.get("msa_stats", {})
@@ -250,8 +249,7 @@ def main():
     # Parameters
     parser.add_argument('--embedding', type=str, default="sequence", help="Embedding mode (e.g., sequence, structure)")
     parser.add_argument('--nodes', type=int, default=None, help="Number of nodes to evaluate")
-    parser.add_argument('--pca_comp', type=int, default=None, help="PCA minimum components, if not entered and --pca_var not entered - no ppca is calculated")
-    parser.add_argument('--pca_var', type=float, default=None, help="PCA minimum variance, if not entered and --pca_comp not entered - no ppca is calculated")
+    parser.add_argument('--pca_var', type=float, default=None, help="PCA minimum variance, if not entered - no ppca is calculated")
     parser.add_argument('--standardize', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Standardize data")
     parser.add_argument('--generate_plots', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Generate plots during visualization")
     parser.add_argument('--alpha', type=float, default=0.10, help="Minimum branch size & redundancy overlap threshold (e.g., 0.10 for 10%)")
