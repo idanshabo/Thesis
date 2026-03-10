@@ -213,11 +213,30 @@ def plot_experimental_grouped_tm(df_tm, group_a_pdbs, group_b_pdbs, output_path)
 
 def visualize_structures_pipeline(fasta_path, split_data, sig_split_folder, ordered_cov_path):
     """ Main Pipeline. """
-    base_output = os.path.join(os.path.dirname(fasta_path), 'structures')
+    # Step up TWO levels to bypass the embedding folder
+    local_dir = os.path.dirname(fasta_path)            # e.g., subfamily_1
+    embedding_dir = os.path.dirname(local_dir)         # e.g., sequence_embeddings
+    parent_calc_dir = os.path.dirname(embedding_dir)   # e.g., pf00228_calculations
+    
+    # Define potential paths (Global sits at the top calculation level)
+    global_structures = os.path.join(parent_calc_dir, 'structures')
+    
+    # Prioritize the global structures folder to reuse previously fetched/predicted PDBs
+    if os.path.isdir(global_structures):
+        base_output = global_structures
+        print(f"\n=== Running Structural Pipeline (Reusing Global Structures: {base_output}) ===")
+    else:
+        # We default to global anyway so future runs centralize their PDBs
+        base_output = global_structures 
+        print(f"\n=== Running Structural Pipeline (Centralizing Structures: {base_output}) ===")
+        
     dir_predicted = os.path.join(base_output, 'predicted_esm')
     dir_experimental = os.path.join(base_output, 'experimental_pdb')
+    
+    # Ensure directories exist so the rest of the script doesn't throw errors
+    os.makedirs(dir_predicted, exist_ok=True)
+    os.makedirs(dir_experimental, exist_ok=True)
 
-    print("\n=== Running Structural Pipeline ===")
     try: records = list(SeqIO.parse(fasta_path, "fasta"))
     except FileNotFoundError: return
 

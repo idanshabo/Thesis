@@ -560,7 +560,7 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
     split_name = os.path.basename(folder_path)
     sig_splits_dir = os.path.dirname(folder_path)
     sf_dir = os.path.dirname(sig_splits_dir) 
-    embed_dir = os.path.dirname(sf_dir)
+    embed_dir = os.path.dirname(sf_dir)  # e.g., 'sequence_embeddings'
     protein_outputs_dir = os.path.dirname(embed_dir)
     
     dir_name = os.path.basename(protein_outputs_dir)
@@ -570,7 +570,11 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
     calc_dir = os.path.join(protein_data_root, f"{protein_id}_calculations")
     
     sf_name = os.path.basename(sf_dir)
-    full_cov_path = os.path.join(calc_dir, sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
+    embed_name = os.path.basename(embed_dir)
+    
+    # --- Insert embed_name into the path ---
+    full_cov_path = os.path.join(calc_dir, f"{embed_name}_subfamilies", sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
+    
     child_a_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subA.csv")
     child_b_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subB.csv")
     output_path = os.path.join(folder_path, "embedding_covariances_comparison.png")
@@ -589,7 +593,6 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
         return
 
     # --- IMPROVEMENT 1: Zoom in on Active Variance ---
-    # Crop to the top 50 components (or fewer if the matrix is smaller)
     k_max = 50
     k = min(k_max, cov_global.shape[0])
     
@@ -598,7 +601,6 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
     cov_b_sub = cov_b.iloc[:k, :k]
 
     # --- IMPROVEMENT 2: Calculate Frobenius Distance ---
-    # Calculate how far each group's covariance structure drifted from the global average
     dist_a = np.linalg.norm(cov_a_sub.values - cov_global_sub.values, 'fro')
     dist_b = np.linalg.norm(cov_b_sub.values - cov_global_sub.values, 'fro')
 
@@ -610,29 +612,24 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
     ])
     robust_max = np.nanpercentile(np.abs(all_values), 98)
     
-    # SymLogNorm handles extreme diagonals while preserving subtle off-diagonal signals
     norm = mcolors.SymLogNorm(linthresh=0.01, linscale=1.0, vmin=-robust_max, vmax=robust_max, base=10)
     cmap = 'RdBu_r' 
 
     # --- 4. Plotting ---
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     
-    # Global Plot
     sns.heatmap(cov_global_sub, cmap=cmap, norm=norm, square=True, ax=axes[0], 
                 cbar=False, xticklabels=False, yticklabels=False)
     axes[0].set_title(f"Global (H0)\np=Top {k}", fontsize=14)
     
-    # Group A Plot
     sns.heatmap(cov_a_sub, cmap=cmap, norm=norm, square=True, ax=axes[1], 
                 cbar=False, xticklabels=False, yticklabels=False)
     axes[1].set_title(f"Group A\np=Top {k}\nDistance from H0: {dist_a:.1f}", fontsize=14)
     
-    # Group B Plot
     sns.heatmap(cov_b_sub, cmap=cmap, norm=norm, square=True, ax=axes[2], 
                 cbar=True, xticklabels=False, yticklabels=False)
     axes[2].set_title(f"Group B\np=Top {k}\nDistance from H0: {dist_b:.1f}", fontsize=14)
 
-    # Main Title
     plt.suptitle(f"Embedding Feature Covariances (Top {k} pPCA Dimensions)", fontsize=16, y=1.05)
     
     plt.tight_layout()
@@ -673,47 +670,37 @@ def run_variance_analysis(folder_path):
     Automatically deduces paths based on the specific folder structure provided.
     """
     # --- 1. Path Deduction ---
-    # Extract Split Name (e.g., "rank5") directly from the folder name
     split_name = os.path.basename(folder_path)
 
-    # Navigate up to find the Protein Output directory
-    # Current: .../{pf}_outputs/splits_evaluations/significant_splits/{split}
     sig_splits_dir = os.path.dirname(folder_path)
-    protein_outputs_dir = os.path.dirname(os.path.dirname(sig_splits_dir)) # This ends in {pf}_outputs
-
     sf_dir = os.path.dirname(sig_splits_dir) 
     embed_dir = os.path.dirname(sf_dir)
     protein_outputs_dir = os.path.dirname(embed_dir)
     
-    # Extract Protein ID by stripping "_outputs"
-    # e.g., "PF07361_outputs" -> "PF07361"
     dir_name = os.path.basename(protein_outputs_dir)
     protein_id = dir_name.replace("_outputs", "")
     
     print(f"Detected Protein ID: {protein_id}")
     print(f"Detected Split Name: {split_name}")
 
-    # Navigate to the parallel 'calculations' directory
-    # Root is one level up from protein_outputs_dir
     protein_data_root = os.path.dirname(protein_outputs_dir)
     calc_dir = os.path.join(protein_data_root, f"{protein_id}_calculations")
     
-    # Define Full File Paths
-    sf_name = os.path.basename(sf_dir) # extracts "subfamily_X"
-    full_cov_path = os.path.join(calc_dir, sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
+    sf_name = os.path.basename(sf_dir) 
+    embed_name = os.path.basename(embed_dir)
     
-    child1_path = os.path.join(folder_path, f"calculations/embedding_cov_{split_name}_subA.csv")
-    child2_path = os.path.join(folder_path, f"calculations/embedding_cov_{split_name}_subB.csv")
+    # Insert embed_name into the path ---
+    full_cov_path = os.path.join(calc_dir, f"{embed_name}_subfamilies", sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
     
-    # Visualization Output
+    child1_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subA.csv")
+    child2_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subB.csv")
+    
     output_path = os.path.join(folder_path, "variance_spectrum.png")
-
-    print(f"Global Cov Path: {full_cov_path}")
-    print(f"Child A Path:    {child1_path}")
 
     # --- 2. Setup & Load ---
     if not os.path.exists(full_cov_path):
-        raise FileNotFoundError(f"Could not find global matrix at: {full_cov_path}")
+        print(f"Warning: Could not find global matrix at: {full_cov_path}")
+        return
 
     full_cov = load_matrix(full_cov_path)
     child1_cov = load_matrix(child1_path)
@@ -734,6 +721,4 @@ def run_variance_analysis(folder_path):
 
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.close(fig) 
-    
-    print(f"Saved plot to: {output_path}")
+    plt.close(fig)

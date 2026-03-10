@@ -48,7 +48,6 @@ Use the `%cd` command to ensure Python finds the utility modules, then execute t
   --operation "full" \
   --embedding "structure" \
   --nodes 3 \
-  --pca_comp 100 \
   --pca_var 0.99 \
   --standardize "TRUE" \
   --generate_plots "TRUE"
@@ -96,7 +95,6 @@ PYTHONPATH=. python pipeline_files/full_pipeline.py \
 | `--operation` | **(Required)** Which part of the pipeline to execute. | `preprocess`, `find_best_split`, `visualize`, `full` |
 | `--embedding` | Type of ESM embedding to generate/use. | `sequence`, `structure` (Default: `sequence`) |
 | `--nodes` | Number of top splits to evaluate. | *Integer* |
-| `--pca_comp` | Minimum components for phylogenetic PCA. | *Integer* (Skip pPCA if not provided) |
 | `--pca_var` | Minimum variance for phylogenetic PCA. | *Float* (Skip pPCA if not provided) |
 | `--standardize`| Apply standardization to data. | `TRUE`, `FALSE` (Default: `TRUE`) |
 | `--generate_plots`| Generate visual outputs during the visualize step. | `TRUE`, `FALSE` (Default: `TRUE`) |
