@@ -39,7 +39,10 @@ def plot_global_subfamilies(global_cov_ordered_path, subfamilies_json_path, outp
     # Find boundaries for each subfamily based on the tree-ordered index
     ordered_ids = list(df_cov.index)
     
-    for sf_name, leaves in subfamilies_dict.items():
+    for sf_name, data in subfamilies_dict.items():
+        # Handle the new nested dictionary format (while keeping old runs safe)
+        leaves = data.get("leaves", []) if isinstance(data, dict) else data
+        
         # Clean leaves to match index format
         clean_leaves = {str(leaf).replace("/", "_") for leaf in leaves}
         
@@ -85,7 +88,10 @@ def plot_global_mean_shift_ppca(global_embeddings_path, global_cov_path, subfami
         subfamilies_dict = json.load(f)
         
     id_to_subfamily = {}
-    for sf_name, leaves in subfamilies_dict.items():
+    for sf_name, data in subfamilies_dict.items():
+        # Handle the new nested dictionary format
+        leaves = data.get("leaves", []) if isinstance(data, dict) else data
+        
         for leaf in leaves:
             clean_leaf = str(leaf).replace('/', '_')
             id_to_subfamily[clean_leaf] = sf_name
