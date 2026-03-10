@@ -172,14 +172,24 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
         
     print(f"--- Running Visualizations for {args.family} ---")
     tracker.start_timer("Visualization_and_Analysis")
-    
+
     # --- VISUALIZATION 1: Global Macro View (Mean Shifts) ---
     subfamilies_summary_path = os.path.join(out_mode_dir, "subfamilies_summary.json")
     try:
-        from significant_split_evaluation.visualisations import plot_global_subfamilies
+        from significant_split_evaluation.visualisations import plot_global_subfamilies, plot_global_mean_shift_ppca
         plot_global_subfamilies(cov_ordered_path_global, subfamilies_summary_path, out_mode_dir)
+        
+        # Plot Global Phylogenetic PCA colored by mean-shift subfamilies
+        aligned_global_emb_path = os.path.join(calc_dir, "aligned_global_embeddings.pt")
+        plot_global_mean_shift_ppca(
+            global_embeddings_path=aligned_global_emb_path, 
+            global_cov_path=cov_ordered_path_global, 
+            subfamilies_json_path=subfamilies_summary_path, 
+            output_dir=out_mode_dir
+        )
+        
     except Exception as e:
-        print(f"Warning: Could not plot global subfamilies: {e}")
+        print(f"Warning: Could not plot global visualizations: {e}")
     
     # --- VISUALIZATION 2: Local Micro View (Covariance Splits) ---
     total_sig_count = 0
