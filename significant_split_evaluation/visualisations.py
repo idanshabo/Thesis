@@ -13,6 +13,7 @@ from scipy.spatial.distance import pdist
 from matplotlib.patches import Rectangle
 import matplotlib.colors as mcolors
 from itertools import groupby
+from evaluate_split_options.evaluate_split_options import PhylogeneticPCA
 
 def plot_global_subfamilies(global_cov_ordered_path, subfamilies_json_path, output_dir):
     """
@@ -69,6 +70,84 @@ def plot_global_subfamilies(global_cov_ordered_path, subfamilies_json_path, outp
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"Global sub-families plot saved to: {output_path}")
+
+def plot_global_mean_shift_ppca(global_embeddings_path, global_cov_path, subfamilies_json_path, output_dir):
+    """
+    Plots the global embeddings in 2D Phylogenetic PCA (pPCA) space, 
+    coloring each point by its assigned stable mean-shift sub-family.
+    """  
+    if not os.path.exists(global_embeddings_path) or not os.path.exists(subfamilies_json_path):
+        print("Missing files for global mean-shift pPCA. Skipping.")
+        return
+
+    # 1. Load sub-family assignments
+    with open(subfamilies_json_path, 'r') as f:
+        subfamilies_dict = json.load(f)
+        
+    id_to_subfamily = {}
+    for sf_name, leaves in subfamilies_dict.items():
+        for leaf in leaves:
+            clean_leaf = str(leaf).replace('/', '_')
+            id_to_subfamily[clean_leaf] = sf_name
+
+    # 2. Load aligned global embeddings
+    try:
+        data = torch.load(global_embeddings_path, map_location='cpu')
+        embeddings_array = data['embeddings'].cpu().numpy() if hasattr(data['embeddings'], 'cpu') else np.array(data['embeddings'])
+        protein_names = data.get('file_names') or data.get('names') or data.get('ids')
+    except Exception as e:
+        print(f"Error loading global embeddings: {e}")
+        return
+        
+    # 3. Load global covariance matrix (Must align with embeddings!)
+    try:
+        df_cov = pd.read_csv(global_cov_path, index_col=0)
+        cov_matrix = df_cov.values
+    except Exception as e:
+        print(f"Error loading global covariance matrix: {e}")
+        return
+
+    # 4. Assign labels
+    labels = []
+    for name in protein_names:
+        clean_name = str(name).replace('/', '_')
+        labels.append(id_to_subfamily.get(clean_name, "Unknown"))
+    y = np.array(labels)
+
+    # 5. Fit Phylogenetic PCA
+    print(f"Performing Global Phylogenetic PCA on {len(embeddings_array)} proteins...")
+    # Force min_components to 2 just for the 2D visualization
+    ppca = PhylogeneticPCA(min_components=2, mode='cov') 
+    ppca.fit(embeddings_array, cov_matrix)
+    
+    # Transform to pPCA space
+    X_ppca = ppca.transform(embeddings_array)
+    
+    # 6. Plotting
+    plt.figure(figsize=(10, 8))
+    unique_labels = sorted([lbl for lbl in set(y) if lbl != "Unknown"], key=lambda x: int(x.split('_')[1]) if '_' in x else x)
+    cmap = plt.get_cmap('tab10') 
+    
+    for i, label in enumerate(unique_labels):
+        idx = np.where(y == label)
+        display_name = label.replace('_', ' ').title()
+        plt.scatter(X_ppca[idx, 0], X_ppca[idx, 1], 
+                    alpha=0.8, s=50, label=f"{display_name} (n={len(idx[0])})",
+                    color=cmap(i % 10), edgecolors='w', linewidth=0.5)
+                    
+    plt.title("Global Phylogenetic PCA: Mean-Shift Sub-Families", fontsize=16)
+    plt.xlabel("pPC1", fontsize=12)
+    plt.ylabel("pPC2", fontsize=12)
+    plt.grid(True, linestyle='--', alpha=0.5)
+    
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
+    plt.tight_layout()
+    
+    # 7. Save
+    output_plot = os.path.join(output_dir, "global_mean_shift_ppca.png")
+    plt.savefig(output_plot, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"Global Mean-Shift pPCA saved to: {output_plot}")
     
 def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
     """
