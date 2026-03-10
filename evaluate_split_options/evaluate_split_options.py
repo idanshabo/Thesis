@@ -368,8 +368,7 @@ class PhylogeneticPCA:
 
 
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fasta_path, k=None, 
-                        pca_min_variance=None, pca_min_components=None, 
-                        standardize=True, tree_alpha=0.1,
+                        pca_min_variance=None, standardize=True, tree_alpha=0.1,
                         anova_alpha=0.05, anova_permutations=999, existing_msa_stats=None):
     """
     Evaluates splits using a Two-Stage Procedure:
@@ -556,9 +555,9 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         p_current = Y_local.shape[1]
         X_sf = Y_local
         
-        if pca_min_variance is not None or pca_min_components is not None:
+        if pca_min_variance is not None:
             p_mode = 'corr' if standardize else 'cov'
-            pca_sf = PhylogeneticPCA(min_variance=pca_min_variance, min_components=pca_min_components, mode=p_mode)
+            pca_sf = PhylogeneticPCA(min_variance=pca_min_variance, mode=p_mode)
             pca_sf.fit(Y_local.cpu().numpy(), U_local.cpu().numpy())
             
             X_sf = torch.from_numpy(pca_sf.transform(Y_local.cpu().numpy())).float()
