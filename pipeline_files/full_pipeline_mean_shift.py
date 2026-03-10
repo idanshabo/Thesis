@@ -150,8 +150,8 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
         existing_msa_stats=tracker.metadata.get("msa_stats", {})
     )
     
-    tracker.add_stat("pipeline_stats", "num_raw_candidate_splits", raw_splits_count)
-    tracker.add_stat("pipeline_stats", "num_unique_candidate_splits", unique_splits_count)
+    tracker.add_stat("pipeline_stats", "num_raw_candidate_splits", int(raw_splits_count))
+    tracker.add_stat("pipeline_stats", "num_unique_candidate_splits", int(unique_splits_count))
 
     for sf_name, stats in sf_stats.items():
         tracker.add_stat("msa_stats", f"{sf_name}_avg_sequence_similarity_pct", stats["avg_sequence_similarity_pct"])
@@ -159,7 +159,7 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
         tracker.add_stat("split_analysis", f"{sf_name}_history", stats["split_history"])
         
     for sf_name, dim in final_p_dim.items():
-      tracker.add_stat("pipeline_stats", f"{sf_name}_final_embedding_dim", dim)
+      tracker.add_stat("pipeline_stats", f"{sf_name}_final_embedding_dim", int(dim))
     save_results_json(results, os.path.join(out_mode_dir, "results.json"))
     tracker.stop_timer()
     print("Split finding complete.")
