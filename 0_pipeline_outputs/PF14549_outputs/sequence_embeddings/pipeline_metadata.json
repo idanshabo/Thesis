@@ -1,0 +1,70 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.99,
+        "Calculations": 471.87,
+        "Split_Evaluation": 2117.73,
+        "Visualization_and_Analysis": 147.79
+    },
+    "msa_stats": {
+        "num_sequences": 198,
+        "avg_sequence_length": 130.0,
+        "num_sequences_with_structure": 1,
+        "avg_sequence_similarity_pct": 33.01,
+        "normalized_total_branch_length": 0.6367,
+        "subfamily_1_avg_sequence_similarity_pct": 31.29,
+        "subfamily_1_normalized_total_branch_length": 0.9196,
+        "subfamily_2_avg_sequence_similarity_pct": 56.77,
+        "subfamily_2_normalized_total_branch_length": 0.2704,
+        "subfamily_3_avg_sequence_similarity_pct": 54.03,
+        "subfamily_3_normalized_total_branch_length": 0.303,
+        "subfamily_4_avg_sequence_similarity_pct": 30.52,
+        "subfamily_4_normalized_total_branch_length": 0.8994,
+        "subfamily_5_avg_sequence_similarity_pct": 35.94,
+        "subfamily_5_normalized_total_branch_length": 0.8754,
+        "subfamily_6_avg_sequence_similarity_pct": 33.37,
+        "subfamily_6_normalized_total_branch_length": 0.9775
+    },
+    "pipeline_stats": {
+        "family_name": "PF14549",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 3,
+        "num_unique_candidate_splits": 2,
+        "subfamily_1_final_embedding_dim": 19,
+        "subfamily_2_final_embedding_dim": 28,
+        "subfamily_3_final_embedding_dim": 17,
+        "subfamily_4_final_embedding_dim": 23,
+        "subfamily_5_final_embedding_dim": 27,
+        "subfamily_6_final_embedding_dim": 20,
+        "num_significant_covariance_splits": 2
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.763",
+        "subfamily_2_history": "node 0.301",
+        "subfamily_3_history": "node 0.868",
+        "subfamily_4_history": "node 0.733",
+        "subfamily_5_history": "node 0.830",
+        "subfamily_6_history": "Global Root",
+        "subfamily_2_rank1": {
+            "avg_a": 0.9718383561499487,
+            "avg_b": 0.934216579385835,
+            "avg_inter": 0.9138170153321228
+        },
+        "subfamily_2_rank2": {
+            "avg_a": 0.9394022793990932,
+            "avg_b": 0.9507335465607173,
+            "avg_inter": 0.9175331092680533
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'Bacteriophage P22 Cro protein represses genes normally expressed in early phage development and is necessary for the late stage of lytic growth.  It does this by binding to the OL and OR operator-regions normally used by the repressor protein for lysogenic maintenance.', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": true,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

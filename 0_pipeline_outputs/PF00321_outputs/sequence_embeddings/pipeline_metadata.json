@@ -1,0 +1,87 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.94,
+        "Calculations": 611.33,
+        "Split_Evaluation": 2787.72,
+        "Visualization_and_Analysis": 480.02
+    },
+    "msa_stats": {
+        "num_sequences": 335,
+        "avg_sequence_length": 102.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 44.97,
+        "normalized_total_branch_length": 0.355,
+        "subfamily_1_avg_sequence_similarity_pct": 68.18,
+        "subfamily_1_normalized_total_branch_length": 0.1079,
+        "subfamily_2_avg_sequence_similarity_pct": 50.68,
+        "subfamily_2_normalized_total_branch_length": 0.3577,
+        "subfamily_3_avg_sequence_similarity_pct": 47.64,
+        "subfamily_3_normalized_total_branch_length": 0.5409,
+        "subfamily_4_avg_sequence_similarity_pct": 91.59,
+        "subfamily_4_normalized_total_branch_length": 0.0529,
+        "subfamily_5_avg_sequence_similarity_pct": 72.04,
+        "subfamily_5_normalized_total_branch_length": 0.1913,
+        "subfamily_6_avg_sequence_similarity_pct": 62.35,
+        "subfamily_6_normalized_total_branch_length": 0.2335,
+        "subfamily_7_avg_sequence_similarity_pct": 60.49,
+        "subfamily_7_normalized_total_branch_length": 0.3785,
+        "subfamily_8_avg_sequence_similarity_pct": 33.8,
+        "subfamily_8_normalized_total_branch_length": 0.9258,
+        "subfamily_9_avg_sequence_similarity_pct": 40.9,
+        "subfamily_9_normalized_total_branch_length": 0.7172
+    },
+    "pipeline_stats": {
+        "family_name": "PF00321",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 7,
+        "num_unique_candidate_splits": 3,
+        "subfamily_1_final_embedding_dim": 24,
+        "subfamily_2_final_embedding_dim": 10,
+        "subfamily_3_final_embedding_dim": 1,
+        "subfamily_4_final_embedding_dim": 7,
+        "subfamily_5_final_embedding_dim": 2,
+        "subfamily_6_final_embedding_dim": 3,
+        "subfamily_7_final_embedding_dim": 19,
+        "subfamily_8_final_embedding_dim": 19,
+        "subfamily_9_final_embedding_dim": 19,
+        "num_significant_covariance_splits": 3
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.465",
+        "subfamily_2_history": "node 0.791",
+        "subfamily_3_history": "node 0.702",
+        "subfamily_4_history": "node 0.894",
+        "subfamily_5_history": "node 0.869",
+        "subfamily_6_history": "node 0.511",
+        "subfamily_7_history": "node 0.000",
+        "subfamily_8_history": "node 0.768",
+        "subfamily_9_history": "Global Root",
+        "subfamily_1_rank1": {
+            "avg_a": 0.8017955698416763,
+            "avg_b": 0.7971125779604123,
+            "avg_inter": 0.7303115004732103
+        },
+        "subfamily_6_rank1": {
+            "avg_a": 0.56452070902052,
+            "avg_b": 0.6133272408476086,
+            "avg_inter": 0.5010959777797875
+        },
+        "subfamily_6_rank2": {
+            "avg_a": 0.56182288744222,
+            "avg_b": 0.594135132203236,
+            "avg_inter": 0.5213429372023073
+        }
+    },
+    "family_info": {
+        "description": "No description available",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}
