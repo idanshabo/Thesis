@@ -340,6 +340,14 @@ class PhylogeneticPCA:
             
         self.final_n_components = min(final_comp, min(n, m))
         print(f"   -> pPCA selected {self.final_n_components} components.")
+        # Inside PhylogeneticPCA.fit
+        total_var = np.sum(np.maximum(eigenvalues, 0))
+        explained_variance_ratio = np.maximum(eigenvalues, 0) / total_var
+        cumsum_var = np.cumsum(explained_variance_ratio)
+        
+        # Add this to see the actual percentage kept
+        actual_kept = cumsum_var[self.final_n_components - 1] * 100
+        print(f"   -> Subfamily Rank: {n}, Kept Variance: {actual_kept:.2f}%")
         
         # Save truncated eigenvectors
         self.V = eigenvectors[:, :self.final_n_components]
