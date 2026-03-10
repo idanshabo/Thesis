@@ -203,7 +203,7 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
         
         # FIX: Point to the cropped local assets in calc_dir, NOT out_mode_dir
         sf_idx = sf_folder.split("_")[1]
-        calc_sf_dir = os.path.join(sf_dir, "local_calculations")
+        calc_sf_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
         local_fasta_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}.fasta")
         local_cov_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
         local_emb_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_embeddings.pt")
