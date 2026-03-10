@@ -195,7 +195,7 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
     Returns a list of dictionaries, each representing a stable sub-family.
     """
     if split_history is None:
-        split_history = []
+        split_history = "Global Root (No splits)"
         
     # 1. Fix the order of current leaves to ensure indices align perfectly
     current_leaves_list = list(tree_node.get_leaf_names())
@@ -297,7 +297,20 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
         print(f"          Parent Clade ({size_parent}) --> Group A ({size_A}) & Group B ({size_B})")
         print(f"          Stats: Node '{node_name}' | adj_p={best_p:.5f} (raw_p={best_split.get('raw_p', 'N/A'):.5f}), F={best_F:.2f}")
 
-        new_history = split_history + [f"node {node_name}"]
+        # 1. Find the Most Recent Common Ancestor (MRCA) for each group natively from the tree
+        mrca_A = tree_node.get_common_ancestor(*[str(l) for l in best_split['group_a']])
+        mrca_B = tree_node.get_common_ancestor(*[str(l) for l in best_split['group_b']])
+        
+        # 2. Extract the node names (if ETE3 returns an empty name, fallback to "Root")
+        parent_name_A = getattr(mrca_A, "name", "")
+        parent_name_B = getattr(mrca_B, "name", "")
+        
+        if not parent_name_A: parent_name_A = "Root" 
+        if not parent_name_B: parent_name_B = "Root"
+        
+        # 3. History is now just a single string representing the primal parent!
+        history_A = f"node {parent_name_A}"
+        history_B = f"node {parent_name_B}"
         
         # Group A
         node_A = tree_node.copy()
@@ -307,8 +320,9 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
         node_B = tree_node.copy()
         node_B.prune([str(leaf) for leaf in best_split['group_b']], preserve_branch_length=True)
         
-        stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, split_history=new_history)
-        stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, split_history=new_history)
+        # Pass the separate histories down
+        stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, split_history=history_A)
+        stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, split_history=history_B)
         return stable_A + stable_B
         
     else:
