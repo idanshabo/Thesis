@@ -144,7 +144,6 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
         fasta_path=fasta_path,
         k=args.nodes, 
         pca_min_variance=args.pca_var, 
-        pca_min_components=args.pca_comp, 
         standardize=args.standardize,
         tree_alpha=args.alpha,
         existing_msa_stats=tracker.metadata.get("msa_stats", {})
@@ -172,14 +171,24 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
         
     print(f"--- Running Visualizations for {args.family} ---")
     tracker.start_timer("Visualization_and_Analysis")
-    
+
     # --- VISUALIZATION 1: Global Macro View (Mean Shifts) ---
     subfamilies_summary_path = os.path.join(out_mode_dir, "subfamilies_summary.json")
     try:
-        from significant_split_evaluation.visualisations import plot_global_subfamilies
+        from significant_split_evaluation.visualisations import plot_global_subfamilies, plot_global_mean_shift_ppca
         plot_global_subfamilies(cov_ordered_path_global, subfamilies_summary_path, out_mode_dir)
+        
+        # Plot Global Phylogenetic PCA colored by mean-shift subfamilies
+        aligned_global_emb_path = os.path.join(calc_dir, f"embeddings_{args.embedding}", "mean_embeddings_output", "aligned_global_embeddings.pt")
+        plot_global_mean_shift_ppca(
+            global_embeddings_path=aligned_global_emb_path, 
+            global_cov_path=cov_ordered_path_global, 
+            subfamilies_json_path=subfamilies_summary_path, 
+            output_dir=out_mode_dir
+        )
+        
     except Exception as e:
-        print(f"Warning: Could not plot global subfamilies: {e}")
+        print(f"Warning: Could not plot global visualizations: {e}")
     
     # --- VISUALIZATION 2: Local Micro View (Covariance Splits) ---
     total_sig_count = 0
@@ -193,7 +202,7 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
         
         # FIX: Point to the cropped local assets in calc_dir, NOT out_mode_dir
         sf_idx = sf_folder.split("_")[1]
-        calc_sf_dir = os.path.join(sf_dir, "local_calculations")
+        calc_sf_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
         local_fasta_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}.fasta")
         local_cov_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
         local_emb_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_embeddings.pt")
@@ -240,8 +249,7 @@ def main():
     # Parameters
     parser.add_argument('--embedding', type=str, default="sequence", help="Embedding mode (e.g., sequence, structure)")
     parser.add_argument('--nodes', type=int, default=None, help="Number of nodes to evaluate")
-    parser.add_argument('--pca_comp', type=int, default=None, help="PCA minimum components, if not entered and --pca_var not entered - no ppca is calculated")
-    parser.add_argument('--pca_var', type=float, default=None, help="PCA minimum variance, if not entered and --pca_comp not entered - no ppca is calculated")
+    parser.add_argument('--pca_var', type=float, default=None, help="PCA minimum variance, if not entered - no ppca is calculated")
     parser.add_argument('--standardize', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Standardize data")
     parser.add_argument('--generate_plots', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Generate plots during visualization")
     parser.add_argument('--alpha', type=float, default=0.10, help="Minimum branch size & redundancy overlap threshold (e.g., 0.10 for 10%)")

@@ -340,6 +340,14 @@ class PhylogeneticPCA:
             
         self.final_n_components = min(final_comp, min(n, m))
         print(f"   -> pPCA selected {self.final_n_components} components.")
+        # Inside PhylogeneticPCA.fit
+        total_var = np.sum(np.maximum(eigenvalues, 0))
+        explained_variance_ratio = np.maximum(eigenvalues, 0) / total_var
+        cumsum_var = np.cumsum(explained_variance_ratio)
+        
+        # Add this to see the actual percentage kept
+        actual_kept = cumsum_var[self.final_n_components - 1] * 100
+        print(f"   -> Subfamily Rank: {n}, Kept Variance: {actual_kept:.2f}%")
         
         # Save truncated eigenvectors
         self.V = eigenvectors[:, :self.final_n_components]
@@ -360,8 +368,7 @@ class PhylogeneticPCA:
 
 
 def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fasta_path, k=None, 
-                        pca_min_variance=None, pca_min_components=None, 
-                        standardize=True, tree_alpha=0.1,
+                        pca_min_variance=None, standardize=True, tree_alpha=0.1,
                         anova_alpha=0.05, anova_permutations=999, existing_msa_stats=None):
     """
     Evaluates splits using a Two-Stage Procedure:
@@ -499,13 +506,14 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         # --> OUTPUT DIR (for results.json, plots, and significant splits)
         out_sf_dir = os.path.join(output_path, f"subfamily_{sf_idx}")
         sf_sig_dir = os.path.join(out_sf_dir, "significant_splits")
-        sf_non_sig_dir = os.path.join(out_sf_dir, "non_significant_splits")
-        #os.makedirs(sf_sig_dir, exist_ok=True)
-        #os.makedirs(sf_non_sig_dir, exist_ok=True)
         
         # --> CALCULATION DIR (Isolated per embedding to prevent overwrites)
-        calc_sf_dir = os.path.join(output_path, f"subfamily_{sf_idx}", "local_calculations")
+        # Route directly to the main calc_dir instead of the output folder
+        calc_sf_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
         os.makedirs(calc_sf_dir, exist_ok=True)
+
+        # Route non-significant splits here to keep outputs clean
+        sf_non_sig_dir = os.path.join(calc_sf_dir, "non_significant_splits")
         
         # 2. Extract and Save Local Assets
         # Save Tree
@@ -547,9 +555,9 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         p_current = Y_local.shape[1]
         X_sf = Y_local
         
-        if pca_min_variance is not None or pca_min_components is not None:
+        if pca_min_variance is not None:
             p_mode = 'corr' if standardize else 'cov'
-            pca_sf = PhylogeneticPCA(min_variance=pca_min_variance, min_components=pca_min_components, mode=p_mode)
+            pca_sf = PhylogeneticPCA(min_variance=pca_min_variance, mode=p_mode)
             pca_sf.fit(Y_local.cpu().numpy(), U_local.cpu().numpy())
             
             X_sf = torch.from_numpy(pca_sf.transform(Y_local.cpu().numpy())).float()

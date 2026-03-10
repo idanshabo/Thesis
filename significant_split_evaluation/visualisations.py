@@ -13,6 +13,7 @@ from scipy.spatial.distance import pdist
 from matplotlib.patches import Rectangle
 import matplotlib.colors as mcolors
 from itertools import groupby
+from evaluate_split_options.evaluate_split_options import PhylogeneticPCA
 
 def plot_global_subfamilies(global_cov_ordered_path, subfamilies_json_path, output_dir):
     """
@@ -38,7 +39,10 @@ def plot_global_subfamilies(global_cov_ordered_path, subfamilies_json_path, outp
     # Find boundaries for each subfamily based on the tree-ordered index
     ordered_ids = list(df_cov.index)
     
-    for sf_name, leaves in subfamilies_dict.items():
+    for sf_name, data in subfamilies_dict.items():
+        # Handle the new nested dictionary format (while keeping old runs safe)
+        leaves = data.get("leaves", []) if isinstance(data, dict) else data
+        
         # Clean leaves to match index format
         clean_leaves = {str(leaf).replace("/", "_") for leaf in leaves}
         
@@ -69,6 +73,87 @@ def plot_global_subfamilies(global_cov_ordered_path, subfamilies_json_path, outp
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f"Global sub-families plot saved to: {output_path}")
+
+def plot_global_mean_shift_ppca(global_embeddings_path, global_cov_path, subfamilies_json_path, output_dir):
+    """
+    Plots the global embeddings in 2D Phylogenetic PCA (pPCA) space, 
+    coloring each point by its assigned stable mean-shift sub-family.
+    """  
+    if not os.path.exists(global_embeddings_path) or not os.path.exists(subfamilies_json_path):
+        print("Missing files for global mean-shift pPCA. Skipping.")
+        return
+
+    # 1. Load sub-family assignments
+    with open(subfamilies_json_path, 'r') as f:
+        subfamilies_dict = json.load(f)
+        
+    id_to_subfamily = {}
+    for sf_name, data in subfamilies_dict.items():
+        # Handle the new nested dictionary format
+        leaves = data.get("leaves", []) if isinstance(data, dict) else data
+        
+        for leaf in leaves:
+            clean_leaf = str(leaf).replace('/', '_')
+            id_to_subfamily[clean_leaf] = sf_name
+
+    # 2. Load aligned global embeddings
+    try:
+        data = torch.load(global_embeddings_path, map_location='cpu')
+        embeddings_array = data['embeddings'].cpu().numpy() if hasattr(data['embeddings'], 'cpu') else np.array(data['embeddings'])
+        protein_names = data.get('file_names') or data.get('names') or data.get('ids')
+    except Exception as e:
+        print(f"Error loading global embeddings: {e}")
+        return
+        
+    # 3. Load global covariance matrix (Must align with embeddings!)
+    try:
+        df_cov = pd.read_csv(global_cov_path, index_col=0)
+        cov_matrix = df_cov.values
+    except Exception as e:
+        print(f"Error loading global covariance matrix: {e}")
+        return
+
+    # 4. Assign labels
+    labels = []
+    for name in protein_names:
+        clean_name = str(name).replace('/', '_')
+        labels.append(id_to_subfamily.get(clean_name, "Unknown"))
+    y = np.array(labels)
+
+    # 5. Fit Phylogenetic PCA
+    print(f"Performing Global Phylogenetic PCA on {len(embeddings_array)} proteins...")
+    # Force min_components to 2 just for the 2D visualization
+    ppca = PhylogeneticPCA(min_components=2, mode='cov') 
+    ppca.fit(embeddings_array, cov_matrix)
+    
+    # Transform to pPCA space
+    X_ppca = ppca.transform(embeddings_array)
+    
+    # 6. Plotting
+    plt.figure(figsize=(10, 8))
+    unique_labels = sorted([lbl for lbl in set(y) if lbl != "Unknown"], key=lambda x: int(x.split('_')[1]) if '_' in x else x)
+    cmap = plt.get_cmap('tab10') 
+    
+    for i, label in enumerate(unique_labels):
+        idx = np.where(y == label)
+        display_name = label.replace('_', ' ').title()
+        plt.scatter(X_ppca[idx, 0], X_ppca[idx, 1], 
+                    alpha=0.8, s=50, label=f"{display_name} (n={len(idx[0])})",
+                    color=cmap(i % 10), edgecolors='w', linewidth=0.5)
+                    
+    plt.title("Global Phylogenetic PCA: Mean-Shift Sub-Families", fontsize=16)
+    plt.xlabel("pPC1", fontsize=12)
+    plt.ylabel("pPC2", fontsize=12)
+    plt.grid(True, linestyle='--', alpha=0.5)
+    
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
+    plt.tight_layout()
+    
+    # 7. Save
+    output_plot = os.path.join(output_dir, "global_mean_shift_ppca.png")
+    plt.savefig(output_plot, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"Global Mean-Shift pPCA saved to: {output_plot}")
     
 def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
     """
@@ -200,7 +285,7 @@ def visualize_split_msa_sorted(fasta_path, split_info, sig_split_folder):
         ax.tick_params(axis='y', length=0) # Hide tick marks
 
     ax.set_xlabel("Alignment Position")
-    ax.set_title(f"Re-ordered MSA View: {split_info.get('node_name', 'Split')} (n={num_seqs})")
+    ax.set_title(f"Re-ordered MSA View (n={num_seqs})")
 
     output_plot = os.path.join(sig_split_folder, "ordered_split_MSA.png")
     
@@ -367,9 +452,7 @@ def visualize_embeddings_pca(embeddings_path, split_info, output_plot="pca_split
                 c='blue', alpha=0.7, s=50, label=f"Group B (n={len(idx_b[0])})")
     
     # Cosmetics
-    # (Removed the support text from the title since you removed it from the split logic)
-    node_name = split_info.get('node_name', 'Unknown Node')
-    plt.title(f"Phylogenetic PCA of Embeddings: {node_name}")
+    plt.title(f"Phylogenetic PCA of Embeddings")
     plt.xlabel("pPCA Dimension 1")
     plt.ylabel("pPCA Dimension 2")
     plt.grid(True, linestyle='--', alpha=0.5)
@@ -458,10 +541,9 @@ def plot_split_covariance(ordered_cov_path, split_info, sig_split_folder):
                     ha='right', va='center', fontsize=11, fontweight='bold')
 
     # 5. Titles and Save
-    node_name = split_info.get('node_name', 'Unknown Node')
     rank = split_info.get('rank', 'Unknown Rank')
     
-    plt.title(f'Covariance Structure: {node_name}\n(Rank: {rank})', fontsize=14, pad=30)
+    plt.title(f'Covariance Structure\n(Rank: {rank})', fontsize=14, pad=30)
     
     # Save   
     output_path = os.path.join(sig_split_folder, "covariance_with_split_lines.png")
@@ -488,7 +570,7 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
     calc_dir = os.path.join(protein_data_root, f"{protein_id}_calculations")
     
     sf_name = os.path.basename(sf_dir)
-    full_cov_path = os.path.join(sf_dir, "local_calculations", f"{sf_name}_global_H0_PCA_cov_mat.csv")
+    full_cov_path = os.path.join(calc_dir, sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
     child_a_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subA.csv")
     child_b_path = os.path.join(folder_path, "calculations", f"embedding_cov_{split_name}_subB.csv")
     output_path = os.path.join(folder_path, "embedding_covariances_comparison.png")
@@ -551,8 +633,7 @@ def plot_side_by_side_embedding_covariance(folder_path, split_info):
     axes[2].set_title(f"Group B\np=Top {k}\nDistance from H0: {dist_b:.1f}", fontsize=14)
 
     # Main Title
-    node_name = split_info.get('node_name', 'Unknown Node')
-    plt.suptitle(f"Embedding Feature Covariances (Top {k} pPCA Dimensions): {node_name}", fontsize=16, y=1.05)
+    plt.suptitle(f"Embedding Feature Covariances (Top {k} pPCA Dimensions)", fontsize=16, y=1.05)
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -619,7 +700,7 @@ def run_variance_analysis(folder_path):
     
     # Define Full File Paths
     sf_name = os.path.basename(sf_dir) # extracts "subfamily_X"
-    full_cov_path = os.path.join(sf_dir, "local_calculations", f"{sf_name}_global_H0_PCA_cov_mat.csv")
+    full_cov_path = os.path.join(calc_dir, sf_name, f"{sf_name}_global_H0_PCA_cov_mat.csv")
     
     child1_path = os.path.join(folder_path, f"calculations/embedding_cov_{split_name}_subA.csv")
     child2_path = os.path.join(folder_path, f"calculations/embedding_cov_{split_name}_subB.csv")

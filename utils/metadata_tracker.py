@@ -63,7 +63,7 @@ class MetadataTracker:
             print(f"Warning: Could not save metadata: {e}")
 
     def calc_and_add_sequence_similarity(self, fasta_path):
-        """Calculates avg sequence similarity and adds it to metadata."""
+        """Calculates avg sequence similarity based on MSA and adds it to metadata."""
         try:
             sequences = []
             with open(fasta_path, 'r') as f:
@@ -93,19 +93,25 @@ class MetadataTracker:
 
             total_sim = 0
             for seq1, seq2 in pairs:
-                min_len = min(len(seq1), len(seq2))
-                if min_len == 0:
+                # Get lengths without gaps
+                len1 = len(seq1.replace('-', ''))
+                len2 = len(seq2.replace('-', ''))
+                denom = min(len1, len2)
+                
+                if denom == 0:
                     continue
-                # Ignore gap-to-gap matches
+                    
+                # Count column-by-column matches, ignoring gap-to-gap
                 matches = sum(1 for a, b in zip(seq1, seq2) if a == b and a != '-')
-                total_sim += (matches / min_len) * 100
+                total_sim += (matches / denom) * 100.0
 
             avg_sim = total_sim / len(pairs) if pairs else 0.0
             self.add_stat("msa_stats", "avg_sequence_similarity_pct", round(avg_sim, 2))
         except Exception as e:
             print(f"Warning: Could not calculate sequence similarity: {e}")
+            
 
-def calc_and_add_tree_stats(self, tree_path):
+    def calc_and_add_tree_stats(self, tree_path):
         """Calculates normalized branch length using ete3 to match recursive logic."""
         try:
             # Load the tree robustly (matching the logic in evaluate_split_options)
