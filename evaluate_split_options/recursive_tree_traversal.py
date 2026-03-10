@@ -187,16 +187,13 @@ def find_candidate_splits_from_node(node, tree_alpha=0.1, min_absolute_size=20, 
         
     return candidates
 
-def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha=0.1, anova_alpha=0.05, n_permutations=999, id_to_seq=None, split_history=None):
+def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha=0.1, anova_alpha=0.05, n_permutations=999, id_to_seq=None, current_root_name="Global Root"):
     """
     Recursively divides a phylogenetic tree into stable sub-families based on 
     significant mean shifts (Phylogenetic ANOVA).
     
     Returns a list of dictionaries, each representing a stable sub-family.
-    """
-    if split_history is None:
-        split_history = "Global Root (No splits)"
-        
+    """       
     # 1. Fix the order of current leaves to ensure indices align perfectly
     current_leaves_list = list(tree_node.get_leaf_names())
     
@@ -278,7 +275,7 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
         # BASE CASE: No valid candidate splits found. This is a stable sub-family.
         print(f"      [=] Clade of {len(current_leaves_list)} sequences is stable (No valid splits meet size/alpha criteria).")
         return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices, 
-                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len, 'split_history': split_history}]
+                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len, 'split_history': current_root_name}]
         
     # 4. Evaluate candidates using the Adaptive Phylogenetic ANOVA + FDR
     best_split, best_p, best_F = evaluate_splits_adaptively(
@@ -296,21 +293,12 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
         print(f"      [!] SIGNIFICANT SPLIT ACCEPTED (FDR Corrected):")
         print(f"          Parent Clade ({size_parent}) --> Group A ({size_A}) & Group B ({size_B})")
         print(f"          Stats: Node '{node_name}' | adj_p={best_p:.5f} (raw_p={best_split.get('raw_p', 'N/A'):.5f}), F={best_F:.2f}")
-
-        # 1. Find the Most Recent Common Ancestor (MRCA) for each group natively from the tree
-        mrca_A = tree_node.get_common_ancestor(*[str(l) for l in best_split['group_a']])
-        mrca_B = tree_node.get_common_ancestor(*[str(l) for l in best_split['group_b']])
+      
+        # 1. Group A is the new clade, so its root is the node we just cut!
+        history_A = f"node {node_name}"
         
-        # 2. Extract the node names (if ETE3 returns an empty name, fallback to "Root")
-        parent_name_A = getattr(mrca_A, "name", "")
-        parent_name_B = getattr(mrca_B, "name", "")
-        
-        if not parent_name_A: parent_name_A = "Root" 
-        if not parent_name_B: parent_name_B = "Root"
-        
-        # 3. History is now just a single string representing the primal parent!
-        history_A = f"node {parent_name_A}"
-        history_B = f"node {parent_name_B}"
+        # 2. Group B is the remainder of the parent tree, so its root stays the current parent!
+        history_B = current_root_name
         
         # Group A
         node_A = tree_node.copy()
@@ -320,12 +308,12 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
         node_B = tree_node.copy()
         node_B.prune([str(leaf) for leaf in best_split['group_b']], preserve_branch_length=True)
         
-        # Pass the separate histories down
-        stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, split_history=history_A)
-        stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, split_history=history_B)
+        # 3. Pass them down
+        stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, current_root_name=history_A)
+        stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, current_root_name=history_B)
         return stable_A + stable_B
         
     else:
         print(f"      [=] Clade of {len(current_leaves_list)} sequences is stable (No splits survived FDR correction).")
         return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices, 
-                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len, 'split_history': split_history}]
+                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len, 'split_history': current_root_name}]    
