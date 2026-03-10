@@ -507,13 +507,14 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         # --> OUTPUT DIR (for results.json, plots, and significant splits)
         out_sf_dir = os.path.join(output_path, f"subfamily_{sf_idx}")
         sf_sig_dir = os.path.join(out_sf_dir, "significant_splits")
-        sf_non_sig_dir = os.path.join(out_sf_dir, "non_significant_splits")
-        #os.makedirs(sf_sig_dir, exist_ok=True)
-        #os.makedirs(sf_non_sig_dir, exist_ok=True)
         
         # --> CALCULATION DIR (Isolated per embedding to prevent overwrites)
-        calc_sf_dir = os.path.join(output_path, f"subfamily_{sf_idx}", "local_calculations")
+        # Route directly to the main calc_dir instead of the output folder
+        calc_sf_dir = os.path.join(calc_dir, f"subfamily_{sf_idx}")
         os.makedirs(calc_sf_dir, exist_ok=True)
+
+        # Route non-significant splits here to keep outputs clean
+        sf_non_sig_dir = os.path.join(calc_sf_dir, "non_significant_splits")
         
         # 2. Extract and Save Local Assets
         # Save Tree
