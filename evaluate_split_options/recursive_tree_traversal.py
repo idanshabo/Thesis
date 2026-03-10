@@ -278,7 +278,7 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
         # BASE CASE: No valid candidate splits found. This is a stable sub-family.
         print(f"      [=] Clade of {len(current_leaves_list)} sequences is stable (No valid splits meet size/alpha criteria).")
         return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices, 
-                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len}] # <-- ADDED METRICS
+                 'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len, 'split_history': split_history}]
         
     # 4. Evaluate candidates using the Adaptive Phylogenetic ANOVA + FDR
     best_split, best_p, best_F = evaluate_splits_adaptively(
