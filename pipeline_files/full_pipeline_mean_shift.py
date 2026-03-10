@@ -180,7 +180,7 @@ def run_visualize(args, tracker, fasta_path_global, cov_ordered_path_global, out
         plot_global_subfamilies(cov_ordered_path_global, subfamilies_summary_path, out_mode_dir)
         
         # Plot Global Phylogenetic PCA colored by mean-shift subfamilies
-        aligned_global_emb_path = os.path.join(calc_dir, "aligned_global_embeddings.pt")
+        aligned_global_emb_path = os.path.join(calc_dir, f"embeddings_{args.embedding}", "aligned_global_embeddings.pt")
         plot_global_mean_shift_ppca(
             global_embeddings_path=aligned_global_emb_path, 
             global_cov_path=cov_ordered_path_global, 
