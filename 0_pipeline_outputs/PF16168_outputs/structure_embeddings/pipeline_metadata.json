@@ -1,0 +1,95 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 1.37,
+        "Calculations": 2157.46,
+        "Split_Evaluation": 7184.42,
+        "Visualization_and_Analysis": 978.83
+    },
+    "msa_stats": {
+        "num_sequences": 326,
+        "avg_sequence_length": 128.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 37.86,
+        "normalized_total_branch_length": 0.3864,
+        "subfamily_1_avg_sequence_similarity_pct": 42.07,
+        "subfamily_1_normalized_total_branch_length": 0.2616,
+        "subfamily_2_avg_sequence_similarity_pct": 67.39,
+        "subfamily_2_normalized_total_branch_length": 0.1131,
+        "subfamily_3_avg_sequence_similarity_pct": 51.39,
+        "subfamily_3_normalized_total_branch_length": 0.2825,
+        "subfamily_4_avg_sequence_similarity_pct": 46.6,
+        "subfamily_4_normalized_total_branch_length": 0.4073,
+        "subfamily_5_avg_sequence_similarity_pct": 49.19,
+        "subfamily_5_normalized_total_branch_length": 0.3989,
+        "subfamily_6_avg_sequence_similarity_pct": 37.91,
+        "subfamily_6_normalized_total_branch_length": 0.4703
+    },
+    "pipeline_stats": {
+        "family_name": "PF16168",
+        "embedding_mode": "structure",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 18,
+        "num_unique_candidate_splits": 10,
+        "subfamily_1_final_embedding_dim": 2,
+        "subfamily_2_final_embedding_dim": 5,
+        "subfamily_3_final_embedding_dim": 1,
+        "subfamily_4_final_embedding_dim": 58,
+        "subfamily_5_final_embedding_dim": 61,
+        "subfamily_6_final_embedding_dim": 41,
+        "num_significant_covariance_splits": 7
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.837",
+        "subfamily_2_history": "node 0.803",
+        "subfamily_3_history": "node 0.651",
+        "subfamily_4_history": "node 0.204",
+        "subfamily_5_history": "node 0.808",
+        "subfamily_6_history": "Global Root",
+        "subfamily_4_rank2": {
+            "avg_a": 0.8862063853222861,
+            "avg_b": 0.9003127878976739,
+            "avg_inter": 0.8874937013046025
+        },
+        "subfamily_5_rank1": {
+            "avg_a": 0.9211637597328006,
+            "avg_b": 0.8813692301882694,
+            "avg_inter": 0.8968066506835722
+        },
+        "subfamily_5_rank2": {
+            "avg_a": 0.9117379857398269,
+            "avg_b": 0.867032792621296,
+            "avg_inter": 0.8878125128107738
+        },
+        "subfamily_5_rank3": {
+            "avg_a": 0.8642492861341393,
+            "avg_b": 0.9056279351889706,
+            "avg_inter": 0.8816578757470077
+        },
+        "subfamily_6_rank1": {
+            "avg_a": 0.8356279010127003,
+            "avg_b": 0.8312670490841192,
+            "avg_inter": 0.8280372343718863
+        },
+        "subfamily_6_rank3": {
+            "avg_a": 0.8323869010117543,
+            "avg_b": 0.8475034839040321,
+            "avg_inter": 0.8324886747230498
+        },
+        "subfamily_6_rank4": {
+            "avg_a": 0.8380445471320379,
+            "avg_b": 0.8747626583946698,
+            "avg_inter": 0.8261394623952559
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'The AIDA repeat is found on bacterial autotransporter proteins. As the repeat is short and occurs multiple times, it is likely to be the region of the transporter that acts as the stalk between the beta-barrel inserted into the membrane and the N-terminal head domain.', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": true,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

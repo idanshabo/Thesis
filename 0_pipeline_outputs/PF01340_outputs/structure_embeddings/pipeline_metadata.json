@@ -1,0 +1,78 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.88,
+        "Calculations": 173.12,
+        "Split_Evaluation": 5113.64,
+        "Visualization_and_Analysis": 1343.5
+    },
+    "msa_stats": {
+        "num_sequences": 431,
+        "avg_sequence_length": 122.0,
+        "num_sequences_with_structure": 1,
+        "avg_sequence_similarity_pct": 72.57,
+        "normalized_total_branch_length": 0.143,
+        "subfamily_1_avg_sequence_similarity_pct": 77.59,
+        "subfamily_1_normalized_total_branch_length": 0.162,
+        "subfamily_2_avg_sequence_similarity_pct": 81.58,
+        "subfamily_2_normalized_total_branch_length": 0.184,
+        "subfamily_3_avg_sequence_similarity_pct": 74.18,
+        "subfamily_3_normalized_total_branch_length": 0.1377
+    },
+    "pipeline_stats": {
+        "family_name": "PF01340",
+        "embedding_mode": "structure",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 11,
+        "num_unique_candidate_splits": 6,
+        "subfamily_1_final_embedding_dim": 7,
+        "subfamily_2_final_embedding_dim": 20,
+        "subfamily_3_final_embedding_dim": 27,
+        "num_significant_covariance_splits": 6
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.529",
+        "subfamily_2_history": "node 0.875",
+        "subfamily_3_history": "Global Root",
+        "subfamily_1_rank1": {
+            "avg_a": 0.6689297891441276,
+            "avg_b": 0.6388852901789212,
+            "avg_inter": 0.6470883286722164
+        },
+        "subfamily_3_rank1": {
+            "avg_a": 0.6389234946289505,
+            "avg_b": 0.6140391604552037,
+            "avg_inter": 0.60875107479793
+        },
+        "subfamily_3_rank2": {
+            "avg_a": 0.7491559619321532,
+            "avg_b": 0.6121646217831879,
+            "avg_inter": 0.6527786909112413
+        },
+        "subfamily_3_rank3": {
+            "avg_a": 0.6631831472251867,
+            "avg_b": 0.5850969626284915,
+            "avg_inter": 0.5978486196410373
+        },
+        "subfamily_3_rank4": {
+            "avg_a": 0.7047142128757133,
+            "avg_b": 0.5769966240228165,
+            "avg_inter": 0.6021615676415537
+        },
+        "subfamily_3_rank5": {
+            "avg_a": 0.6672479147304852,
+            "avg_b": 0.5803230459324166,
+            "avg_inter": 0.6027947939279317
+        }
+    },
+    "family_info": {
+        "description": "No description available",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}
