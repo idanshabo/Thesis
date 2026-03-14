@@ -11,12 +11,6 @@ def convert_stockholm_to_fasta(stockholm_file_path, fasta_file_path=None):
     os.makedirs(pfam_folder_path, exist_ok=True)
     
     if not fasta_file_path:
-        # Check if 'alignment' is in the file name
-        if 'alignment' not in os.path.basename(stockholm_file_path):
-            raise ValueError(f"❌ Error: The file path must contain 'alignment'. Got: {stockholm_file_path}")
-        
-        # Create the base path and set the fasta file path
-        base_path = os.path.splitext(stockholm_file_path)[0].replace('.alignment', '')
         fasta_file_path = os.path.join(pfam_folder_path, pfam_family + '.fasta')
 
     
