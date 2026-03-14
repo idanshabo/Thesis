@@ -932,8 +932,10 @@ Examples:
     parser.add_argument("--tree", type=str, default="balanced",
                         choices=["balanced", "random", "real"],
                         help="Tree type (default: balanced)")
+    parser.add_argument("--family", type=str, default=None,
+                        help="Pfam family (e.g. PF00076). Auto-resolves tree/cov paths from config. Use with --tree real.")
     parser.add_argument("--tree_path", type=str, default=None,
-                        help="Path to .tree file (required when --tree real)")
+                        help="Path to .tree file (required when --tree real, unless --family is given)")
     parser.add_argument("--cov_path", type=str, default=None,
                         help="Path to covariance CSV (optional with --tree real, computed from tree if omitted)")
     parser.add_argument("--seed", type=int, default=42,
@@ -964,6 +966,16 @@ Examples:
     )
 
     args = parser.parse_args()
+
+    # ---- Resolve family -> tree/cov paths from config ----
+    if args.family and args.tree == "real":
+        from config_utils import get_family_tree_path, get_family_cov_path
+        if args.tree_path is None:
+            args.tree_path = get_family_tree_path(args.family)
+        if args.cov_path is None:
+            resolved = get_family_cov_path(args.family)
+            if os.path.exists(resolved):
+                args.cov_path = resolved
 
     # ---- Resolve test function and kwargs ----
     test_fn = TEST_REGISTRY[args.test]

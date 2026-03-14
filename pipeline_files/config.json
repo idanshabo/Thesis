@@ -1,0 +1,6 @@
+{
+    "data_dir": "/sci/labs/orzuk/orzuk/projects/kaveret/data",
+    "pfam_bulk_file": "/sci/labs/orzuk/orzuk/projects/kaveret/Pfam-A.full.gz",
+    "conda_env": "kaveret",
+    "slurm_partition": "glacier"
+}

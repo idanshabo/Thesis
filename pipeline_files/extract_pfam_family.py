@@ -72,16 +72,26 @@ def list_families(input_path):
 
 
 def main():
+    from config_utils import get_pfam_bulk_file, get_family_msa_path
+
     parser = argparse.ArgumentParser(description="Extract Pfam family from bulk alignment file")
-    parser.add_argument("--input", required=True, help="Path to Pfam-A.full.gz")
+    parser.add_argument("--input", type=str, default=None,
+                        help="Path to Pfam-A.full.gz (default: from config.json)")
     parser.add_argument("--family", type=str, help="Pfam accession (e.g. PF00076)")
-    parser.add_argument("--output", type=str, help="Output Stockholm file path")
+    parser.add_argument("--output", type=str, default=None,
+                        help="Output Stockholm file path (default: from config.json)")
     parser.add_argument("--list", action="store_true", help="List all families and sequence counts")
     args = parser.parse_args()
+
+    if args.input is None:
+        args.input = get_pfam_bulk_file()
 
     if args.list:
         list_families(args.input)
     elif args.family:
+        if args.output is None:
+            args.output = get_family_msa_path(args.family)
+            os.makedirs(os.path.dirname(args.output), exist_ok=True)
         extract_family(args.input, args.family, args.output)
     else:
         parser.error("Provide --family or --list")

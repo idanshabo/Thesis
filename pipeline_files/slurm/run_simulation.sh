@@ -3,17 +3,20 @@
 # Simulation validation — SLURM launcher.
 #
 # Usage:
-#   bash run_simulation.sh                              # submit ALL (9 jobs)
-#   bash run_simulation.sh all                          # same as above
-#   bash run_simulation.sh mean_anova size              # single job
-#   bash run_simulation.sh mean_anova power             # single job
-#   bash run_simulation.sh cov_lrt size real /path.tree # single job with real tree
+#   bash run_simulation.sh                                    # submit ALL synthetic (9 jobs)
+#   bash run_simulation.sh all                                # same as above
+#   bash run_simulation.sh mean_anova size                    # single job, synthetic tree
+#   bash run_simulation.sh mean_anova size real PF00076       # single job, real tree from family
+#   bash run_simulation.sh mean_anova size real /path/to.tree # single job, real tree from path
+#   bash run_simulation.sh all all real PF00076               # all 9 jobs with real tree
 #
 # Arguments:
-#   $1 = test:  mean_anova | mean_lrt | cov_lrt | all   (default: all)
-#   $2 = study: size | power | robustness | grid | all  (default: all)
-#   $3 = tree:  balanced | random | real                 (default: balanced)
-#   $4 = tree path (required if $3=real)
+#   $1 = test:   mean_anova | mean_lrt | cov_lrt | all   (default: all)
+#   $2 = study:  size | power | robustness | grid | all  (default: all)
+#   $3 = tree:   balanced | random | real                 (default: balanced)
+#   $4 = family or tree path (when $3=real):
+#        - Pfam ID like PF00076 -> auto-resolves paths from config
+#        - /full/path/to/file.tree -> uses path directly
 # ============================================================================
 
 REPO_DIR="/sci/labs/orzuk/orzuk/github/idan_thesis"
@@ -26,12 +29,21 @@ mkdir -p "${RESULTS_DIR}" "${LOGS_DIR}"
 TEST="${1:-all}"
 STUDY="${2:-all}"
 TREE="${3:-balanced}"
-TREE_PATH="${4:-}"
+FAMILY_OR_PATH="${4:-}"
 
 # Build tree args
 TREE_ARGS="--tree ${TREE}"
-if [ "${TREE}" = "real" ] && [ -n "${TREE_PATH}" ]; then
-    TREE_ARGS="${TREE_ARGS} --tree_path ${TREE_PATH}"
+TREE_LABEL="${TREE}"
+if [ "${TREE}" = "real" ] && [ -n "${FAMILY_OR_PATH}" ]; then
+    if [[ "${FAMILY_OR_PATH}" == /* ]]; then
+        # Absolute path given
+        TREE_ARGS="${TREE_ARGS} --tree_path ${FAMILY_OR_PATH}"
+        TREE_LABEL="real_custom"
+    else
+        # Pfam family ID given — let Python resolve via config
+        TREE_ARGS="${TREE_ARGS} --family ${FAMILY_OR_PATH}"
+        TREE_LABEL="real_${FAMILY_OR_PATH}"
+    fi
 fi
 
 # Expand "all" into lists
@@ -51,7 +63,7 @@ fi
 for t in ${TESTS}; do
     for s in ${STUDIES}; do
         JOB_NAME="sim_${t}_${s}"
-        OUTPUT="${RESULTS_DIR}/${t}_${s}_${TREE}.json"
+        OUTPUT="${RESULTS_DIR}/${t}_${s}_${TREE_LABEL}.json"
 
         sbatch \
           --partition=glacier \
