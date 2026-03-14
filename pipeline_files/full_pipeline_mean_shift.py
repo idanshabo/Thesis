@@ -15,9 +15,12 @@ from utils.order_covariance_matrix import order_covariance_matrix_by_tree
 from create_phylogenetic_tree.run_fasttree import run_fasttree
 from handling_esm_embeddings.create_normalized_mean_embeddings_matrix import create_normalized_mean_embeddings_matrix
 from evaluate_split_options.evaluate_split_options import evaluate_top_splits
-from significant_split_evaluation.visualisations import visualize_split_msa_sorted, plot_split_covariance, run_variance_analysis, plot_side_by_side_embedding_covariance, visualize_embeddings_pca
-from significant_split_evaluation.handle_splits_evaluation import get_split_info
-from significant_split_evaluation.structures.visualize_structures_pipeline import visualize_structures_pipeline
+try:
+    from significant_split_evaluation.visualisations import visualize_split_msa_sorted, plot_split_covariance, run_variance_analysis, plot_side_by_side_embedding_covariance, visualize_embeddings_pca
+    from significant_split_evaluation.handle_splits_evaluation import get_split_info
+    from significant_split_evaluation.structures.visualize_structures_pipeline import visualize_structures_pipeline
+except ImportError as e:
+    print(f"Warning: Visualization imports failed ({e}). Visualization step will be unavailable.")
 
 # --- Metadata Utilities ---
 from utils.metadata_tracker import MetadataTracker
