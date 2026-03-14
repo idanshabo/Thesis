@@ -89,11 +89,11 @@ def phylogenetic_anova_rrpp(Y, C, group_a_indices, group_b_indices, n_permutatio
     
     F_null = torch.zeros(n_permutations, device=device, dtype=torch.float64)
     PY_hat_0 = P @ Y_hat_0
-    
+    PE_0 = PY - PY_hat_0  # residuals in transformed (whitened) space
+
     for i in range(n_permutations):
-        perm_idx = torch.randperm(N, device=device)
-        E_star = E_0[perm_idx]
-        PY_star = PY_hat_0 + (P @ E_star)
+        perm_idx = torch.randperm(k, device=device)  # permute k rows, not N
+        PY_star = PY_hat_0 + PE_0[perm_idx]
         
         ss_resid_F_star = get_sscp_trace(PX_F, PY_star)
         ss_resid_0_star = get_sscp_trace(PX_0, PY_star)
