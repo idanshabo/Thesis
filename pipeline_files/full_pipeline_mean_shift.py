@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import sys
 import time
 import argparse
 import requests
@@ -259,10 +260,24 @@ def main():
     parser.add_argument('--generate_plots', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Generate plots during visualization")
     parser.add_argument('--alpha', type=float, default=0.10, help="Minimum branch size & redundancy overlap threshold (e.g., 0.10 for 10%)")
     parser.add_argument('--mean_test', type=str, default="anova", choices=["anova", "lrt"], help="Mean shift test method: anova (RRPP) or lrt (parametric bootstrap)")
+    parser.add_argument('--max_seqs', type=int, default=5000, help="Maximum number of sequences allowed (default: 5000)")
     args = parser.parse_args()
 
     args.standardize = args.standardize == "TRUE"
     args.generate_plots = args.generate_plots == "TRUE"
+
+    # Check MSA size before doing anything expensive
+    n_seqs = 0
+    with open(args.input) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and line != "//":
+                n_seqs += 1
+    if n_seqs > args.max_seqs:
+        print(f"Aborting! Family too large with {n_seqs} sequences (max: {args.max_seqs}).")
+        print(f"Use --max_seqs to increase the limit, or subsample the MSA.")
+        sys.exit(1)
+    print(f"MSA has {n_seqs} sequences (limit: {args.max_seqs})")
 
     # Setup directories
     base_dir = os.path.dirname(os.path.abspath(args.input))
