@@ -1,0 +1,293 @@
+================================================================================
+CODE SUMMARY — Idan Shabo Thesis: KAVERET
+================================================================================
+Generated: 2026-03-14
+Repository: /mnt/c/Code/Github/idan_thesis (GitHub: idanshabo/Thesis)
+Project: Phylogenetic Matrix-Normal Models for Protein Embeddings
+Advisor: Or Zuk | Student: Idan Shabo
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+Goal: Identify functional sub-families within protein families by combining
+protein language model (PLM) embeddings with phylogenetic comparative methods
+(PCMs). The key insight is to treat PLM embeddings as continuous multivariate
+phenotypes evolving on a phylogenetic tree under a Brownian Motion (BM) model
+with Matrix Normal distribution.
+
+Method name: KAVERET
+  (Kronecker Analysis of Variance in Embedding Representation Evolutionary Trees)
+
+Two-stage statistical procedure:
+  Stage 1: Recursive Phylogenetic ANOVA (RRPP) detects mean-shift sub-families
+  Stage 2: LRT for V_A = V_B (coordinate covariance equality) with
+           Westfall-Young max-statistic bootstrap for multiple testing correction
+
+================================================================================
+2. REPOSITORY STRUCTURE (as of 2026-03-14)
+================================================================================
+
+idan_thesis/
+|-- pipeline_files/                    # Entry points (CLI pipelines)
+|   |-- full_pipeline.py               # Modular CLI: preprocess/find/visualize/full
+|   |-- full_pipeline_mean_shift.py    # Extended pipeline with sub-family visualization
+|   |-- msa_to_split_full_pipeline.py  # OLD: Legacy monolithic pipeline
+|   |-- msa_to_matrix_normal_dist_pipeline.py    # deprecated
+|   |-- msa_to_matrix_normal_dist_pipeline_2.py  # deprecated
+|   |-- create_esm_embeddings_pipeline.py        # Embeddings only (dead import bug)
+|   |-- calculate_covariance_matrix_pipeline.py  # Covariance only
+|   \-- create_phylogenetic_tree_pipeline.py     # Tree only
+|
+|-- estimate_matrix_normal/
+|   |-- estimate_matrix_normal.py      # MLE algorithms for MN distribution (core)
+|   |-- __init__.py
+|   \-- test_estimation_functions/     # Synthetic data tests and plots
+|       |-- example_adjustable_run_all_plots.py
+|       |-- example_test_estimation_functions_all_plots.py
+|       |-- plot_functions.py
+|       |-- run_plot_functions.py
+|       \-- utils.py
+|
+|-- evaluate_split_options/            # Core statistical methods
+|   |-- evaluate_split_options.py      # REWRITTEN: Two-stage split testing
+|   |-- evaluate_split_options_old.py  # OLD version (backup)
+|   |-- lrt_statistics.py             # LRT for V equality + bootstrap
+|   |-- phylogenetic_anova.py         # Phylogenetic ANOVA with RRPP
+|   |-- recursive_tree_traversal.py   # Recursive mean-shift sub-family detection
+|   \-- utils.py                      # Old LL + BIC formulas (mostly unused)
+|
+|-- handling_esm_embeddings/
+|   |-- create_esm_embeddings.py      # PLM embedding generation
+|   |   Supports: ESM-C 300M (sequence), ProstT5 (structure)
+|   |   Also coded but may not be fully wired: ESM-C 600M, ESM-3, CLSS, ProTrek
+|   |-- convert_embeddings_to_one_mean_embedding.py
+|   |-- create_normalized_mean_embeddings_matrix.py
+|   \-- old/                           # Deprecated embedding scripts
+|
+|-- create_phylogenetic_tree/
+|   \-- run_fasttree.py               # FastTree wrapper (LG + Gamma model)
+|
+|-- significant_split_evaluation/     # Visualization and validation
+|   |-- visualisations.py            # MSA + covariance heatmap plots
+|   |-- handle_splits_evaluation.py  # Split JSON parsing
+|   \-- structures/
+|       |-- structure_predictor.py    # ESMFold structure prediction
+|       |-- structure_analysis.py     # TM-score computation
+|       |-- visualization.py         # Structure visualization helpers
+|       |-- structures_from_experiments.py  # Experimental PDB fetcher via UniProt
+|       |-- structure_from_experiments_2.py
+|       |-- plot_comparative_logos.py # Sequence logos with Q8 SS tracks
+|       |-- visualize_structures_pipeline.py
+|       |-- visualize_representative_structure.py
+|       |-- filter_pdbs_by_sequence.py
+|       \-- old/                      # Deprecated structure scripts
+|
+|-- utils/
+|   |-- phylogenetic_tree_to_covariance_matrix.py  # U from tree (O(n^3) MRCA)
+|   |-- order_covariance_matrix.py
+|   |-- align_embeddings_with_covariance.py
+|   |-- convert_stockholm_to_fasta.py
+|   |-- metadata_tracker.py           # Pipeline metadata tracking
+|   |-- msa_stats.py
+|   |-- check_matching_names.py
+|   |-- save_results_json.py
+|   |-- read_stockholm_file_and_print_content.py
+|   \-- visualize_phylogenetic_tree.py
+|
+|-- calculate_bic/                    # Standalone BIC scripts (unused)
+|   |-- gaussian_assumption_calculation.py
+|   \-- matrix_normal_assumption_calculation.py
+|
+|-- 0_pipeline_outputs/               # Sample outputs for 4 families
+|   |-- PF00321_outputs/              # sequence + structure embeddings
+|   |-- PF01340_outputs/
+|   |-- PF14549_outputs/
+|   \-- PF16168_outputs/
+|
+|-- requirements.txt
+\-- README.md
+
+================================================================================
+3. PIPELINE FLOW (full_pipeline_mean_shift.py --operation full)
+================================================================================
+
+PHASE 1: PREPROCESS
+  - Stockholm -> FASTA conversion
+  - MSA statistics (n_seqs, avg_length, sequence similarity, etc.)
+  - InterPro/Pfam metadata fetch (description, protein category flags)
+
+PHASE 2: FIND_BEST_SPLIT (evaluate_top_splits)
+
+  Phase 2a: Global Alignment
+    - Load tree (ete3), embeddings (.pt files), covariance matrix
+    - Align embeddings to covariance matrix ordering
+    - Raw 960-dim (ESMC) or 1024-dim (ProstT5) embeddings
+
+  Phase 2b: Recursive Mean Shift Testing (recursive_tree_traversal.py)
+    - Find candidate splits using tree_alpha dual rule:
+      each side >= tree_alpha fraction of species count AND branch length
+    - Phylogenetic ANOVA (RRPP) at each candidate node
+    - Phylogenetic transformation C^{-1/2} for proper correction
+    - Permutation-based p-values (999 permutations)
+    - If significant at anova_alpha=0.05, recurse into each clade
+    - Output: K stable sub-families with disjoint leaf sets
+
+  Phase 2c: Local pPCA per sub-family
+    - PhylogeneticPCA class: R = X^T C^{-1} X / (n-1), eigendecomposition
+    - Supports 'cov' and 'corr' modes
+    - Respects min_variance and min_components constraints
+
+  Phase 2d: Covariance Shift Test per sub-family (lrt_statistics.py)
+    - Find candidate splits within sub-family tree
+    - LRT statistic: Lambda = n*log|V_pool| - n_A*log|V_A| - n_B*log|V_B|
+    - GLS mean estimation via projection operator P
+    - Westfall-Young max-statistic bootstrap (1000 replicates)
+    - p_adj = #{max(Lambda*) >= Lambda_obs} / (B+1)
+
+PHASE 3: VISUALIZE
+  - Global macro view (sub-family partitioning on tree)
+  - Per sub-family: MSA sorted, covariance heatmap, embedding covariance
+  - Comparative sequence logos with Q8 secondary structure tracks
+  - Structural alignments (predicted + experimental), TM-score matrices
+
+================================================================================
+4. KEY ALGORITHMS AND STATISTICS
+================================================================================
+
+4.1 Matrix Normal Distribution (MND)
+  X ~ MN(M, U, V) where:
+  - M = n x p mean matrix
+  - U = n x n phylogenetic covariance (from tree, KNOWN)
+  - V = p x p coordinate covariance (ESTIMATED)
+  - Total covariance = U (x) V (Kronecker product)
+
+4.2 Phylogenetic GLS Mean Estimation
+  mu_hat = (1^T U^{-1} 1)^{-1} * 1^T U^{-1} X
+  Projection operator: P = U^{-1} - U^{-1}*1*(1^T*U^{-1}*1)^{-1}*1^T*U^{-1}
+  Scatter matrix: S = X^T P X
+
+4.3 LRT for V Equality (lrt_statistics.py)
+  H0: V_A = V_B = V (same covariance across clades)
+  H1: V_A != V_B (different evolutionary dynamics)
+  Statistic: Lambda = n*log|V_pool| - n_A*log|V_A| - n_B*log|V_B|
+  Where V_hat = S/n (MLE), V_pool = (S_A + S_B)/n
+
+4.4 Westfall-Young Max-Statistic Bootstrap
+  For K candidate splits:
+  1. Estimate V_pool under global H0
+  2. For b = 1..B: simulate X* ~ MN(1*mu^T, U, V_pool)
+  3. Compute Lambda for all K splits on each X*
+  4. Record max(Lambda*_1, ..., Lambda*_K) per replicate
+  5. p_adj = #{max_stat >= Lambda_obs_max} / (B+1)
+
+4.5 Phylogenetic ANOVA (phylogenetic_anova.py)
+  - Transform data by C^{-1/2}
+  - RRPP (Randomized Residual Permutation Procedure)
+  - Trace-based F-statistic: F = (trace(SS_model)/df1) / (trace(SS_resid)/df2)
+  - 999 permutations for p-value
+
+4.6 Phylogenetic PCA (PhylogeneticPCA class)
+  - Evolutionary VCV: R = X^T C^{-1} X / (n-1)
+  - Eigendecomposition of R
+  - Supports 'cov' and 'corr' modes
+
+================================================================================
+5. INPUT/OUTPUT FORMATS
+================================================================================
+
+INPUTS:
+  - MSA file: Stockholm or FASTA format (from Pfam)
+  - Family ID: Pfam accession (e.g., PF00228)
+
+INTERMEDIATE FILES (per family, in {family}_calculations/):
+  - Converted FASTA file
+  - FastTree output (.tree)
+  - Phylogenetic covariance matrix (ordered)
+  - Raw ESM embeddings (.pt per sequence)
+  - Aligned/normalized embedding matrix
+
+OUTPUTS (per family, in {family}_outputs/{embedding_mode}/):
+  - pipeline_metadata.json: MSA stats, API metadata, timings, split results
+  - results.json: List of significant splits with Lambda, p_adj
+  - subfamilies_summary.json: Sub-family membership from ANOVA stage
+  - global_mean_shift_ppca.png: Global pPCA visualization
+  - global_mean_shift_subfamilies.png: Sub-family tree coloring
+  - Per significant split (in subfamily_N/significant_splits/rankM/):
+    - split_rankM.json: Taxa division and p-values
+    - covariance_with_split_lines.png: Covariance heatmap
+    - embedding_covariances_comparison.png: V_A vs V_B heatmaps
+    - ordered_split_MSA.png: MSA sorted by split
+    - pca_split_view.png: PCA scatter colored by split
+    - variance_spectrum.png: Eigenvalue comparison
+    - comparative_sequence_logos.png: Information-content logos
+    - representative_structural_alignment_*.png: Structure superposition
+    - calculations/embedding_cov_rankM_sub{A,B}.csv: V matrices
+
+================================================================================
+6. CLI ARGUMENTS (full_pipeline_mean_shift.py)
+================================================================================
+
+Required:
+  --input       Path to MSA file
+  --family      Family identifier (e.g., PF00228)
+  --operation   preprocess | find_best_split | visualize | full
+
+Optional:
+  --embedding   sequence (ESM-C 300M) | structure (ProstT5)
+  --nodes       Number of top splits to evaluate
+  --pca_var     Minimum variance for pPCA (skip if not provided)
+  --pca_comp    Minimum components for pPCA
+  --standardize TRUE | FALSE (default TRUE)
+  --alpha       Minimum branch size threshold (default 0.10)
+  --generate_plots TRUE | FALSE (default TRUE)
+
+================================================================================
+7. KEY PARAMETERS AND DEFAULTS
+================================================================================
+
+  tree_alpha (candidate filtering): 0.10
+  min_absolute_size (clade size):   20
+  anova_alpha (ANOVA significance): 0.05
+  ANOVA permutations:               999
+  Bootstrap replicates (LRT):       1000
+  LRT significance:                 0.05
+  Cholesky jitter (initial):        1e-6 (adaptive up to 0.1; eigen fallback)
+  log-det jitter:                   1e-6
+  Tree model:                       LG + Gamma (FastTree)
+  ESMFold max seq length:           400
+
+================================================================================
+8. DEPENDENCIES (from requirements.txt)
+================================================================================
+
+  torch, transformers, esm (for PLM embeddings)
+  ete3 (tree manipulation)
+  numpy, scipy (linear algebra)
+  matplotlib, seaborn (plotting)
+  logomaker (sequence logos)
+  biopython (sequence parsing)
+  requests (API calls)
+
+  External: FastTree (must be in PATH)
+
+================================================================================
+9. SAMPLE RESULTS (0_pipeline_outputs/)
+================================================================================
+
+4 families included with outputs for both sequence and structure embeddings:
+
+PF00321 (335 sequences, avg length 102):
+  - 9 sub-families detected by ANOVA
+  - 3 significant covariance splits (sequence embeddings)
+  - 1 significant covariance split (structure embeddings)
+  - pPCA reduced to 24 dims (subfamily 1), 3 dims (subfamily 6), etc.
+  - All p_adj = 0.001 (highly significant)
+
+PF01340 (sequence): 3 sig splits; (structure): 5 sig splits
+PF14549 (sequence): 2 sig splits; (structure): 4 sig splits
+PF16168 (sequence): 1 sig split; (structure): 5 sig splits
+
+================================================================================
+END OF CODE SUMMARY
+================================================================================

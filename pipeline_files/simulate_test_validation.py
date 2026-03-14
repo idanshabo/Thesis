@@ -51,6 +51,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from evaluate_split_options.lrt_statistics import (
     simulate_null_data,
     compute_mle_and_lrt,
+    compute_mean_lrt,
     compute_gls_operators,
     robust_cholesky,
     add_jitter,
@@ -110,6 +111,34 @@ def cov_lrt_bootstrap_test(X, U, idx_A, idx_B, n_bootstrap=500):
     return lambda_obs, p_value
 
 
+def mean_lrt_bootstrap_test(X, U, idx_A, idx_B, n_bootstrap=500):
+    """
+    Mean equality LRT with parametric bootstrap p-value.
+    Tests H0: mu_A = mu_B under the matrix-normal model (shared V).
+    """
+    n, p = X.shape
+    U_inv = torch.linalg.pinv(U)
+
+    lambda_obs = compute_mean_lrt(X, U_inv, idx_A, idx_B).item()
+
+    # Bootstrap under H0: shared mean, shared V
+    _, P_full, t1, t2 = compute_gls_operators(U)
+    mu_hat = (t1 @ t2 @ X).squeeze()
+    V_hat = (X.T @ P_full @ X) / n
+    L_U = robust_cholesky((U + U.T) / 2.0)
+    L_V_hat = robust_cholesky((V_hat + V_hat.T) / 2.0)
+
+    null_lambdas = []
+    for _ in range(n_bootstrap):
+        X_sim = simulate_null_data(n, p, mu_hat, L_U, L_V_hat)
+        U_inv_sim = U_inv  # Same tree structure
+        lam = compute_mean_lrt(X_sim, U_inv_sim, idx_A, idx_B).item()
+        null_lambdas.append(lam)
+
+    p_value = (np.sum(np.array(null_lambdas) >= lambda_obs) + 1) / (n_bootstrap + 1)
+    return lambda_obs, p_value
+
+
 def mean_anova_rrpp_test(X, U, idx_A, idx_B, n_permutations=999):
     """
     Phylogenetic ANOVA with RRPP permutation p-value.
@@ -130,18 +159,21 @@ def mean_anova_rrpp_test(X, U, idx_A, idx_B, n_permutations=999):
 
 TEST_REGISTRY: Dict[str, SplitTestFn] = {
     "cov_lrt": cov_lrt_bootstrap_test,
+    "mean_lrt": mean_lrt_bootstrap_test,
     "mean_anova": mean_anova_rrpp_test,
 }
 
 # Default kwargs for each test (used when CLI doesn't override)
 TEST_DEFAULT_KWARGS: Dict[str, Dict[str, Any]] = {
     "cov_lrt": {"n_bootstrap": 500},
+    "mean_lrt": {"n_bootstrap": 500},
     "mean_anova": {"n_permutations": 999},
 }
 
 # Natural shift type for power study per test
 TEST_DEFAULT_SHIFT: Dict[str, str] = {
     "cov_lrt": "covariance",
+    "mean_lrt": "mean",
     "mean_anova": "mean",
 }
 

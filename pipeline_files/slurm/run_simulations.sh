@@ -119,7 +119,35 @@ submit_job "cov_grid" \
         --output ${RESULTS_DIR}/cov_lrt_grid.json"
 
 # ====================================================================
-# Job 5: Mean ANOVA — Type I error
+# Job 5: Mean LRT — Type I error
+# ====================================================================
+submit_job "mean_lrt_size" \
+    "python ${SCRIPT} --test mean_lrt --study size \
+        --n 200 --p 20 --reps ${REPS} --n_bootstrap ${BOOT} \
+        --tree balanced --seed 42 --plot \
+        --output ${RESULTS_DIR}/mean_lrt_size.json"
+
+# ====================================================================
+# Job 6: Mean LRT — Power curve
+# ====================================================================
+submit_job "mean_lrt_power" \
+    "python ${SCRIPT} --test mean_lrt --study power \
+        --shift_type mean --n 200 --p 20 --reps ${REPS} \
+        --n_bootstrap ${BOOT} --delta_scales 0.1 0.2 0.5 1.0 2.0 5.0 \
+        --tree balanced --seed 42 --plot \
+        --output ${RESULTS_DIR}/mean_lrt_power.json"
+
+# ====================================================================
+# Job 7: Mean LRT — OU robustness
+# ====================================================================
+submit_job "mean_lrt_robust" \
+    "python ${SCRIPT} --test mean_lrt --study robustness \
+        --n 200 --p 20 --reps ${REPS} --n_bootstrap ${BOOT} \
+        --tree balanced --seed 42 --plot \
+        --output ${RESULTS_DIR}/mean_lrt_robustness.json"
+
+# ====================================================================
+# Job 8: Mean ANOVA — Type I error
 # ====================================================================
 submit_job "mean_size" \
     "python ${SCRIPT} --test mean_anova --study size \
