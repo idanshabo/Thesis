@@ -3,6 +3,7 @@ import numpy as np
 from itertools import combinations
 import torch
 from evaluate_split_options.phylogenetic_anova import phylogenetic_anova_rrpp
+from evaluate_split_options.lrt_statistics import compute_mean_lrt, compute_gls_operators, simulate_null_data, robust_cholesky
 from ete3 import Tree
 
 def benjamini_hochberg_correction(p_values, alpha=0.05):
@@ -102,7 +103,86 @@ def evaluate_splits_adaptively(candidates, Y_local, C_local, current_leaves_list
                 best_split['raw_p'] = p_values[i]
                 
     return best_split, best_adj_p, best_F
-                                   
+
+
+def evaluate_splits_with_mean_lrt(candidates, Y_local, C_local, current_leaves_list,
+                                  anova_alpha=0.05, n_bootstrap=500):
+    """
+    Evaluates candidate splits using the mean LRT with parametric bootstrap,
+    then applies FDR correction. Drop-in replacement for evaluate_splits_adaptively.
+    """
+    total_candidates = len(candidates)
+    if total_candidates == 0:
+        return None, 1.0, -1.0
+
+    n, p = Y_local.shape
+    dtype = Y_local.dtype
+    device = Y_local.device
+
+    # Precompute U_inv once for all candidates
+    C_sym = (C_local + C_local.T) / 2.0
+    U_inv = torch.linalg.pinv(C_sym)
+
+    # Compute null model parameters for bootstrap
+    U_inv_g, P_g, t1_g, t2_g = compute_gls_operators(C_sym)
+    mu_hat = (t1_g @ t2_g @ Y_local).squeeze()
+    V_hat = (Y_local.T @ P_g @ Y_local) / n
+    V_hat = (V_hat + V_hat.T) / 2.0
+    L_U = robust_cholesky(C_sym)
+    L_V = robust_cholesky(V_hat)
+
+    # Compute observed Lambda for each candidate
+    lambda_obs = np.zeros(total_candidates)
+    split_indices = []
+
+    for i, split in enumerate(candidates):
+        local_idx_a = [idx for idx, name in enumerate(current_leaves_list) if name in split['group_a']]
+        local_idx_b = [idx for idx, name in enumerate(current_leaves_list) if name in split['group_b']]
+
+        if not local_idx_a or not local_idx_b:
+            lambda_obs[i] = 0.0
+            split_indices.append((local_idx_a, local_idx_b))
+            continue
+
+        lam = compute_mean_lrt(Y_local, U_inv, local_idx_a, local_idx_b).item()
+        lambda_obs[i] = max(lam, 0.0)
+        split_indices.append((local_idx_a, local_idx_b))
+
+    # Westfall-Young bootstrap for p-values
+    p_values = np.ones(total_candidates)
+    count_exceed = np.zeros(total_candidates)
+
+    for b in range(n_bootstrap):
+        X_sim = simulate_null_data(n, p, mu_hat, L_U, L_V)
+        for i, (idx_a, idx_b) in enumerate(split_indices):
+            if not idx_a or not idx_b:
+                continue
+            lam_sim = compute_mean_lrt(X_sim, U_inv, idx_a, idx_b).item()
+            if lam_sim >= lambda_obs[i]:
+                count_exceed[i] += 1
+
+    for i in range(total_candidates):
+        p_values[i] = (count_exceed[i] + 1) / (n_bootstrap + 1)
+
+    # FDR correction
+    is_sig, adjusted_p = benjamini_hochberg_correction(p_values, alpha=anova_alpha)
+
+    # Find best significant split
+    best_split = None
+    best_adj_p = 1.0
+    best_lam = -1.0
+
+    for i in range(total_candidates):
+        if is_sig[i]:
+            if adjusted_p[i] < best_adj_p or (adjusted_p[i] == best_adj_p and lambda_obs[i] > best_lam):
+                best_adj_p = adjusted_p[i]
+                best_lam = lambda_obs[i]
+                best_split = candidates[i]
+                best_split['raw_p'] = p_values[i]
+
+    return best_split, best_adj_p, best_lam
+
+
 def get_induced_branch_length(tree, leaf_subset, node_leaves_cache=None):
     """
     Calculates the exact branch length for the subtree induced by a subset of leaves.
@@ -187,7 +267,7 @@ def find_candidate_splits_from_node(node, tree_alpha=0.1, min_absolute_size=20, 
         
     return candidates
 
-def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha=0.1, anova_alpha=0.05, n_permutations=999, id_to_seq=None, current_root_name="Global Root"):
+def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha=0.1, anova_alpha=0.05, n_permutations=999, id_to_seq=None, current_root_name="Global Root", mean_test="anova"):
     """
     Recursively divides a phylogenetic tree into stable sub-families based on 
     significant mean shifts (Phylogenetic ANOVA).
@@ -218,9 +298,20 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
     
     # Slice rows and columns to get the local covariance matrix
     C_local = C_global[idx_tensor][:, idx_tensor]
-    
-    # Shift to the local root and clamp floating-point noise
-    C_local = torch.clamp(C_local - torch.min(C_local), min=0.0)
+
+    # Re-root: subtract the clade-root distance (= shared ancestry from global root
+    # to the MRCA of this sub-clade). This equals the minimum OFF-DIAGONAL element,
+    # since the most distantly related pair in the clade share ancestry only up to
+    # the clade root. Using torch.min(C_local) is wrong because it could pick up a
+    # diagonal element in degenerate cases.
+    n_local = C_local.shape[0]
+    if n_local > 1:
+        diag_mask = torch.eye(n_local, device=C_local.device, dtype=torch.bool)
+        C_offdiag = C_local.masked_fill(diag_mask, float('inf'))
+        clade_root_dist = torch.min(C_offdiag).clamp(min=0.0)
+    else:
+        clade_root_dist = torch.tensor(0.0, device=C_local.device)
+    C_local = torch.clamp(C_local - clade_root_dist, min=0.0)
     
     # 3. Find candidate splits in this clade
     print(f"\n   -> Analyzing Clade with {len(current_leaves_list)} sequences for mean shifts...")
@@ -277,11 +368,17 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
         return [{'node': tree_node, 'leaves': set(current_leaves_list), 'indices': current_global_indices, 
                  'sim_pct': sim_pct, 'norm_branch_len': norm_branch_len, 'split_history': current_root_name}]
         
-    # 4. Evaluate candidates using the Adaptive Phylogenetic ANOVA + FDR
-    best_split, best_p, best_F = evaluate_splits_adaptively(
-        candidates, Y_local, C_local, current_leaves_list, 
-        anova_alpha=anova_alpha, pass1_perms=999, pass2_perms=9999
-    )
+    # 4. Evaluate candidates using the chosen mean test + FDR
+    if mean_test == "lrt":
+        best_split, best_p, best_F = evaluate_splits_with_mean_lrt(
+            candidates, Y_local, C_local, current_leaves_list,
+            anova_alpha=anova_alpha, n_bootstrap=500
+        )
+    else:
+        best_split, best_p, best_F = evaluate_splits_adaptively(
+            candidates, Y_local, C_local, current_leaves_list,
+            anova_alpha=anova_alpha, pass1_perms=999, pass2_perms=9999
+        )
             
     # 5. Recursive Step
     if best_split is not None:
@@ -309,8 +406,8 @@ def recursive_mean_split(tree_node, Y_global, C_global, global_names, tree_alpha
         node_B.prune([str(leaf) for leaf in best_split['group_b']], preserve_branch_length=True)
         
         # 3. Pass them down
-        stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, current_root_name=history_A)
-        stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, current_root_name=history_B)
+        stable_A = recursive_mean_split(node_A, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, current_root_name=history_A, mean_test=mean_test)
+        stable_B = recursive_mean_split(node_B, Y_global, C_global, global_names, tree_alpha, anova_alpha, n_permutations, id_to_seq, current_root_name=history_B, mean_test=mean_test)
         return stable_A + stable_B
         
     else:

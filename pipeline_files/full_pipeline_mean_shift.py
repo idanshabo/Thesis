@@ -139,16 +139,17 @@ def run_find_splits(MSA_file_path, args, tracker, calc_dir, out_mode_dir):
 
     tracker.start_timer("Split_Evaluation")
     results, raw_splits_count, unique_splits_count, final_p_dim, sf_stats = evaluate_top_splits(
-        tree_path, cov_ordered_path, norm_emb_path, 
-        output_path=out_mode_dir, 
+        tree_path, cov_ordered_path, norm_emb_path,
+        output_path=out_mode_dir,
         calc_dir=calc_mode_dir,
         fasta_path=fasta_path,
-        k=args.nodes, 
-        pca_min_variance=args.pca_var, 
+        k=args.nodes,
+        pca_min_variance=args.pca_var,
         pca_min_components=args.min_pcs,
         standardize=args.standardize,
         tree_alpha=args.alpha,
-        existing_msa_stats=tracker.metadata.get("msa_stats", {})
+        existing_msa_stats=tracker.metadata.get("msa_stats", {}),
+        mean_test=args.mean_test
     )
     
     tracker.add_stat("pipeline_stats", "num_raw_candidate_splits", int(raw_splits_count))
@@ -257,6 +258,7 @@ def main():
     parser.add_argument('--standardize', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Standardize data")
     parser.add_argument('--generate_plots', type=str, default="TRUE", choices=["TRUE", "FALSE"], help="Generate plots during visualization")
     parser.add_argument('--alpha', type=float, default=0.10, help="Minimum branch size & redundancy overlap threshold (e.g., 0.10 for 10%)")
+    parser.add_argument('--mean_test', type=str, default="anova", choices=["anova", "lrt"], help="Mean shift test method: anova (RRPP) or lrt (parametric bootstrap)")
     args = parser.parse_args()
 
     args.standardize = args.standardize == "TRUE"

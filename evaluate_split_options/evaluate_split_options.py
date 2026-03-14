@@ -367,9 +367,9 @@ class PhylogeneticPCA:
         return X_centered @ self.V
 
 
-def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fasta_path, k=None, 
+def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fasta_path, k=None,
                         pca_min_variance=None, pca_min_components=None, standardize=True, tree_alpha=0.1,
-                        anova_alpha=0.05, anova_permutations=999, existing_msa_stats=None):
+                        anova_alpha=0.05, anova_permutations=999, existing_msa_stats=None, mean_test="anova"):
     """
     Evaluates splits using a Two-Stage Procedure:
     1. Recursive Mean Shift Testing (Phylogenetic ANOVA) to find stable sub-families.
@@ -403,9 +403,19 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
     print(f"[DEBUG] Global ID Sample (first 3): {df_global_index[:3]}")
     print(f"Loaded {len(df_global_index)} aligned sequences with {emb_tensor_full.shape[1]} dimensions.")
 
+    # --- Global pPCA before mean LRT (needed to reduce dimensionality for LRT) ---
+    if mean_test == "lrt" and (pca_min_variance is not None or pca_min_components is not None):
+        print("\n   -> Applying global pPCA before mean LRT...")
+        p_mode = 'corr' if standardize else 'cov'
+        global_pca = PhylogeneticPCA(min_variance=pca_min_variance, min_components=pca_min_components, mode=p_mode)
+        global_pca.fit(emb_tensor_full.cpu().numpy(), C_global.cpu().numpy())
+        emb_tensor_full = torch.from_numpy(global_pca.transform(emb_tensor_full.cpu().numpy())).float()
+        print(f"   -> Global pPCA reduced to {emb_tensor_full.shape[1]} dimensions for mean LRT.")
+
     # --- PHASE 2: Recursive Mean Shift Testing ---
+    mean_test_label = "Phylogenetic ANOVA" if mean_test == "anova" else "Mean LRT (bootstrap)"
     print("\n" + "="*40)
-    print("PHASE 2: Recursive Mean Shift Testing (Phylogenetic ANOVA)")
+    print(f"PHASE 2: Recursive Mean Shift Testing ({mean_test_label})")
     print("="*40)
 
     summary_path = os.path.join(output_path, "subfamilies_summary.json")
@@ -463,14 +473,15 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
             
         # Standard recursive calculation
         stable_subfamilies = recursive_mean_split(
-            tree_node=tree, 
-            Y_global=emb_tensor_full, 
-            C_global=C_global, 
-            global_names=df_global_index, 
+            tree_node=tree,
+            Y_global=emb_tensor_full,
+            C_global=C_global,
+            global_names=df_global_index,
             tree_alpha=tree_alpha,
-            anova_alpha=anova_alpha, 
+            anova_alpha=anova_alpha,
             n_permutations=anova_permutations,
-            id_to_seq=id_to_seq
+            id_to_seq=id_to_seq,
+            mean_test=mean_test
         )
     
     print(f"\n=> Divided family into {len(stable_subfamilies)} stable sub-families based on global mean shifts.")
@@ -539,8 +550,14 @@ def evaluate_top_splits(tree_path, cov_path, pt_path, output_path, calc_dir, fas
         Y_local = emb_tensor_full[idx_tensor]
         U_local = C_global[idx_tensor][:, idx_tensor]
         
-        # Save Shifted Local Covariance Matrix
-        U_local_shifted = U_local - torch.min(U_local)
+        # Save Shifted Local Covariance Matrix (re-root using min off-diagonal)
+        n_loc = U_local.shape[0]
+        if n_loc > 1:
+            diag_mask = torch.eye(n_loc, device=U_local.device, dtype=torch.bool)
+            shift_val = torch.min(U_local.masked_fill(diag_mask, float('inf'))).clamp(min=0.0)
+        else:
+            shift_val = torch.tensor(0.0, device=U_local.device)
+        U_local_shifted = torch.clamp(U_local - shift_val, min=0.0)
         sf_cov_df = pd.DataFrame(U_local_shifted.cpu().numpy(), index=sf_leaves, columns=sf_leaves)
         sf_cov_path = os.path.join(calc_sf_dir, f"subfamily_{sf_idx}_cov_mat.csv")
         sf_cov_df.to_csv(sf_cov_path)
