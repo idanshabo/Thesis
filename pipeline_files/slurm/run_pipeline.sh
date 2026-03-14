@@ -45,6 +45,7 @@ for fam in ${FAMILIES}; do
 eval "\$(conda shell.bash hook)"
 conda activate kaveret
 cd ${REPO_DIR}
+export PYTHONPATH="${REPO_DIR}:\${PYTHONPATH}"
 
 python ${SCRIPT} \
   --input ${MSA} \
