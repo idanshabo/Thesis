@@ -1,49 +1,75 @@
 #!/bin/bash
-#SBATCH --partition=glacier
-#SBATCH --time=02:00:00
-#SBATCH --mem=4G
-#SBATCH --cpus-per-task=4
-#SBATCH --job-name=sim_validation
-#SBATCH --output=pipeline_files/slurm/logs/sim_%j.out
-#SBATCH --error=pipeline_files/slurm/logs/sim_%j.err
-
 # ============================================================================
-# Generic simulation validation script.
+# Simulation validation — SLURM launcher.
 #
-# Usage examples:
-#   sbatch run_simulation.sh                          # defaults: mean_anova, Type I error
-#   sbatch run_simulation.sh mean_anova power         # mean ANOVA power curve
-#   sbatch run_simulation.sh cov_lrt size             # covariance LRT Type I error
-#   sbatch run_simulation.sh mean_lrt robustness      # mean LRT OU robustness
+# Usage:
+#   bash run_simulation.sh                              # submit ALL (9 jobs)
+#   bash run_simulation.sh all                          # same as above
+#   bash run_simulation.sh mean_anova size              # single job
+#   bash run_simulation.sh mean_anova power             # single job
+#   bash run_simulation.sh cov_lrt size real /path.tree # single job with real tree
 #
 # Arguments:
-#   $1 = test name:  mean_anova | mean_lrt | cov_lrt       (default: mean_anova)
-#   $2 = study type: size | power | robustness | grid       (default: size)
-#   $3 = tree type:  balanced | random | real               (default: balanced)
-#   $4 = tree path:  /path/to/file.tree (required if $3=real)
+#   $1 = test:  mean_anova | mean_lrt | cov_lrt | all   (default: all)
+#   $2 = study: size | power | robustness | grid | all  (default: all)
+#   $3 = tree:  balanced | random | real                 (default: balanced)
+#   $4 = tree path (required if $3=real)
 # ============================================================================
 
-eval "$(conda shell.bash hook)"
-conda activate kaveret
+REPO_DIR="/sci/labs/orzuk/orzuk/github/idan_thesis"
+SCRIPT="${REPO_DIR}/pipeline_files/simulate_test_validation.py"
+RESULTS_DIR="${REPO_DIR}/pipeline_files/slurm/results"
+LOGS_DIR="${REPO_DIR}/pipeline_files/slurm/logs"
 
-cd /sci/labs/orzuk/orzuk/github/idan_thesis
-mkdir -p pipeline_files/slurm/results pipeline_files/slurm/logs
+mkdir -p "${RESULTS_DIR}" "${LOGS_DIR}"
 
-TEST="${1:-mean_anova}"
-STUDY="${2:-size}"
+TEST="${1:-all}"
+STUDY="${2:-all}"
 TREE="${3:-balanced}"
 TREE_PATH="${4:-}"
 
+# Build tree args
 TREE_ARGS="--tree ${TREE}"
 if [ "${TREE}" = "real" ] && [ -n "${TREE_PATH}" ]; then
     TREE_ARGS="${TREE_ARGS} --tree_path ${TREE_PATH}"
 fi
 
-OUTPUT="pipeline_files/slurm/results/${TEST}_${STUDY}_${TREE}.json"
+# Expand "all" into lists
+if [ "${TEST}" = "all" ]; then
+    TESTS="mean_anova mean_lrt cov_lrt"
+else
+    TESTS="${TEST}"
+fi
 
-python pipeline_files/simulate_test_validation.py \
-  --test "${TEST}" \
-  --study "${STUDY}" \
+if [ "${STUDY}" = "all" ]; then
+    STUDIES="size power robustness"
+else
+    STUDIES="${STUDY}"
+fi
+
+# Submit one sbatch job per (test, study) combination
+for t in ${TESTS}; do
+    for s in ${STUDIES}; do
+        JOB_NAME="sim_${t}_${s}"
+        OUTPUT="${RESULTS_DIR}/${t}_${s}_${TREE}.json"
+
+        sbatch \
+          --partition=glacier \
+          --time=02:00:00 \
+          --mem=4G \
+          --cpus-per-task=4 \
+          --job-name="${JOB_NAME}" \
+          --output="${LOGS_DIR}/${JOB_NAME}_%j.out" \
+          --error="${LOGS_DIR}/${JOB_NAME}_%j.err" \
+          <<SLURM_EOF
+#!/bin/bash
+eval "\$(conda shell.bash hook)"
+conda activate kaveret
+cd ${REPO_DIR}
+
+python ${SCRIPT} \
+  --test ${t} \
+  --study ${s} \
   --n 200 \
   --p 20 \
   --reps 100 \
@@ -52,4 +78,14 @@ python pipeline_files/simulate_test_validation.py \
   --seed 42 \
   --plot \
   ${TREE_ARGS} \
-  --output "${OUTPUT}"
+  --output ${OUTPUT}
+SLURM_EOF
+
+        echo "Submitted: ${JOB_NAME}"
+    done
+done
+
+echo ""
+echo "Monitor with: squeue -u \$USER"
+echo "Results in:   ${RESULTS_DIR}/"
+echo "Logs in:      ${LOGS_DIR}/"
