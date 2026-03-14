@@ -249,6 +249,83 @@ def generate_split_indices(n, frac_a=0.5):
     return list(range(n_a)), list(range(n_a, n))
 
 
+def load_real_tree_covariance(tree_path, cov_path=None):
+    """
+    Load a real phylogenetic tree and return (U, n, idx_A, idx_B).
+
+    If cov_path is given, loads the covariance matrix from CSV.
+    Otherwise, computes it from the tree file using the project's utility.
+
+    The split is determined by the deepest internal node that gives
+    the most balanced bipartition (closest to 50/50).
+    """
+    import pandas as pd
+
+    try:
+        from ete3 import Tree as EteTree
+    except ImportError:
+        raise ImportError("ete3 is required for --tree real")
+
+    # Load tree
+    try:
+        tree = EteTree(tree_path, format=1)
+    except Exception:
+        tree = EteTree(tree_path, format=0)
+
+    all_leaves = tree.get_leaf_names()
+    n = len(all_leaves)
+    leaf_to_idx = {name: i for i, name in enumerate(all_leaves)}
+
+    # Load or compute covariance matrix
+    if cov_path and os.path.exists(cov_path):
+        df = pd.read_csv(cov_path, index_col=0)
+        # Reorder to match tree leaf order
+        df = df.loc[all_leaves, all_leaves]
+        U = torch.tensor(df.values, dtype=torch.float64)
+    else:
+        # Compute from tree: U[i,j] = shared path from root to MRCA(i,j)
+        U = torch.zeros(n, n, dtype=torch.float64)
+        # Cache ancestor distances for efficiency
+        root = tree.get_tree_root()
+        leaf_nodes = {leaf.name: leaf for leaf in tree.get_leaves()}
+
+        for i, name_i in enumerate(all_leaves):
+            node_i = leaf_nodes[name_i]
+            U[i, i] = node_i.get_distance(root)
+            for j in range(i + 1, n):
+                name_j = all_leaves[j]
+                node_j = leaf_nodes[name_j]
+                mrca = tree.get_common_ancestor(node_i, node_j)
+                shared = mrca.get_distance(root)
+                U[i, j] = shared
+                U[j, i] = shared
+
+    # Find the most balanced split from the tree topology
+    best_node = None
+    best_balance = 0.0
+
+    for node in tree.traverse("postorder"):
+        if node.is_leaf() or node.is_root():
+            continue
+        clade_size = len(node.get_leaf_names())
+        balance = min(clade_size, n - clade_size) / n
+        if balance > best_balance:
+            best_balance = balance
+            best_node = node
+
+    if best_node is not None:
+        clade_leaves = set(best_node.get_leaf_names())
+        idx_A = [leaf_to_idx[name] for name in all_leaves if name in clade_leaves]
+        idx_B = [leaf_to_idx[name] for name in all_leaves if name not in clade_leaves]
+    else:
+        idx_A, idx_B = generate_split_indices(n)
+
+    print(f"  Real tree: {n} taxa, split {len(idx_A)}/{len(idx_B)} "
+          f"(balance={best_balance:.2f})")
+
+    return U, n, idx_A, idx_B
+
+
 # ===================================================================
 # Covariance / mean generation & perturbation
 # ===================================================================
@@ -402,8 +479,24 @@ def run_single_h1_replicate(test_fn, n, p, mu_A, mu_B, V_A, V_B, U,
 # Study 1: Type I error
 # ===================================================================
 
+def _setup_tree(tree_type, n, seed, tree_path=None, cov_path=None):
+    """Create or load the phylogenetic covariance and split indices."""
+    if tree_type == "real":
+        if tree_path is None:
+            raise ValueError("--tree_path is required when --tree real")
+        U, n_actual, idx_A, idx_B = load_real_tree_covariance(tree_path, cov_path)
+        return U, n_actual, idx_A, idx_B
+    elif tree_type == "balanced":
+        U = generate_balanced_tree_covariance(n)
+    else:
+        U = generate_random_tree_covariance(n, seed=seed)
+    idx_A, idx_B = generate_split_indices(n, frac_a=0.5)
+    return U, n, idx_A, idx_B
+
+
 def study_type_i_error(test_fn, test_name, n, p, n_reps, alpha=0.05,
-                       tree_type="balanced", seed=42, **test_kwargs):
+                       tree_type="balanced", seed=42,
+                       tree_path=None, cov_path=None, **test_kwargs):
     """
     Simulate data under H0 and check empirical rejection rate.
     Should be close to the nominal alpha.
@@ -414,11 +507,9 @@ def study_type_i_error(test_fn, test_name, n, p, n_reps, alpha=0.05,
     print(f"  n={n}, p={p}, reps={n_reps}, alpha={alpha}, tree={tree_type}")
     print(f"  test kwargs: {test_kwargs}")
 
-    U = (generate_balanced_tree_covariance(n) if tree_type == "balanced"
-         else generate_random_tree_covariance(n, seed=seed))
+    U, n, idx_A, idx_B = _setup_tree(tree_type, n, seed, tree_path, cov_path)
     V = generate_random_V(p, condition_number=5.0, seed=seed)
     mu = torch.zeros(p, dtype=torch.float64)
-    idx_A, idx_B = generate_split_indices(n, frac_a=0.5)
 
     rejections = 0
     p_values = []
@@ -468,7 +559,8 @@ def study_type_i_error(test_fn, test_name, n, p, n_reps, alpha=0.05,
 def study_power(test_fn, test_name, n, p, n_reps, alpha=0.05,
                 shift_type="covariance",
                 delta_scales=None, perturbation_mode="eigenvalue",
-                tree_type="balanced", seed=42, **test_kwargs):
+                tree_type="balanced", seed=42,
+                tree_path=None, cov_path=None, **test_kwargs):
     """
     Simulate data under H1 with increasing effect size.
     Supports both mean shifts and covariance shifts.
@@ -483,11 +575,9 @@ def study_power(test_fn, test_name, n, p, n_reps, alpha=0.05,
     print(f"  perturbation: {perturbation_mode}")
     print(f"  delta_scales: {delta_scales}")
 
-    U = (generate_balanced_tree_covariance(n) if tree_type == "balanced"
-         else generate_random_tree_covariance(n, seed=seed))
+    U, n, idx_A, idx_B = _setup_tree(tree_type, n, seed, tree_path, cov_path)
     V = generate_random_V(p, condition_number=5.0, seed=seed)
     mu = torch.zeros(p, dtype=torch.float64)
-    idx_A, idx_B = generate_split_indices(n, frac_a=0.5)
 
     power_curve = []
 
@@ -559,7 +649,7 @@ def study_power(test_fn, test_name, n, p, n_reps, alpha=0.05,
 
 def study_robustness(test_fn, test_name, n, p, n_reps, alpha=0.05,
                      alpha_ou_values=None, tree_type="balanced", seed=42,
-                     **test_kwargs):
+                     tree_path=None, cov_path=None, **test_kwargs):
     """
     Generate data under OU but test with BM-based method.
     Checks whether Type I error is still controlled.
@@ -573,11 +663,9 @@ def study_robustness(test_fn, test_name, n, p, n_reps, alpha=0.05,
     print(f"  n={n}, p={p}, reps={n_reps}")
     print(f"  OU alpha values: {alpha_ou_values}")
 
-    U_bm = (generate_balanced_tree_covariance(n) if tree_type == "balanced"
-            else generate_random_tree_covariance(n, seed=seed))
+    U_bm, n, idx_A, idx_B = _setup_tree(tree_type, n, seed, tree_path, cov_path)
     V = generate_random_V(p, condition_number=5.0, seed=seed)
     mu = torch.zeros(p, dtype=torch.float64)
-    idx_A, idx_B = generate_split_indices(n, frac_a=0.5)
 
     robustness_results = []
 
@@ -627,7 +715,7 @@ def study_robustness(test_fn, test_name, n, p, n_reps, alpha=0.05,
 
 def study_type_i_grid(test_fn, test_name, configs, n_reps, n_bootstrap_or_perm,
                       alpha=0.05, tree_type="balanced", seed=42,
-                      **test_kwargs):
+                      tree_path=None, cov_path=None, **test_kwargs):
     """Run Type I error study across multiple (n, p) configurations."""
     print(f"\n{'='*60}")
     print(f"  STUDY 1b: Type I Error Grid  [{test_name}]")
@@ -639,7 +727,8 @@ def study_type_i_grid(test_fn, test_name, configs, n_reps, n_bootstrap_or_perm,
         print(f"\n  --- n={n}, p={p} ---")
         result = study_type_i_error(
             test_fn, test_name, n, p, n_reps, alpha,
-            tree_type, seed, **test_kwargs
+            tree_type, seed, tree_path=tree_path, cov_path=cov_path,
+            **test_kwargs
         )
         grid_results.append({
             "n": n, "p": p,
@@ -841,8 +930,12 @@ Examples:
     parser.add_argument("--alpha", type=float, default=0.05,
                         help="Significance level (default: 0.05)")
     parser.add_argument("--tree", type=str, default="balanced",
-                        choices=["balanced", "random"],
+                        choices=["balanced", "random", "real"],
                         help="Tree type (default: balanced)")
+    parser.add_argument("--tree_path", type=str, default=None,
+                        help="Path to .tree file (required when --tree real)")
+    parser.add_argument("--cov_path", type=str, default=None,
+                        help="Path to covariance CSV (optional with --tree real, computed from tree if omitted)")
     parser.add_argument("--seed", type=int, default=42,
                         help="Random seed (default: 42)")
     parser.add_argument("--output", type=str, default=None,
@@ -897,7 +990,9 @@ Examples:
     if args.study in ["size", "all"]:
         result = study_type_i_error(
             test_fn, args.test, args.n, args.p, args.reps,
-            args.alpha, args.tree, args.seed, **test_kwargs,
+            args.alpha, args.tree, args.seed,
+            tree_path=args.tree_path, cov_path=args.cov_path,
+            **test_kwargs,
         )
         all_results.append(result)
 
@@ -905,7 +1000,9 @@ Examples:
         result = study_power(
             test_fn, args.test, args.n, args.p, args.reps,
             args.alpha, shift_type, args.delta_scales,
-            args.perturbation, args.tree, args.seed, **test_kwargs,
+            args.perturbation, args.tree, args.seed,
+            tree_path=args.tree_path, cov_path=args.cov_path,
+            **test_kwargs,
         )
         all_results.append(result)
 
@@ -913,6 +1010,7 @@ Examples:
         result = study_robustness(
             test_fn, args.test, args.n, args.p, args.reps,
             args.alpha, tree_type=args.tree, seed=args.seed,
+            tree_path=args.tree_path, cov_path=args.cov_path,
             **test_kwargs,
         )
         all_results.append(result)
@@ -925,7 +1023,9 @@ Examples:
         ]
         grid = study_type_i_grid(
             test_fn, args.test, configs, args.reps, 0,
-            args.alpha, args.tree, args.seed, **test_kwargs,
+            args.alpha, args.tree, args.seed,
+            tree_path=args.tree_path, cov_path=args.cov_path,
+            **test_kwargs,
         )
         all_results.append({"study": "grid", "test": args.test,
                             "grid_results": grid})
