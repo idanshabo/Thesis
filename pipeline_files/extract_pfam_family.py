@@ -90,8 +90,12 @@ def load_index(gz_path):
     return build_index(gz_path)
 
 
-def extract_family(gz_path, family_id, index, output_path=None):
-    """Extract a single family from the gz file using the index."""
+def extract_family(gz_path, family_id, index, output_path=None, max_seqs=None):
+    """Extract a single family from the gz file using the index.
+    If max_seqs is set and family is larger, randomly subsample to max_seqs sequences.
+    """
+    import random
+
     family_id = family_id.upper()
     if family_id not in index:
         print(f"Error: {family_id} not found in index ({len(index)} families available)", file=sys.stderr)
@@ -101,7 +105,6 @@ def extract_family(gz_path, family_id, index, output_path=None):
 
     try:
         import indexed_gzip as igzip
-        # Fast path: seek directly in compressed file
         igzip_index_path = gz_path + ".gzidx"
         lines = []
         with igzip.IndexedGzipFile(gz_path) as f:
@@ -118,7 +121,6 @@ def extract_family(gz_path, family_id, index, output_path=None):
 
     except ImportError:
         import gzip
-        # Slow path: scan to line number
         lines = []
         capturing = False
         line_num = 0
@@ -132,8 +134,28 @@ def extract_family(gz_path, family_id, index, output_path=None):
                         break
                 line_num += 1
 
-    text = "".join(lines)
-    n_seqs = sum(1 for l in lines if l.strip() and not l.startswith("#") and l.strip() != "//")
+    # Separate header/metadata lines from sequence lines
+    header_lines = []
+    seq_lines = []
+    footer = ""
+    for l in lines:
+        if l.strip() == "//":
+            footer = l
+        elif l.startswith("#") or not l.strip():
+            header_lines.append(l)
+        else:
+            seq_lines.append(l)
+
+    n_seqs = len(seq_lines)
+
+    # Subsample if needed
+    if max_seqs and n_seqs > max_seqs:
+        random.seed(42)
+        seq_lines = random.sample(seq_lines, max_seqs)
+        print(f"  Subsampled {family_id}: {n_seqs} -> {max_seqs} sequences")
+        n_seqs = max_seqs
+
+    text = "".join(header_lines + seq_lines + [footer])
 
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -156,6 +178,8 @@ def main():
                         help="Pfam accession(s) (e.g. PF00076 PF00321)")
     parser.add_argument("--output", type=str, default=None,
                         help="Output path (single family only; default: from config)")
+    parser.add_argument("--max-seqs", type=int, default=None,
+                        help="Subsample to at most N sequences (default: no limit)")
     parser.add_argument("--build-index", action="store_true",
                         help="Build index only (no extraction)")
     args = parser.parse_args()
@@ -180,7 +204,7 @@ def main():
 
     for fam in args.family:
         out = args.output if (args.output and len(args.family) == 1) else get_family_msa_path(fam)
-        extract_family(bulk_path, fam, index, out)
+        extract_family(bulk_path, fam, index, out, max_seqs=args.max_seqs)
 
 
 if __name__ == "__main__":
