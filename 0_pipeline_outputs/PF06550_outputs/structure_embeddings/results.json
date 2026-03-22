@@ -1,0 +1,38 @@
+[
+    {
+        "subfamily": 2,
+        "rank": 1,
+        "node": "0.569",
+        "lambda": 19688.8984375,
+        "p_adj": 1.0,
+        "sig": false,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF06550_calculations/structure_embeddings_subfamilies/subfamily_2/non_significant_splits/rank1"
+    },
+    {
+        "subfamily": 2,
+        "rank": 2,
+        "node": "0.997",
+        "lambda": 35332.73828125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF06550_outputs/structure_embeddings/subfamily_2/significant_splits/rank2"
+    },
+    {
+        "subfamily": 2,
+        "rank": 3,
+        "node": "0.888",
+        "lambda": 19532.70703125,
+        "p_adj": 1.0,
+        "sig": false,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF06550_calculations/structure_embeddings_subfamilies/subfamily_2/non_significant_splits/rank3"
+    },
+    {
+        "subfamily": 2,
+        "rank": 4,
+        "node": "0.805",
+        "lambda": 20152.3046875,
+        "p_adj": 1.0,
+        "sig": false,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF06550_calculations/structure_embeddings_subfamilies/subfamily_2/non_significant_splits/rank4"
+    }
+]

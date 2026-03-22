@@ -1,0 +1,71 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.84,
+        "Calculations": 4397.29,
+        "Split_Evaluation": 6465.77,
+        "Visualization_and_Analysis": 2644.92
+    },
+    "msa_stats": {
+        "num_sequences": 251,
+        "avg_sequence_length": 451.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 25.75,
+        "normalized_total_branch_length": 0.6936,
+        "subfamily_1_avg_sequence_similarity_pct": 32.42,
+        "subfamily_1_normalized_total_branch_length": 0.7426,
+        "subfamily_2_avg_sequence_similarity_pct": 29.84,
+        "subfamily_2_normalized_total_branch_length": 0.8263,
+        "subfamily_3_avg_sequence_similarity_pct": 47.14,
+        "subfamily_3_normalized_total_branch_length": 0.469,
+        "subfamily_4_avg_sequence_similarity_pct": 59.27,
+        "subfamily_4_normalized_total_branch_length": 0.3567,
+        "subfamily_5_avg_sequence_similarity_pct": 27.89,
+        "subfamily_5_normalized_total_branch_length": 0.8713
+    },
+    "pipeline_stats": {
+        "family_name": "PF10016",
+        "embedding_mode": "structure",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 16,
+        "num_unique_candidate_splits": 6,
+        "subfamily_1_final_embedding_dim": 36,
+        "subfamily_2_final_embedding_dim": 20,
+        "subfamily_3_final_embedding_dim": 37,
+        "subfamily_4_final_embedding_dim": 49,
+        "subfamily_5_final_embedding_dim": 87,
+        "num_significant_covariance_splits": 3
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.712",
+        "subfamily_2_history": "node 0.044",
+        "subfamily_3_history": "node 0.940",
+        "subfamily_4_history": "node 0.710",
+        "subfamily_5_history": "Global Root",
+        "subfamily_4_rank1": {
+            "avg_a": 0.6456501533068264,
+            "avg_b": 0.4327132519955776,
+            "avg_inter": 0.5048779526987089
+        },
+        "subfamily_5_rank3": {
+            "avg_a": 0.6508212527700846,
+            "avg_b": 0.5391823891085081,
+            "avg_inter": 0.5772701137876816
+        },
+        "subfamily_5_rank5": {
+            "avg_a": 0.6557019149735062,
+            "avg_b": 0.459831945259954,
+            "avg_inter": 0.5206779943526135
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'Members of this family of hypothetical bacterial proteins have no known function.', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

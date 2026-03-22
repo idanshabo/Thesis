@@ -1,0 +1,78 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.44,
+        "Calculations": 17.78,
+        "Split_Evaluation": 5180.67,
+        "Visualization_and_Analysis": 2427.64
+    },
+    "msa_stats": {
+        "num_sequences": 4692,
+        "avg_sequence_length": 223.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 62.77,
+        "normalized_total_branch_length": 0.1866,
+        "subfamily_1_avg_sequence_similarity_pct": 62.54,
+        "subfamily_1_normalized_total_branch_length": 0.1866
+    },
+    "pipeline_stats": {
+        "family_name": "PF00900",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 23,
+        "num_unique_candidate_splits": 7,
+        "subfamily_1_final_embedding_dim": 50,
+        "num_significant_covariance_splits": 7
+    },
+    "split_analysis": {
+        "subfamily_1_history": "Global Root",
+        "subfamily_1_rank2": {
+            "avg_a": 0.5219352550462597,
+            "avg_b": 0.4524511691764404,
+            "avg_inter": 0.46781532968596623
+        },
+        "subfamily_1_rank5": {
+            "avg_a": 0.4857923565464962,
+            "avg_b": 0.4360625924097425,
+            "avg_inter": 0.4071139571541143
+        },
+        "subfamily_1_rank4": {
+            "avg_a": 0.5106011302996321,
+            "avg_b": 0.4342946281181903,
+            "avg_inter": 0.443600820063524
+        },
+        "subfamily_1_rank3": {
+            "avg_a": 0.5484628563804487,
+            "avg_b": 0.4353008946343816,
+            "avg_inter": 0.44466876803625466
+        },
+        "subfamily_1_rank6": {
+            "avg_a": 0.5087373568985097,
+            "avg_b": 0.4616109342981857,
+            "avg_inter": 0.40779668211237635
+        },
+        "subfamily_1_rank1": {
+            "avg_a": 0.5164385674102564,
+            "avg_b": 0.4526126810698737,
+            "avg_inter": 0.4096514630695406
+        },
+        "subfamily_1_rank7": {
+            "avg_a": 0.45761195494118456,
+            "avg_b": 0.42053818461161935,
+            "avg_inter": 0.41615780367548705
+        }
+    },
+    "family_info": {
+        "description": "No description available",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    },
+    "errors": {
+        "crash_reason": "Error tokenizing data. C error: Calling read(nbytes) on source failed. Try engine='python'."
+    }
+}

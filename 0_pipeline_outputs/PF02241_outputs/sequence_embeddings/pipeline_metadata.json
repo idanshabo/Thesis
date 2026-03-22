@@ -1,0 +1,60 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.68,
+        "Calculations": 48.59,
+        "Split_Evaluation": 70.66,
+        "Visualization_and_Analysis": 5491.21
+    },
+    "msa_stats": {
+        "num_sequences": 104,
+        "avg_sequence_length": 270.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 63.32,
+        "normalized_total_branch_length": 0.1333,
+        "subfamily_1_avg_sequence_similarity_pct": 63.49,
+        "subfamily_1_normalized_total_branch_length": 0.1333
+    },
+    "pipeline_stats": {
+        "family_name": "PF02241",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 7,
+        "num_unique_candidate_splits": 4,
+        "subfamily_1_final_embedding_dim": 50,
+        "num_significant_covariance_splits": 4
+    },
+    "split_analysis": {
+        "subfamily_1_history": "Global Root",
+        "subfamily_1_rank1": {
+            "avg_a": 0.3860531002700358,
+            "avg_b": 0.3440650571685488,
+            "avg_inter": 0.3439480852075072
+        },
+        "subfamily_1_rank2": {
+            "avg_a": 0.3712668660488761,
+            "avg_b": 0.33477483373407013,
+            "avg_inter": 0.34046222912204505
+        },
+        "subfamily_1_rank3": {
+            "avg_a": 0.3609322651367026,
+            "avg_b": 0.3324175624975146,
+            "avg_inter": 0.33773784475880136
+        },
+        "subfamily_1_rank4": {
+            "avg_a": 0.34091140820341,
+            "avg_b": 0.34521800102449357,
+            "avg_inter": 0.33354095634682157
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'Methyl-coenzyme M reductase (MCR) is the enzyme responsible for microbial formation of methane. It is a hexamer composed of 2 alpha ([pfam:PF02249]), 2 beta (this family), and 2 gamma ([pfam:PF02240]) subunits with two identical nickel porphinoid active sites [[cite:PUB00006391]]. The C-terminal domain of MCR beta has an all-alpha fold with buried central helix.', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

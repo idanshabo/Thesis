@@ -1,0 +1,56 @@
+[
+    {
+        "subfamily": 4,
+        "rank": 1,
+        "node": "0.252",
+        "lambda": 16645.37109375,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF10016_outputs/structure_embeddings/subfamily_4/significant_splits/rank1"
+    },
+    {
+        "subfamily": 5,
+        "rank": 1,
+        "node": "0.258",
+        "lambda": 25323.650390625,
+        "p_adj": 1.0,
+        "sig": false,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF10016_calculations/structure_embeddings_subfamilies/subfamily_5/non_significant_splits/rank1"
+    },
+    {
+        "subfamily": 5,
+        "rank": 2,
+        "node": "0.887",
+        "lambda": 26820.65625,
+        "p_adj": 1.0,
+        "sig": false,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF10016_calculations/structure_embeddings_subfamilies/subfamily_5/non_significant_splits/rank2"
+    },
+    {
+        "subfamily": 5,
+        "rank": 3,
+        "node": "0.969",
+        "lambda": 47382.4609375,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF10016_outputs/structure_embeddings/subfamily_5/significant_splits/rank3"
+    },
+    {
+        "subfamily": 5,
+        "rank": 4,
+        "node": "0.555",
+        "lambda": 30763.703125,
+        "p_adj": 1.0,
+        "sig": false,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF10016_calculations/structure_embeddings_subfamilies/subfamily_5/non_significant_splits/rank4"
+    },
+    {
+        "subfamily": 5,
+        "rank": 5,
+        "node": "0.874",
+        "lambda": 48933.99609375,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF10016_outputs/structure_embeddings/subfamily_5/significant_splits/rank5"
+    }
+]

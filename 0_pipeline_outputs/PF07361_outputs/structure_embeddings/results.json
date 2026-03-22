@@ -1,0 +1,38 @@
+[
+    {
+        "subfamily": 1,
+        "rank": 1,
+        "node": "0.836",
+        "lambda": 11960.240234375,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF07361_outputs/structure_embeddings/subfamily_1/significant_splits/rank1"
+    },
+    {
+        "subfamily": 1,
+        "rank": 2,
+        "node": "0.953",
+        "lambda": 14640.95703125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF07361_outputs/structure_embeddings/subfamily_1/significant_splits/rank2"
+    },
+    {
+        "subfamily": 2,
+        "rank": 1,
+        "node": "0.531",
+        "lambda": 18174.81640625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF07361_outputs/structure_embeddings/subfamily_2/significant_splits/rank1"
+    },
+    {
+        "subfamily": 2,
+        "rank": 2,
+        "node": "0.632",
+        "lambda": 14442.54296875,
+        "p_adj": 1.0,
+        "sig": false,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF07361_calculations/structure_embeddings_subfamilies/subfamily_2/non_significant_splits/rank2"
+    }
+]

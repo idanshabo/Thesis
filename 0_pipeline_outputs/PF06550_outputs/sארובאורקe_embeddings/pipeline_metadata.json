@@ -1,0 +1,32 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 1.03
+    },
+    "msa_stats": {
+        "num_sequences": 209,
+        "avg_sequence_length": 895.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 43.23,
+        "normalized_total_branch_length": 0.9609
+    },
+    "pipeline_stats": {
+        "family_name": "PF06550",
+        "embedding_mode": "s\u05d0\u05e8\u05d5\u05d1\u05d0\u05d5\u05e8\u05e7e",
+        "num_significant_splits": null
+    },
+    "split_analysis": {},
+    "family_info": {
+        "description": "{'text': 'SPP is a family of signal-peptide aspartyl proteases. The family carries the characteristic catalytic aspartate GXGD motif, and members are integral membrane peptidases of the presenilin-type with nine transmembrane regions. UniProtKB:Q18K19 is part of the TCDB family 1.A.54.3.4, the presenilin er Ca(2+) leak channel (presenilin).', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": true,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    },
+    "errors": {
+        "crash_reason": "Mode must be 'sequence' or 'structure'"
+    }
+}

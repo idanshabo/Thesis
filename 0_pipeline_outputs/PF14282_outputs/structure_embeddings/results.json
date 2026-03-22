@@ -1,0 +1,11 @@
+[
+    {
+        "subfamily": 4,
+        "rank": 1,
+        "node": "0.743",
+        "lambda": 12426.294921875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF14282_outputs/structure_embeddings/subfamily_4/significant_splits/rank1"
+    }
+]

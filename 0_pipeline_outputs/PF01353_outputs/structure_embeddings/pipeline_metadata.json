@@ -1,0 +1,54 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.9,
+        "Calculations": 1042.9,
+        "Split_Evaluation": 186.38,
+        "Visualization_and_Analysis": 531.87
+    },
+    "msa_stats": {
+        "num_sequences": 100,
+        "avg_sequence_length": 461.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 26.73,
+        "normalized_total_branch_length": 0.6543,
+        "subfamily_1_avg_sequence_similarity_pct": 34.66,
+        "subfamily_1_normalized_total_branch_length": 0.6108,
+        "subfamily_2_avg_sequence_similarity_pct": 35.05,
+        "subfamily_2_normalized_total_branch_length": 0.6835
+    },
+    "pipeline_stats": {
+        "family_name": "PF01353",
+        "embedding_mode": "structure",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 3,
+        "num_unique_candidate_splits": 2,
+        "subfamily_1_final_embedding_dim": 49,
+        "subfamily_2_final_embedding_dim": 50,
+        "num_significant_covariance_splits": 2
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.759",
+        "subfamily_2_history": "Global Root",
+        "subfamily_1_rank1": {
+            "avg_a": 0.31687828099708387,
+            "avg_b": 0.3528355114127693,
+            "avg_inter": 0.3069464632128729
+        },
+        "subfamily_1_rank2": {
+            "avg_a": 0.3127080980338808,
+            "avg_b": 0.3599235713891076,
+            "avg_inter": 0.3139593881860365
+        }
+    },
+    "family_info": {
+        "description": "No description available",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

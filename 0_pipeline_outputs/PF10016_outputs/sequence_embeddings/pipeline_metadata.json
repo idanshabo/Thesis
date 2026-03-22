@@ -1,0 +1,55 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 1.09,
+        "Calculations": 989.65,
+        "Split_Evaluation": 1126.59,
+        "Visualization_and_Analysis": 3541.78
+    },
+    "msa_stats": {
+        "num_sequences": 251,
+        "avg_sequence_length": 451.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 25.75,
+        "normalized_total_branch_length": 0.6936,
+        "subfamily_1_avg_sequence_similarity_pct": 25.6,
+        "subfamily_1_normalized_total_branch_length": 0.6936
+    },
+    "pipeline_stats": {
+        "family_name": "PF10016",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 20,
+        "num_unique_candidate_splits": 7,
+        "subfamily_1_final_embedding_dim": 99,
+        "num_significant_covariance_splits": 3
+    },
+    "split_analysis": {
+        "subfamily_1_history": "Global Root",
+        "subfamily_1_rank1": {
+            "avg_a": 0.5405482555652671,
+            "avg_b": 0.5161464486956148,
+            "avg_inter": 0.4894337034976747
+        },
+        "subfamily_1_rank4": {
+            "avg_a": 0.5475801112256536,
+            "avg_b": 0.46311505296111194,
+            "avg_inter": 0.4912344516503464
+        },
+        "subfamily_1_rank5": {
+            "avg_a": 0.502709150523087,
+            "avg_b": 0.49633733167351896,
+            "avg_inter": 0.4909451172297699
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'Members of this family of hypothetical bacterial proteins have no known function.', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}
