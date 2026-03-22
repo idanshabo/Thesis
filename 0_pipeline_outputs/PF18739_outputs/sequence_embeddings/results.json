@@ -1,0 +1,11 @@
+[
+    {
+        "subfamily": 7,
+        "rank": 1,
+        "node": "0.786",
+        "lambda": 18334.99609375,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF18739_outputs/sequence_embeddings/subfamily_7/significant_splits/rank1"
+    }
+]

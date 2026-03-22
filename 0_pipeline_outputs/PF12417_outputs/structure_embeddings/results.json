@@ -1,0 +1,83 @@
+[
+    {
+        "subfamily": 1,
+        "rank": 1,
+        "node": "0.756",
+        "lambda": 18562.908203125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF12417_outputs/structure_embeddings/subfamily_1/significant_splits/rank1"
+    },
+    {
+        "subfamily": 15,
+        "rank": 1,
+        "node": "0.888",
+        "lambda": 19834.626953125,
+        "p_adj": 1.0,
+        "sig": false,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF12417_calculations/structure_embeddings_subfamilies/subfamily_15/non_significant_splits/rank1"
+    },
+    {
+        "subfamily": 15,
+        "rank": 2,
+        "node": "0.857",
+        "lambda": 30834.66015625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF12417_outputs/structure_embeddings/subfamily_15/significant_splits/rank2"
+    },
+    {
+        "subfamily": 15,
+        "rank": 3,
+        "node": "0.651",
+        "lambda": 36343.015625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF12417_outputs/structure_embeddings/subfamily_15/significant_splits/rank3"
+    },
+    {
+        "subfamily": 15,
+        "rank": 4,
+        "node": "0.937",
+        "lambda": 18633.408203125,
+        "p_adj": 1.0,
+        "sig": false,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF12417_calculations/structure_embeddings_subfamilies/subfamily_15/non_significant_splits/rank4"
+    },
+    {
+        "subfamily": 15,
+        "rank": 5,
+        "node": "0.691",
+        "lambda": 19253.41796875,
+        "p_adj": 1.0,
+        "sig": false,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF12417_calculations/structure_embeddings_subfamilies/subfamily_15/non_significant_splits/rank5"
+    },
+    {
+        "subfamily": 17,
+        "rank": 1,
+        "node": "0.886",
+        "lambda": 18183.060546875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF12417_outputs/structure_embeddings/subfamily_17/significant_splits/rank1"
+    },
+    {
+        "subfamily": 17,
+        "rank": 2,
+        "node": "0.789",
+        "lambda": 22566.453125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF12417_outputs/structure_embeddings/subfamily_17/significant_splits/rank2"
+    },
+    {
+        "subfamily": 17,
+        "rank": 3,
+        "node": "0.568",
+        "lambda": 21760.58203125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF12417_outputs/structure_embeddings/subfamily_17/significant_splits/rank3"
+    }
+]

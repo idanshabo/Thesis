@@ -1,0 +1,209 @@
+[
+    {
+        "subfamily": 1,
+        "rank": 1,
+        "node": "0.277",
+        "lambda": 9953.08984375,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_1/significant_splits/rank1"
+    },
+    {
+        "subfamily": 5,
+        "rank": 1,
+        "node": "0.200",
+        "lambda": 7541.3203125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_5/significant_splits/rank1"
+    },
+    {
+        "subfamily": 5,
+        "rank": 2,
+        "node": "0.839",
+        "lambda": 14981.3671875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_5/significant_splits/rank2"
+    },
+    {
+        "subfamily": 5,
+        "rank": 3,
+        "node": "0.000",
+        "lambda": 11132.125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_5/significant_splits/rank3"
+    },
+    {
+        "subfamily": 5,
+        "rank": 4,
+        "node": "0.779",
+        "lambda": 16151.26171875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_5/significant_splits/rank4"
+    },
+    {
+        "subfamily": 5,
+        "rank": 5,
+        "node": "0.800",
+        "lambda": 20437.98828125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_5/significant_splits/rank5"
+    },
+    {
+        "subfamily": 5,
+        "rank": 6,
+        "node": "0.885",
+        "lambda": 19659.1953125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_5/significant_splits/rank6"
+    },
+    {
+        "subfamily": 6,
+        "rank": 1,
+        "node": "0.993",
+        "lambda": 11942.3125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_6/significant_splits/rank1"
+    },
+    {
+        "subfamily": 6,
+        "rank": 2,
+        "node": "0.717",
+        "lambda": 10705.63671875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_6/significant_splits/rank2"
+    },
+    {
+        "subfamily": 6,
+        "rank": 3,
+        "node": "0.379",
+        "lambda": 6351.390625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_6/significant_splits/rank3"
+    },
+    {
+        "subfamily": 6,
+        "rank": 4,
+        "node": "0.737",
+        "lambda": 6291.734375,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_6/significant_splits/rank4"
+    },
+    {
+        "subfamily": 6,
+        "rank": 5,
+        "node": "0.440",
+        "lambda": 9937.984375,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_6/significant_splits/rank5"
+    },
+    {
+        "subfamily": 6,
+        "rank": 6,
+        "node": "0.581",
+        "lambda": 13020.08984375,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_6/significant_splits/rank6"
+    },
+    {
+        "subfamily": 7,
+        "rank": 1,
+        "node": "0.891",
+        "lambda": 3795.34765625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_7/significant_splits/rank1"
+    },
+    {
+        "subfamily": 7,
+        "rank": 2,
+        "node": "0.844",
+        "lambda": 4347.0810546875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_7/significant_splits/rank2"
+    },
+    {
+        "subfamily": 9,
+        "rank": 1,
+        "node": "0.700",
+        "lambda": 19421.84375,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_9/significant_splits/rank1"
+    },
+    {
+        "subfamily": 9,
+        "rank": 2,
+        "node": "0.950",
+        "lambda": 11845.51171875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_9/significant_splits/rank2"
+    },
+    {
+        "subfamily": 9,
+        "rank": 3,
+        "node": "0.783",
+        "lambda": 24322.5390625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_9/significant_splits/rank3"
+    },
+    {
+        "subfamily": 9,
+        "rank": 4,
+        "node": "0.506",
+        "lambda": 12146.9921875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_9/significant_splits/rank4"
+    },
+    {
+        "subfamily": 9,
+        "rank": 5,
+        "node": "0.828",
+        "lambda": 23147.76953125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_9/significant_splits/rank5"
+    },
+    {
+        "subfamily": 11,
+        "rank": 1,
+        "node": "0.923",
+        "lambda": 9749.6015625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_11/significant_splits/rank1"
+    },
+    {
+        "subfamily": 11,
+        "rank": 2,
+        "node": "0.909",
+        "lambda": 15288.884765625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_11/significant_splits/rank2"
+    },
+    {
+        "subfamily": 11,
+        "rank": 3,
+        "node": "0.473",
+        "lambda": 9165.2412109375,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF23405_outputs/sequence_embeddings/subfamily_11/significant_splits/rank3"
+    }
+]

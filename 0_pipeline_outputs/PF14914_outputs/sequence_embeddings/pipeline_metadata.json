@@ -1,0 +1,92 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.38,
+        "Calculations": 3.6,
+        "Split_Evaluation": 1799.11,
+        "Visualization_and_Analysis": 1576.73
+    },
+    "msa_stats": {
+        "num_sequences": 660,
+        "avg_sequence_length": 322.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 49.81,
+        "normalized_total_branch_length": 0.2431,
+        "subfamily_1_avg_sequence_similarity_pct": 43.84,
+        "subfamily_1_normalized_total_branch_length": 0.4946,
+        "subfamily_2_avg_sequence_similarity_pct": 81.04,
+        "subfamily_2_normalized_total_branch_length": 0.1021,
+        "subfamily_3_avg_sequence_similarity_pct": 49.42,
+        "subfamily_3_normalized_total_branch_length": 0.4856,
+        "subfamily_4_avg_sequence_similarity_pct": 60.13,
+        "subfamily_4_normalized_total_branch_length": 0.174
+    },
+    "pipeline_stats": {
+        "family_name": "PF14914",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 24,
+        "num_unique_candidate_splits": 9,
+        "subfamily_1_final_embedding_dim": 31,
+        "subfamily_2_final_embedding_dim": 37,
+        "subfamily_3_final_embedding_dim": 50,
+        "subfamily_4_final_embedding_dim": 50,
+        "num_significant_covariance_splits": 8
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.963",
+        "subfamily_2_history": "node 0.000",
+        "subfamily_3_history": "node 1.000",
+        "subfamily_4_history": "Global Root",
+        "subfamily_4_rank2": {
+            "avg_a": 0.5566228059245485,
+            "avg_b": 0.48975724313703045,
+            "avg_inter": 0.48935677625011903
+        },
+        "subfamily_4_rank5": {
+            "avg_a": 0.5276783648827778,
+            "avg_b": 0.4466145079340321,
+            "avg_inter": 0.4398062758085034
+        },
+        "subfamily_4_rank4": {
+            "avg_a": 0.4967108161550408,
+            "avg_b": 0.46997748903672876,
+            "avg_inter": 0.4686995561588514
+        },
+        "subfamily_4_rank3": {
+            "avg_a": 0.5539684065208016,
+            "avg_b": 0.501418637250858,
+            "avg_inter": 0.49275106313253164
+        },
+        "subfamily_4_rank1": {
+            "avg_a": 0.49614507737756924,
+            "avg_b": 0.4972838558095779,
+            "avg_inter": 0.4923124445009049
+        },
+        "subfamily_3_rank4": {
+            "avg_a": 0.4890002174135463,
+            "avg_b": 0.4403707307997689,
+            "avg_inter": 0.4234293450264045
+        },
+        "subfamily_3_rank3": {
+            "avg_a": 0.46158651221220476,
+            "avg_b": 0.4340139974635342,
+            "avg_inter": 0.4155682018638124
+        },
+        "subfamily_3_rank1": {
+            "avg_a": 0.45224062359660194,
+            "avg_b": 0.4325478372282533,
+            "avg_inter": 0.43380328836875126
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'This family represents the C-terminal domain of the putative Leucine Rich Repeat Containing protein 37A or protein 37B (LRRC37A/B) found in eukaryotes. The Leucine Rich Repeats (LRR) lies in the central region. The gene that encodes this protein is found in the chromosomal position 17q11.2, and its microdeletion results in the disease, neurofibromatosis type-1 (NF1) [[cite:PUB00070071]]. The function of the protein, LRRC37B is unknown, however experimental data shows expression in the aorta, heart, skeletal muscle, liver and brain during gestation [[cite:PUB00070072]].', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

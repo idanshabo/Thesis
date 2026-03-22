@@ -1,0 +1,65 @@
+[
+    {
+        "subfamily": 6,
+        "rank": 1,
+        "node": "0.573",
+        "lambda": 17737.12890625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF14914_outputs/structure_embeddings/subfamily_6/significant_splits/rank1"
+    },
+    {
+        "subfamily": 6,
+        "rank": 2,
+        "node": "0.545",
+        "lambda": 18502.10546875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF14914_outputs/structure_embeddings/subfamily_6/significant_splits/rank2"
+    },
+    {
+        "subfamily": 6,
+        "rank": 3,
+        "node": "0.935",
+        "lambda": 14483.25390625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF14914_outputs/structure_embeddings/subfamily_6/significant_splits/rank3"
+    },
+    {
+        "subfamily": 6,
+        "rank": 4,
+        "node": "0.684",
+        "lambda": 13183.337890625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF14914_outputs/structure_embeddings/subfamily_6/significant_splits/rank4"
+    },
+    {
+        "subfamily": 6,
+        "rank": 5,
+        "node": "0.434",
+        "lambda": 14918.5732421875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF14914_outputs/structure_embeddings/subfamily_6/significant_splits/rank5"
+    },
+    {
+        "subfamily": 6,
+        "rank": 6,
+        "node": "0.878",
+        "lambda": 11977.390625,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF14914_outputs/structure_embeddings/subfamily_6/significant_splits/rank6"
+    },
+    {
+        "subfamily": 11,
+        "rank": 1,
+        "node": "0.297",
+        "lambda": 9180.482421875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/Users/idan_shabo/Documents/Thesis/pipeline_outputs/PF14914_outputs/structure_embeddings/subfamily_11/significant_splits/rank1"
+    }
+]

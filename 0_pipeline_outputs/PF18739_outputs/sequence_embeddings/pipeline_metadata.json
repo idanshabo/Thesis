@@ -1,0 +1,81 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.49,
+        "Calculations": 3.78,
+        "Split_Evaluation": 1607.93,
+        "Visualization_and_Analysis": 63.57
+    },
+    "msa_stats": {
+        "num_sequences": 307,
+        "avg_sequence_length": 403.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 17.0,
+        "normalized_total_branch_length": 1.9443,
+        "subfamily_1_avg_sequence_similarity_pct": 40.66,
+        "subfamily_1_normalized_total_branch_length": 1.0681,
+        "subfamily_2_avg_sequence_similarity_pct": 21.92,
+        "subfamily_2_normalized_total_branch_length": 2.0995,
+        "subfamily_3_avg_sequence_similarity_pct": 18.32,
+        "subfamily_3_normalized_total_branch_length": 2.1929,
+        "subfamily_4_avg_sequence_similarity_pct": 14.99,
+        "subfamily_4_normalized_total_branch_length": 2.3726,
+        "subfamily_5_avg_sequence_similarity_pct": 22.5,
+        "subfamily_5_normalized_total_branch_length": 2.1798,
+        "subfamily_6_avg_sequence_similarity_pct": 20.75,
+        "subfamily_6_normalized_total_branch_length": 2.1176,
+        "subfamily_7_avg_sequence_similarity_pct": 27.69,
+        "subfamily_7_normalized_total_branch_length": 1.6358,
+        "subfamily_8_avg_sequence_similarity_pct": 17.28,
+        "subfamily_8_normalized_total_branch_length": 2.1664,
+        "subfamily_9_avg_sequence_similarity_pct": 42.09,
+        "subfamily_9_normalized_total_branch_length": 1.0626,
+        "subfamily_10_avg_sequence_similarity_pct": 16.9,
+        "subfamily_10_normalized_total_branch_length": 2.5418
+    },
+    "pipeline_stats": {
+        "family_name": "PF18739",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 1,
+        "num_unique_candidate_splits": 1,
+        "subfamily_1_final_embedding_dim": 32,
+        "subfamily_2_final_embedding_dim": 22,
+        "subfamily_3_final_embedding_dim": 39,
+        "subfamily_4_final_embedding_dim": 29,
+        "subfamily_5_final_embedding_dim": 34,
+        "subfamily_6_final_embedding_dim": 27,
+        "subfamily_7_final_embedding_dim": 50,
+        "subfamily_8_final_embedding_dim": 22,
+        "subfamily_9_final_embedding_dim": 21,
+        "subfamily_10_final_embedding_dim": 28,
+        "num_significant_covariance_splits": 1
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.832",
+        "subfamily_2_history": "node 0.691",
+        "subfamily_3_history": "node 0.602",
+        "subfamily_4_history": "node 0.464",
+        "subfamily_5_history": "node 0.917",
+        "subfamily_6_history": "node 0.744",
+        "subfamily_7_history": "node 0.791",
+        "subfamily_8_history": "node 0.674",
+        "subfamily_9_history": "node 0.864",
+        "subfamily_10_history": "Global Root",
+        "subfamily_7_rank1": {
+            "avg_a": 0.8646382399238822,
+            "avg_b": 0.6748129424246949,
+            "avg_inter": 0.737495264892472
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'Apea-like HEPN nuclease. In epsilonproteobacteria embedded in R-M operons [[cite:PUB00091124]].', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

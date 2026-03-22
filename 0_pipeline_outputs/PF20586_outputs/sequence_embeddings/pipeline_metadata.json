@@ -1,0 +1,143 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.36,
+        "Calculations": 2.82,
+        "Split_Evaluation": 5401.49,
+        "Visualization_and_Analysis": 364.89
+    },
+    "msa_stats": {
+        "num_sequences": 619,
+        "avg_sequence_length": 205.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 20.36,
+        "normalized_total_branch_length": 0.7734,
+        "subfamily_1_avg_sequence_similarity_pct": 59.54,
+        "subfamily_1_normalized_total_branch_length": 0.284,
+        "subfamily_2_avg_sequence_similarity_pct": 57.19,
+        "subfamily_2_normalized_total_branch_length": 0.3698,
+        "subfamily_3_avg_sequence_similarity_pct": 34.34,
+        "subfamily_3_normalized_total_branch_length": 1.0593,
+        "subfamily_4_avg_sequence_similarity_pct": 57.14,
+        "subfamily_4_normalized_total_branch_length": 0.5259,
+        "subfamily_5_avg_sequence_similarity_pct": 67.93,
+        "subfamily_5_normalized_total_branch_length": 0.2428,
+        "subfamily_6_avg_sequence_similarity_pct": 42.38,
+        "subfamily_6_normalized_total_branch_length": 0.7253,
+        "subfamily_7_avg_sequence_similarity_pct": 33.14,
+        "subfamily_7_normalized_total_branch_length": 1.2059,
+        "subfamily_8_avg_sequence_similarity_pct": 43.12,
+        "subfamily_8_normalized_total_branch_length": 0.9237,
+        "subfamily_9_avg_sequence_similarity_pct": 26.43,
+        "subfamily_9_normalized_total_branch_length": 1.288,
+        "subfamily_10_avg_sequence_similarity_pct": 45.11,
+        "subfamily_10_normalized_total_branch_length": 0.7358,
+        "subfamily_11_avg_sequence_similarity_pct": 24.03,
+        "subfamily_11_normalized_total_branch_length": 1.5414,
+        "subfamily_12_avg_sequence_similarity_pct": 60.65,
+        "subfamily_12_normalized_total_branch_length": 0.3785,
+        "subfamily_13_avg_sequence_similarity_pct": 38.03,
+        "subfamily_13_normalized_total_branch_length": 1.0179,
+        "subfamily_14_avg_sequence_similarity_pct": 33.14,
+        "subfamily_14_normalized_total_branch_length": 1.292,
+        "subfamily_15_avg_sequence_similarity_pct": 40.2,
+        "subfamily_15_normalized_total_branch_length": 0.7715,
+        "subfamily_16_avg_sequence_similarity_pct": 54.66,
+        "subfamily_16_normalized_total_branch_length": 0.3919,
+        "subfamily_17_avg_sequence_similarity_pct": 40.86,
+        "subfamily_17_normalized_total_branch_length": 0.7824,
+        "subfamily_18_avg_sequence_similarity_pct": 27.26,
+        "subfamily_18_normalized_total_branch_length": 1.2814
+    },
+    "pipeline_stats": {
+        "family_name": "PF20586",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 9,
+        "num_unique_candidate_splits": 7,
+        "subfamily_1_final_embedding_dim": 50,
+        "subfamily_2_final_embedding_dim": 26,
+        "subfamily_3_final_embedding_dim": 29,
+        "subfamily_4_final_embedding_dim": 27,
+        "subfamily_5_final_embedding_dim": 50,
+        "subfamily_6_final_embedding_dim": 37,
+        "subfamily_7_final_embedding_dim": 22,
+        "subfamily_8_final_embedding_dim": 25,
+        "subfamily_9_final_embedding_dim": 39,
+        "subfamily_10_final_embedding_dim": 21,
+        "subfamily_11_final_embedding_dim": 22,
+        "subfamily_12_final_embedding_dim": 40,
+        "subfamily_13_final_embedding_dim": 20,
+        "subfamily_14_final_embedding_dim": 50,
+        "subfamily_15_final_embedding_dim": 27,
+        "subfamily_16_final_embedding_dim": 27,
+        "subfamily_17_final_embedding_dim": 33,
+        "subfamily_18_final_embedding_dim": 27,
+        "num_significant_covariance_splits": 7
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.619",
+        "subfamily_2_history": "node 0.843",
+        "subfamily_3_history": "node 0.829",
+        "subfamily_4_history": "node 0.896",
+        "subfamily_5_history": "node 0.260",
+        "subfamily_6_history": "node 0.862",
+        "subfamily_7_history": "node 0.694",
+        "subfamily_8_history": "node 0.975",
+        "subfamily_9_history": "node 0.934",
+        "subfamily_10_history": "node 0.855",
+        "subfamily_11_history": "node 0.903",
+        "subfamily_12_history": "node 0.969",
+        "subfamily_13_history": "node 0.936",
+        "subfamily_14_history": "node 0.773",
+        "subfamily_15_history": "node 0.580",
+        "subfamily_16_history": "node 0.901",
+        "subfamily_17_history": "node 0.763",
+        "subfamily_18_history": "Global Root",
+        "subfamily_1_rank2": {
+            "avg_a": 0.6400023049776675,
+            "avg_b": 0.6207426279310895,
+            "avg_inter": 0.627739168778987
+        },
+        "subfamily_1_rank3": {
+            "avg_a": 0.6458682875556786,
+            "avg_b": 0.6138577124452331,
+            "avg_inter": 0.6282907553333804
+        },
+        "subfamily_1_rank1": {
+            "avg_a": 0.6291405577691153,
+            "avg_b": 0.6310247126568256,
+            "avg_inter": 0.626958447814299
+        },
+        "subfamily_12_rank1": {
+            "avg_a": 0.926412768491692,
+            "avg_b": 0.8337843500767265,
+            "avg_inter": 0.8204927640840343
+        },
+        "subfamily_14_rank2": {
+            "avg_a": 0.6185230757957108,
+            "avg_b": 0.5891843661769389,
+            "avg_inter": 0.5512234119139485
+        },
+        "subfamily_14_rank3": {
+            "avg_a": 0.6050632273363615,
+            "avg_b": 0.5854102800984968,
+            "avg_inter": 0.5523844734038712
+        },
+        "subfamily_14_rank1": {
+            "avg_a": 0.6690404551286089,
+            "avg_b": 0.5540428991209819,
+            "avg_inter": 0.568576691009595
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'This family of proteins is functionally uncharacterised. This family of proteins is mainly found in bacteria and archaea. Proteins in this family are around 100 amino acids in length. There are two conserved sequence motifs, CGxxxCxC containing three conserved Cys residues and HGP. AlphaFold3 predicts a confident homodimer for A0A133VII6 (ipTM=0.82 pTM=0.83). These proteins have a positively charged surface patch and some members appear likely to bind DNA according to AlphaFold 3 predictions. This family is related to [pfam:PF07913].', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

@@ -1,0 +1,195 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.51,
+        "Calculations": 4.43,
+        "Split_Evaluation": 3793.51,
+        "Visualization_and_Analysis": 5032.74
+    },
+    "msa_stats": {
+        "num_sequences": 1104,
+        "avg_sequence_length": 479.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 52.19,
+        "normalized_total_branch_length": 0.3399,
+        "subfamily_1_avg_sequence_similarity_pct": 31.87,
+        "subfamily_1_normalized_total_branch_length": 1.5961,
+        "subfamily_2_avg_sequence_similarity_pct": 49.81,
+        "subfamily_2_normalized_total_branch_length": 0.9096,
+        "subfamily_3_avg_sequence_similarity_pct": 37.2,
+        "subfamily_3_normalized_total_branch_length": 1.6994,
+        "subfamily_4_avg_sequence_similarity_pct": 25.85,
+        "subfamily_4_normalized_total_branch_length": 3.0589,
+        "subfamily_5_avg_sequence_similarity_pct": 92.74,
+        "subfamily_5_normalized_total_branch_length": 0.0464,
+        "subfamily_6_avg_sequence_similarity_pct": 66.09,
+        "subfamily_6_normalized_total_branch_length": 0.2477,
+        "subfamily_7_avg_sequence_similarity_pct": 86.85,
+        "subfamily_7_normalized_total_branch_length": 0.0615,
+        "subfamily_8_avg_sequence_similarity_pct": 54.97,
+        "subfamily_8_normalized_total_branch_length": 1.021,
+        "subfamily_9_avg_sequence_similarity_pct": 91.42,
+        "subfamily_9_normalized_total_branch_length": 0.0375,
+        "subfamily_10_avg_sequence_similarity_pct": 88.84,
+        "subfamily_10_normalized_total_branch_length": 0.0626,
+        "subfamily_11_avg_sequence_similarity_pct": 65.31,
+        "subfamily_11_normalized_total_branch_length": 0.2108
+    },
+    "pipeline_stats": {
+        "family_name": "PF23405",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 77,
+        "num_unique_candidate_splits": 23,
+        "subfamily_1_final_embedding_dim": 42,
+        "subfamily_2_final_embedding_dim": 22,
+        "subfamily_3_final_embedding_dim": 20,
+        "subfamily_4_final_embedding_dim": 40,
+        "subfamily_5_final_embedding_dim": 50,
+        "subfamily_6_final_embedding_dim": 50,
+        "subfamily_7_final_embedding_dim": 50,
+        "subfamily_8_final_embedding_dim": 28,
+        "subfamily_9_final_embedding_dim": 50,
+        "subfamily_10_final_embedding_dim": 44,
+        "subfamily_11_final_embedding_dim": 50,
+        "num_significant_covariance_splits": 23
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.668",
+        "subfamily_2_history": "node 0.885",
+        "subfamily_3_history": "node 0.573",
+        "subfamily_4_history": "node 0.769",
+        "subfamily_5_history": "node 0.705",
+        "subfamily_6_history": "node 0.891",
+        "subfamily_7_history": "node 1.000",
+        "subfamily_8_history": "node 0.777",
+        "subfamily_9_history": "node 0.997",
+        "subfamily_10_history": "node 0.000",
+        "subfamily_11_history": "Global Root",
+        "subfamily_6_rank2": {
+            "avg_a": 0.5441509766773758,
+            "avg_b": 0.7447261534760202,
+            "avg_inter": 0.6222805625414736
+        },
+        "subfamily_6_rank5": {
+            "avg_a": 0.7551916693956648,
+            "avg_b": 0.6640425979288465,
+            "avg_inter": 0.7023158075814603
+        },
+        "subfamily_6_rank4": {
+            "avg_a": 0.8398541622172636,
+            "avg_b": 0.7925865440990332,
+            "avg_inter": 0.8106142913637702
+        },
+        "subfamily_6_rank3": {
+            "avg_a": 0.6683750554181981,
+            "avg_b": 0.7641241188622486,
+            "avg_inter": 0.7019129920146047
+        },
+        "subfamily_6_rank6": {
+            "avg_a": 0.6877353388875168,
+            "avg_b": 0.7807466282199012,
+            "avg_inter": 0.7251037545744131
+        },
+        "subfamily_6_rank1": {
+            "avg_a": 0.8342344134099687,
+            "avg_b": 0.7138159402594506,
+            "avg_inter": 0.7585006615249661
+        },
+        "subfamily_1_rank1": {
+            "avg_a": 0.7340382943289386,
+            "avg_b": 0.7688532444084426,
+            "avg_inter": 0.7332021346755379
+        },
+        "subfamily_9_rank2": {
+            "avg_a": 0.8484457449582836,
+            "avg_b": 0.7444926924702714,
+            "avg_inter": 0.7900964487130219
+        },
+        "subfamily_9_rank5": {
+            "avg_a": 0.8029697052490624,
+            "avg_b": 0.6379043821273334,
+            "avg_inter": 0.7048660760959748
+        },
+        "subfamily_9_rank4": {
+            "avg_a": 0.7047833446188071,
+            "avg_b": 0.7950162444239892,
+            "avg_inter": 0.7358922331429107
+        },
+        "subfamily_9_rank3": {
+            "avg_a": 0.850330999234796,
+            "avg_b": 0.7272500941100203,
+            "avg_inter": 0.7801912865139072
+        },
+        "subfamily_9_rank1": {
+            "avg_a": 0.960661038229165,
+            "avg_b": 0.7503827756792525,
+            "avg_inter": 0.8349560722986816
+        },
+        "subfamily_7_rank2": {
+            "avg_a": 0.7648664842456454,
+            "avg_b": 0.8695190188053272,
+            "avg_inter": 0.7786081509337973
+        },
+        "subfamily_7_rank1": {
+            "avg_a": 0.8636165607841758,
+            "avg_b": 0.7770862183588773,
+            "avg_inter": 0.7971508359450055
+        },
+        "subfamily_11_rank2": {
+            "avg_a": 0.8181757513225186,
+            "avg_b": 0.7763473259834193,
+            "avg_inter": 0.7837818097549423
+        },
+        "subfamily_11_rank3": {
+            "avg_a": 0.8164406259540714,
+            "avg_b": 0.7936554539372924,
+            "avg_inter": 0.7759208909285715
+        },
+        "subfamily_11_rank1": {
+            "avg_a": 0.8182674621739525,
+            "avg_b": 0.781495494494986,
+            "avg_inter": 0.7848451782864633
+        },
+        "subfamily_5_rank2": {
+            "avg_a": 0.7972614563787289,
+            "avg_b": 0.7917301162300647,
+            "avg_inter": 0.781701949847197
+        },
+        "subfamily_5_rank5": {
+            "avg_a": 0.8261068783478466,
+            "avg_b": 0.7967995632383555,
+            "avg_inter": 0.7917157277407688
+        },
+        "subfamily_5_rank4": {
+            "avg_a": 0.8031563613241319,
+            "avg_b": 0.7943986093608906,
+            "avg_inter": 0.796981750473381
+        },
+        "subfamily_5_rank3": {
+            "avg_a": 0.8237089978359166,
+            "avg_b": 0.7802269696746782,
+            "avg_inter": 0.8008233479893985
+        },
+        "subfamily_5_rank6": {
+            "avg_a": 0.8253556072985976,
+            "avg_b": 0.7734801082896485,
+            "avg_inter": 0.7840566564299937
+        },
+        "subfamily_5_rank1": {
+            "avg_a": 0.8036673992239077,
+            "avg_b": 0.7596856150393195,
+            "avg_inter": 0.7700319384752335
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'Apc4 is a component of the anaphase promoting complex/cyclosome (APC/C), a cell cycle-regulated E3 ubiquitin ligase that controls progression through mitosis and the G1 phase of the cell cycle. This complex acts by ubiquitination and degradation of target proteins. Apc4 consists of a beta-propeller that is split by      a long alpha-helical domain ([pfam:PF12816]) which generate an L-shaped molecule [[cite:PUB00137946]]. APC4 interacts with APC5; the N-terminal of APC1  serves to stabilise the union between APC4 and APC5, both of which lie towards the bottom-front of the APC [[cite:PUB00056269],[cite:PUB00055977],[cite:PUB00059190],[cite:PUB00137946]]. This entry represents the C-terminal half of the beta-propeller of ACP4 from animals [[cite:PUB00137946]].', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}
