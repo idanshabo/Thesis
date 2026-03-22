@@ -1,0 +1,185 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.5,
+        "Calculations": 3.36,
+        "Split_Evaluation": 6.44,
+        "Visualization_and_Analysis": 362.76
+    },
+    "msa_stats": {
+        "num_sequences": 1594,
+        "avg_sequence_length": 111.0,
+        "num_sequences_with_structure": 2,
+        "avg_sequence_similarity_pct": 43.0,
+        "normalized_total_branch_length": 0.1755,
+        "subfamily_1_avg_sequence_similarity_pct": 81.95,
+        "subfamily_1_normalized_total_branch_length": 0.0748,
+        "subfamily_2_avg_sequence_similarity_pct": 75.56,
+        "subfamily_2_normalized_total_branch_length": 0.1283,
+        "subfamily_3_avg_sequence_similarity_pct": 46.23,
+        "subfamily_3_normalized_total_branch_length": 0.5446,
+        "subfamily_4_avg_sequence_similarity_pct": 45.74,
+        "subfamily_4_normalized_total_branch_length": 0.4571,
+        "subfamily_5_avg_sequence_similarity_pct": 28.58,
+        "subfamily_5_normalized_total_branch_length": 0.8565,
+        "subfamily_6_avg_sequence_similarity_pct": 29.87,
+        "subfamily_6_normalized_total_branch_length": 0.9004,
+        "subfamily_7_avg_sequence_similarity_pct": 26.69,
+        "subfamily_7_normalized_total_branch_length": 1.0076,
+        "subfamily_8_avg_sequence_similarity_pct": 94.76,
+        "subfamily_8_normalized_total_branch_length": 0.0081,
+        "subfamily_9_avg_sequence_similarity_pct": 89.25,
+        "subfamily_9_normalized_total_branch_length": 0.0156,
+        "subfamily_10_avg_sequence_similarity_pct": 51.49,
+        "subfamily_10_normalized_total_branch_length": 0.2774,
+        "subfamily_11_avg_sequence_similarity_pct": 60.53,
+        "subfamily_11_normalized_total_branch_length": 0.2161,
+        "subfamily_12_avg_sequence_similarity_pct": 56.14,
+        "subfamily_12_normalized_total_branch_length": 0.1343,
+        "subfamily_13_avg_sequence_similarity_pct": 37.13,
+        "subfamily_13_normalized_total_branch_length": 0.6897,
+        "subfamily_14_avg_sequence_similarity_pct": 68.45,
+        "subfamily_14_normalized_total_branch_length": 0.1625,
+        "subfamily_15_avg_sequence_similarity_pct": 38.49,
+        "subfamily_15_normalized_total_branch_length": 0.5348,
+        "subfamily_16_avg_sequence_similarity_pct": 41.29,
+        "subfamily_16_normalized_total_branch_length": 0.341,
+        "subfamily_17_avg_sequence_similarity_pct": 94.88,
+        "subfamily_17_normalized_total_branch_length": 0.0108,
+        "subfamily_18_avg_sequence_similarity_pct": 68.65,
+        "subfamily_18_normalized_total_branch_length": 0.1525,
+        "subfamily_19_avg_sequence_similarity_pct": 52.08,
+        "subfamily_19_normalized_total_branch_length": 0.4448,
+        "subfamily_20_avg_sequence_similarity_pct": 53.74,
+        "subfamily_20_normalized_total_branch_length": 0.2274,
+        "subfamily_21_avg_sequence_similarity_pct": 30.21,
+        "subfamily_21_normalized_total_branch_length": 0.8542
+    },
+    "pipeline_stats": {
+        "family_name": "PF04423",
+        "embedding_mode": "structure",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 54,
+        "num_unique_candidate_splits": 13,
+        "subfamily_1_final_embedding_dim": 22,
+        "subfamily_2_final_embedding_dim": 27,
+        "subfamily_3_final_embedding_dim": 20,
+        "subfamily_4_final_embedding_dim": 46,
+        "subfamily_5_final_embedding_dim": 23,
+        "subfamily_6_final_embedding_dim": 30,
+        "subfamily_7_final_embedding_dim": 50,
+        "subfamily_8_final_embedding_dim": 50,
+        "subfamily_9_final_embedding_dim": 50,
+        "subfamily_10_final_embedding_dim": 29,
+        "subfamily_11_final_embedding_dim": 32,
+        "subfamily_12_final_embedding_dim": 36,
+        "subfamily_13_final_embedding_dim": 21,
+        "subfamily_14_final_embedding_dim": 38,
+        "subfamily_15_final_embedding_dim": 24,
+        "subfamily_16_final_embedding_dim": 46,
+        "subfamily_17_final_embedding_dim": 50,
+        "subfamily_18_final_embedding_dim": 50,
+        "subfamily_19_final_embedding_dim": 32,
+        "subfamily_20_final_embedding_dim": 27,
+        "subfamily_21_final_embedding_dim": 34,
+        "num_significant_covariance_splits": 13
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.837",
+        "subfamily_2_history": "node 0.962",
+        "subfamily_3_history": "node 0.879",
+        "subfamily_4_history": "node 0.705",
+        "subfamily_5_history": "node 0.871",
+        "subfamily_6_history": "node 0.499",
+        "subfamily_7_history": "node 0.194",
+        "subfamily_8_history": "node 0.710",
+        "subfamily_9_history": "node 0.917",
+        "subfamily_10_history": "node 0.519",
+        "subfamily_11_history": "node 0.811",
+        "subfamily_12_history": "node 1.000",
+        "subfamily_13_history": "node 0.602",
+        "subfamily_14_history": "node 0.707",
+        "subfamily_15_history": "node 0.000",
+        "subfamily_16_history": "node 0.000",
+        "subfamily_17_history": "node 0.532",
+        "subfamily_18_history": "node 0.855",
+        "subfamily_19_history": "node 0.850",
+        "subfamily_20_history": "node 0.871",
+        "subfamily_21_history": "Global Root",
+        "subfamily_8_rank2": {
+            "avg_a": 0.9084113115973638,
+            "avg_b": 0.8121029940988278,
+            "avg_inter": 0.8071420749813026
+        },
+        "subfamily_8_rank3": {
+            "avg_a": 0.8753841559409562,
+            "avg_b": 0.7989746397394022,
+            "avg_inter": 0.8046649622049604
+        },
+        "subfamily_8_rank1": {
+            "avg_a": 0.7457136069342262,
+            "avg_b": 0.8219691537846181,
+            "avg_inter": 0.7587957908547301
+        },
+        "subfamily_9_rank2": {
+            "avg_a": 0.6730144989348087,
+            "avg_b": 0.7173227001910242,
+            "avg_inter": 0.5079848958678268
+        },
+        "subfamily_9_rank5": {
+            "avg_a": 0.7421417422981085,
+            "avg_b": 0.7265856676509774,
+            "avg_inter": 0.6792237857045722
+        },
+        "subfamily_9_rank4": {
+            "avg_a": 0.6416216030309527,
+            "avg_b": 0.701599877918797,
+            "avg_inter": 0.6462337794449129
+        },
+        "subfamily_9_rank3": {
+            "avg_a": 0.7344207407357538,
+            "avg_b": 0.6718229622192708,
+            "avg_inter": 0.678256520758536
+        },
+        "subfamily_9_rank1": {
+            "avg_a": 0.8623826276729714,
+            "avg_b": 0.6366275563927802,
+            "avg_inter": 0.7042143856212185
+        },
+        "subfamily_7_rank2": {
+            "avg_a": 0.7004344334579867,
+            "avg_b": 0.7272173006988637,
+            "avg_inter": 0.7099475496073069
+        },
+        "subfamily_7_rank1": {
+            "avg_a": 0.7036560850160432,
+            "avg_b": 0.7270329087352287,
+            "avg_inter": 0.7117824921440815
+        },
+        "subfamily_18_rank1": {
+            "avg_a": 0.9127024888437766,
+            "avg_b": 0.7661670152986831,
+            "avg_inter": 0.8156159552702607
+        },
+        "subfamily_17_rank2": {
+            "avg_a": 0.9402825148929633,
+            "avg_b": 0.9924759898130893,
+            "avg_inter": 0.9640952912853695
+        },
+        "subfamily_17_rank1": {
+            "avg_a": 0.973158749211555,
+            "avg_b": 0.9539736671205259,
+            "avg_inter": 0.9611543821245746
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'The Mre11 complex (Mre11 Rad50 Nbs1) is central to chromosomal maintenance and functions in homologous recombination, telomere maintenance and sister chromatid association. The Rad50 coiled-coil region contains a dimer interface at the apex of the coiled coils in which pairs of conserved Cys-X-X-Cys motifs form interlocking hooks that bind one Zn ion. This alignment includes the zinc hook motif and a short stretch of coiled-coil on either side.', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

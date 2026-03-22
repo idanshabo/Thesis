@@ -1,0 +1,194 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.59,
+        "Calculations": 5.05,
+        "Split_Evaluation": 3629.74,
+        "Visualization_and_Analysis": 23961.88
+    },
+    "msa_stats": {
+        "num_sequences": 1040,
+        "avg_sequence_length": 1132.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 49.98,
+        "normalized_total_branch_length": 0.3802,
+        "subfamily_1_avg_sequence_similarity_pct": 92.86,
+        "subfamily_1_normalized_total_branch_length": 0.0393,
+        "subfamily_2_avg_sequence_similarity_pct": 84.18,
+        "subfamily_2_normalized_total_branch_length": 0.0904,
+        "subfamily_3_avg_sequence_similarity_pct": 61.48,
+        "subfamily_3_normalized_total_branch_length": 0.6531,
+        "subfamily_4_avg_sequence_similarity_pct": 65.86,
+        "subfamily_4_normalized_total_branch_length": 0.2088,
+        "subfamily_5_avg_sequence_similarity_pct": 74.92,
+        "subfamily_5_normalized_total_branch_length": 0.2235,
+        "subfamily_6_avg_sequence_similarity_pct": 42.9,
+        "subfamily_6_normalized_total_branch_length": 0.76,
+        "subfamily_7_avg_sequence_similarity_pct": 29.76,
+        "subfamily_7_normalized_total_branch_length": 1.3164
+    },
+    "pipeline_stats": {
+        "family_name": "PF02101",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 68,
+        "num_unique_candidate_splits": 26,
+        "subfamily_1_final_embedding_dim": 50,
+        "subfamily_2_final_embedding_dim": 30,
+        "subfamily_3_final_embedding_dim": 23,
+        "subfamily_4_final_embedding_dim": 50,
+        "subfamily_5_final_embedding_dim": 50,
+        "subfamily_6_final_embedding_dim": 50,
+        "subfamily_7_final_embedding_dim": 50,
+        "num_significant_covariance_splits": 26
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.283",
+        "subfamily_2_history": "node 0.866",
+        "subfamily_3_history": "node 0.664",
+        "subfamily_4_history": "node 0.992",
+        "subfamily_5_history": "node 1.000",
+        "subfamily_6_history": "node 0.524",
+        "subfamily_7_history": "Global Root",
+        "subfamily_6_rank2": {
+            "avg_a": 0.7798620346946408,
+            "avg_b": 0.7276074342835569,
+            "avg_inter": 0.7319262515665056
+        },
+        "subfamily_6_rank5": {
+            "avg_a": 0.7316889088641015,
+            "avg_b": 0.6988582047420752,
+            "avg_inter": 0.7001557942985088
+        },
+        "subfamily_6_rank4": {
+            "avg_a": 0.7423559093162372,
+            "avg_b": 0.7173916279173622,
+            "avg_inter": 0.7188672894658781
+        },
+        "subfamily_6_rank3": {
+            "avg_a": 0.7608747707535538,
+            "avg_b": 0.7513362993653179,
+            "avg_inter": 0.7389810156880778
+        },
+        "subfamily_6_rank6": {
+            "avg_a": 0.7573402281333336,
+            "avg_b": 0.7390858849186839,
+            "avg_inter": 0.7143581550747617
+        },
+        "subfamily_6_rank1": {
+            "avg_a": 0.8044820776310984,
+            "avg_b": 0.768130219944711,
+            "avg_inter": 0.7651437933784008
+        },
+        "subfamily_1_rank2": {
+            "avg_a": 0.8531369124440314,
+            "avg_b": 0.8699113813479639,
+            "avg_inter": 0.8552746683668744
+        },
+        "subfamily_1_rank5": {
+            "avg_a": 0.8432816840474807,
+            "avg_b": 0.8515416341882586,
+            "avg_inter": 0.840657183298912
+        },
+        "subfamily_1_rank4": {
+            "avg_a": 0.9200016248272435,
+            "avg_b": 0.8043490034995312,
+            "avg_inter": 0.8534136039381861
+        },
+        "subfamily_1_rank3": {
+            "avg_a": 0.9037374922814021,
+            "avg_b": 0.8838045745181359,
+            "avg_inter": 0.8817698477680344
+        },
+        "subfamily_1_rank6": {
+            "avg_a": 0.8532528472804886,
+            "avg_b": 0.8560239487507296,
+            "avg_inter": 0.8511966468561962
+        },
+        "subfamily_1_rank1": {
+            "avg_a": 0.8608209238485668,
+            "avg_b": 0.8495206821144585,
+            "avg_inter": 0.8480002318539375
+        },
+        "subfamily_7_rank2": {
+            "avg_a": 0.662049752768964,
+            "avg_b": 0.5718308139117125,
+            "avg_inter": 0.5944408443034305
+        },
+        "subfamily_7_rank5": {
+            "avg_a": 0.6243887261188147,
+            "avg_b": 0.5068462374702237,
+            "avg_inter": 0.5365885245707979
+        },
+        "subfamily_7_rank4": {
+            "avg_a": 0.6238292077551689,
+            "avg_b": 0.5434536033688193,
+            "avg_inter": 0.5662614049947422
+        },
+        "subfamily_7_rank3": {
+            "avg_a": 0.6321218940865856,
+            "avg_b": 0.5754019049883228,
+            "avg_inter": 0.5845966178127912
+        },
+        "subfamily_7_rank1": {
+            "avg_a": 0.6290733269669924,
+            "avg_b": 0.5355903523223777,
+            "avg_inter": 0.559358195536013
+        },
+        "subfamily_5_rank2": {
+            "avg_a": 0.6107492224130076,
+            "avg_b": 0.6152243255563371,
+            "avg_inter": 0.6119780341690101
+        },
+        "subfamily_5_rank4": {
+            "avg_a": 0.6252244284859734,
+            "avg_b": 0.6575614657379308,
+            "avg_inter": 0.636671902529119
+        },
+        "subfamily_5_rank3": {
+            "avg_a": 0.6662165765890365,
+            "avg_b": 0.6026023500119856,
+            "avg_inter": 0.6229118346367933
+        },
+        "subfamily_5_rank1": {
+            "avg_a": 0.5396254684746139,
+            "avg_b": 0.7515787267233104,
+            "avg_inter": 0.6161706516791269
+        },
+        "subfamily_4_rank2": {
+            "avg_a": 0.7121584628693277,
+            "avg_b": 0.602123732337792,
+            "avg_inter": 0.6362202892576964
+        },
+        "subfamily_4_rank5": {
+            "avg_a": 0.5588121965768105,
+            "avg_b": 0.7117871789498198,
+            "avg_inter": 0.6133667592462513
+        },
+        "subfamily_4_rank4": {
+            "avg_a": 0.5814587740063119,
+            "avg_b": 0.6001004905248645,
+            "avg_inter": 0.5808723714901503
+        },
+        "subfamily_4_rank3": {
+            "avg_a": 0.627734549142838,
+            "avg_b": 0.6085815238683814,
+            "avg_inter": 0.6071147950659004
+        },
+        "subfamily_4_rank1": {
+            "avg_a": 0.5657294270848974,
+            "avg_b": 0.6828481877465357,
+            "avg_inter": 0.6087524607323774
+        }
+    },
+    "family_info": {
+        "description": "No description available",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

@@ -1,0 +1,204 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.36,
+        "Calculations": 2.98,
+        "Split_Evaluation": 5891.29,
+        "Visualization_and_Analysis": 3226.82
+    },
+    "msa_stats": {
+        "num_sequences": 1135,
+        "avg_sequence_length": 443.0,
+        "num_sequences_with_structure": 1,
+        "avg_sequence_similarity_pct": 43.63,
+        "normalized_total_branch_length": 0.5619,
+        "subfamily_1_avg_sequence_similarity_pct": 85.98,
+        "subfamily_1_normalized_total_branch_length": 0.088,
+        "subfamily_2_avg_sequence_similarity_pct": 69.05,
+        "subfamily_2_normalized_total_branch_length": 0.4307,
+        "subfamily_3_avg_sequence_similarity_pct": 85.63,
+        "subfamily_3_normalized_total_branch_length": 0.1384,
+        "subfamily_4_avg_sequence_similarity_pct": 72.47,
+        "subfamily_4_normalized_total_branch_length": 0.2865,
+        "subfamily_5_avg_sequence_similarity_pct": 79.01,
+        "subfamily_5_normalized_total_branch_length": 0.1306,
+        "subfamily_6_avg_sequence_similarity_pct": 52.09,
+        "subfamily_6_normalized_total_branch_length": 0.8089,
+        "subfamily_7_avg_sequence_similarity_pct": 30.72,
+        "subfamily_7_normalized_total_branch_length": 1.9586,
+        "subfamily_8_avg_sequence_similarity_pct": 26.34,
+        "subfamily_8_normalized_total_branch_length": 2.5889,
+        "subfamily_9_avg_sequence_similarity_pct": 43.69,
+        "subfamily_9_normalized_total_branch_length": 0.9308,
+        "subfamily_10_avg_sequence_similarity_pct": 52.25,
+        "subfamily_10_normalized_total_branch_length": 0.7073,
+        "subfamily_11_avg_sequence_similarity_pct": 63.5,
+        "subfamily_11_normalized_total_branch_length": 0.6449,
+        "subfamily_12_avg_sequence_similarity_pct": 58.38,
+        "subfamily_12_normalized_total_branch_length": 0.6146,
+        "subfamily_13_avg_sequence_similarity_pct": 39.93,
+        "subfamily_13_normalized_total_branch_length": 1.7082,
+        "subfamily_14_avg_sequence_similarity_pct": 40.72,
+        "subfamily_14_normalized_total_branch_length": 1.5675,
+        "subfamily_15_avg_sequence_similarity_pct": 44.99,
+        "subfamily_15_normalized_total_branch_length": 1.1575,
+        "subfamily_16_avg_sequence_similarity_pct": 38.92,
+        "subfamily_16_normalized_total_branch_length": 1.7271,
+        "subfamily_17_avg_sequence_similarity_pct": 40.55,
+        "subfamily_17_normalized_total_branch_length": 1.6725
+    },
+    "pipeline_stats": {
+        "family_name": "PF10484",
+        "embedding_mode": "structure",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 54,
+        "num_unique_candidate_splits": 20,
+        "subfamily_1_final_embedding_dim": 50,
+        "subfamily_2_final_embedding_dim": 50,
+        "subfamily_3_final_embedding_dim": 20,
+        "subfamily_4_final_embedding_dim": 42,
+        "subfamily_5_final_embedding_dim": 50,
+        "subfamily_6_final_embedding_dim": 37,
+        "subfamily_7_final_embedding_dim": 20,
+        "subfamily_8_final_embedding_dim": 24,
+        "subfamily_9_final_embedding_dim": 50,
+        "subfamily_10_final_embedding_dim": 35,
+        "subfamily_11_final_embedding_dim": 26,
+        "subfamily_12_final_embedding_dim": 46,
+        "subfamily_13_final_embedding_dim": 32,
+        "subfamily_14_final_embedding_dim": 36,
+        "subfamily_15_final_embedding_dim": 30,
+        "subfamily_16_final_embedding_dim": 34,
+        "subfamily_17_final_embedding_dim": 23,
+        "num_significant_covariance_splits": 20
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.798",
+        "subfamily_2_history": "node 0.962",
+        "subfamily_3_history": "node 0.980",
+        "subfamily_4_history": "node 0.744",
+        "subfamily_5_history": "node 0.927",
+        "subfamily_6_history": "node 0.974",
+        "subfamily_7_history": "node 0.000",
+        "subfamily_8_history": "node 0.987",
+        "subfamily_9_history": "node 0.117",
+        "subfamily_10_history": "node 0.640",
+        "subfamily_11_history": "node 1.000",
+        "subfamily_12_history": "node 0.868",
+        "subfamily_13_history": "node 0.891",
+        "subfamily_14_history": "node 0.785",
+        "subfamily_15_history": "node 0.849",
+        "subfamily_16_history": "node 0.785",
+        "subfamily_17_history": "Global Root",
+        "subfamily_1_rank2": {
+            "avg_a": 0.7286148351591464,
+            "avg_b": 0.6445876808588765,
+            "avg_inter": 0.6515460548853547
+        },
+        "subfamily_1_rank5": {
+            "avg_a": 0.6508225917024173,
+            "avg_b": 0.6977655474087456,
+            "avg_inter": 0.6540282595365454
+        },
+        "subfamily_1_rank4": {
+            "avg_a": 0.5907019306345394,
+            "avg_b": 0.6837421867699517,
+            "avg_inter": 0.617186633901317
+        },
+        "subfamily_1_rank3": {
+            "avg_a": 0.5648202789606679,
+            "avg_b": 0.7342661554336982,
+            "avg_inter": 0.5858508435789691
+        },
+        "subfamily_1_rank6": {
+            "avg_a": 0.6093823214722822,
+            "avg_b": 0.5895542372643995,
+            "avg_inter": 0.5807112458739091
+        },
+        "subfamily_1_rank1": {
+            "avg_a": 0.6339698813153607,
+            "avg_b": 0.6313226459431672,
+            "avg_inter": 0.629150463181501
+        },
+        "subfamily_1_rank7": {
+            "avg_a": 0.7578917790990022,
+            "avg_b": 0.6591387095101269,
+            "avg_inter": 0.6784560296967602
+        },
+        "subfamily_9_rank2": {
+            "avg_a": 0.6348997098365593,
+            "avg_b": 0.5171547733466386,
+            "avg_inter": 0.528203724080041
+        },
+        "subfamily_9_rank4": {
+            "avg_a": 0.5685895478679774,
+            "avg_b": 0.5265234537514746,
+            "avg_inter": 0.5207634586422686
+        },
+        "subfamily_9_rank3": {
+            "avg_a": 0.5392495505023523,
+            "avg_b": 0.5643847744206995,
+            "avg_inter": 0.5131644062791142
+        },
+        "subfamily_9_rank1": {
+            "avg_a": 0.5978287613696236,
+            "avg_b": 0.5479265697025194,
+            "avg_inter": 0.5171093874576912
+        },
+        "subfamily_2_rank2": {
+            "avg_a": 0.7478273103692149,
+            "avg_b": 0.6804575544922189,
+            "avg_inter": 0.7018638179237168
+        },
+        "subfamily_2_rank3": {
+            "avg_a": 0.7364358416520098,
+            "avg_b": 0.6595235933824326,
+            "avg_inter": 0.6812957860219425
+        },
+        "subfamily_2_rank1": {
+            "avg_a": 0.7271065441198981,
+            "avg_b": 0.6985932697235471,
+            "avg_inter": 0.7065390427882079
+        },
+        "subfamily_5_rank2": {
+            "avg_a": 0.6822743484792351,
+            "avg_b": 0.6687419144304148,
+            "avg_inter": 0.6682213852287558
+        },
+        "subfamily_5_rank4": {
+            "avg_a": 0.7061840223294304,
+            "avg_b": 0.657850469872027,
+            "avg_inter": 0.6249504627992523
+        },
+        "subfamily_5_rank3": {
+            "avg_a": 0.7275554490798204,
+            "avg_b": 0.622828835676484,
+            "avg_inter": 0.6594142091588555
+        },
+        "subfamily_5_rank1": {
+            "avg_a": 0.6268267176041413,
+            "avg_b": 0.6990571864050044,
+            "avg_inter": 0.6442531809510267
+        },
+        "subfamily_4_rank1": {
+            "avg_a": 0.7490428250241975,
+            "avg_b": 0.6309119724774948,
+            "avg_inter": 0.6697429947056701
+        },
+        "subfamily_12_rank1": {
+            "avg_a": 0.7882497546701668,
+            "avg_b": 0.7573706779979461,
+            "avg_inter": 0.702324372506358
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'MRP-S23 is one of the proteins that makes up the 55S ribosome in eukaryotes from nematodes to humans. It does not appear to carry any common motifs, either RNA binding or ribosomal protein motifs [[cite:PUB00019768]]. All of the mammalian MRPs are encoded in nuclear genes that are evolving more rapidly than those encoding cytoplasmic ribosomal proteins. The MRPs are imported into mitochondria where they assemble coordinately with mitochondrially transcribed rRNAs into ribosomes that are responsible for translating the 13 mRNAs for essential proteins of the oxidative phosphorylation system [[cite:PUB00044379]]. MRP-S23 is significantly up-regulated in uterine cancer cells [[cite:PUB00044380]].', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

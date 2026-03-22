@@ -1,0 +1,166 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.63,
+        "Calculations": 4.37,
+        "Split_Evaluation": 15230.64,
+        "Visualization_and_Analysis": 1446.91
+    },
+    "msa_stats": {
+        "num_sequences": 1117,
+        "avg_sequence_length": 167.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 35.0,
+        "normalized_total_branch_length": 0.3125,
+        "subfamily_1_avg_sequence_similarity_pct": 62.05,
+        "subfamily_1_normalized_total_branch_length": 0.2388,
+        "subfamily_2_avg_sequence_similarity_pct": 79.74,
+        "subfamily_2_normalized_total_branch_length": 0.1519,
+        "subfamily_3_avg_sequence_similarity_pct": 84.62,
+        "subfamily_3_normalized_total_branch_length": 0.0915,
+        "subfamily_4_avg_sequence_similarity_pct": 79.14,
+        "subfamily_4_normalized_total_branch_length": 0.1513,
+        "subfamily_5_avg_sequence_similarity_pct": 80.83,
+        "subfamily_5_normalized_total_branch_length": 0.1359,
+        "subfamily_6_avg_sequence_similarity_pct": 65.22,
+        "subfamily_6_normalized_total_branch_length": 0.2085,
+        "subfamily_7_avg_sequence_similarity_pct": 31.86,
+        "subfamily_7_normalized_total_branch_length": 0.7916,
+        "subfamily_8_avg_sequence_similarity_pct": 42.44,
+        "subfamily_8_normalized_total_branch_length": 0.472,
+        "subfamily_9_avg_sequence_similarity_pct": 41.63,
+        "subfamily_9_normalized_total_branch_length": 0.5009,
+        "subfamily_10_avg_sequence_similarity_pct": 27.31,
+        "subfamily_10_normalized_total_branch_length": 1.0421,
+        "subfamily_11_avg_sequence_similarity_pct": 23.2,
+        "subfamily_11_normalized_total_branch_length": 1.0899,
+        "subfamily_12_avg_sequence_similarity_pct": 74.02,
+        "subfamily_12_normalized_total_branch_length": 0.1107,
+        "subfamily_13_avg_sequence_similarity_pct": 78.47,
+        "subfamily_13_normalized_total_branch_length": 0.1555,
+        "subfamily_14_avg_sequence_similarity_pct": 69.85,
+        "subfamily_14_normalized_total_branch_length": 0.2415,
+        "subfamily_15_avg_sequence_similarity_pct": 74.49,
+        "subfamily_15_normalized_total_branch_length": 0.1913,
+        "subfamily_16_avg_sequence_similarity_pct": 50.35,
+        "subfamily_16_normalized_total_branch_length": 0.4365,
+        "subfamily_17_avg_sequence_similarity_pct": 45.64,
+        "subfamily_17_normalized_total_branch_length": 0.6352,
+        "subfamily_18_avg_sequence_similarity_pct": 48.5,
+        "subfamily_18_normalized_total_branch_length": 0.512,
+        "subfamily_19_avg_sequence_similarity_pct": 61.22,
+        "subfamily_19_normalized_total_branch_length": 0.2569,
+        "subfamily_20_avg_sequence_similarity_pct": 62.74,
+        "subfamily_20_normalized_total_branch_length": 0.2688
+    },
+    "pipeline_stats": {
+        "family_name": "PF07746",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 77,
+        "num_unique_candidate_splits": 20,
+        "subfamily_1_final_embedding_dim": 101,
+        "subfamily_2_final_embedding_dim": 28,
+        "subfamily_3_final_embedding_dim": 23,
+        "subfamily_4_final_embedding_dim": 35,
+        "subfamily_5_final_embedding_dim": 20,
+        "subfamily_6_final_embedding_dim": 50,
+        "subfamily_7_final_embedding_dim": 38,
+        "subfamily_8_final_embedding_dim": 43,
+        "subfamily_9_final_embedding_dim": 22,
+        "subfamily_10_final_embedding_dim": 38,
+        "subfamily_11_final_embedding_dim": 36,
+        "subfamily_12_final_embedding_dim": 50,
+        "subfamily_13_final_embedding_dim": 31,
+        "subfamily_14_final_embedding_dim": 33,
+        "subfamily_15_final_embedding_dim": 21,
+        "subfamily_16_final_embedding_dim": 37,
+        "subfamily_17_final_embedding_dim": 20,
+        "subfamily_18_final_embedding_dim": 26,
+        "subfamily_19_final_embedding_dim": 77,
+        "subfamily_20_final_embedding_dim": 43,
+        "num_significant_covariance_splits": 10
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.938",
+        "subfamily_2_history": "node 0.804",
+        "subfamily_3_history": "node 0.257",
+        "subfamily_4_history": "node 0.938",
+        "subfamily_5_history": "node 0.976",
+        "subfamily_6_history": "node 0.966",
+        "subfamily_7_history": "node 0.917",
+        "subfamily_8_history": "node 0.763",
+        "subfamily_9_history": "node 0.865",
+        "subfamily_10_history": "node 0.883",
+        "subfamily_11_history": "node 0.996",
+        "subfamily_12_history": "node 0.845",
+        "subfamily_13_history": "node 0.776",
+        "subfamily_14_history": "node 0.690",
+        "subfamily_15_history": "node 0.658",
+        "subfamily_16_history": "node 0.557",
+        "subfamily_17_history": "node 0.964",
+        "subfamily_18_history": "node 0.811",
+        "subfamily_19_history": "node 0.874",
+        "subfamily_20_history": "Global Root",
+        "subfamily_6_rank2": {
+            "avg_a": 0.9384564642545904,
+            "avg_b": 0.9123941602085711,
+            "avg_inter": 0.9190715537584231
+        },
+        "subfamily_6_rank1": {
+            "avg_a": 0.935874302441447,
+            "avg_b": 0.9169809012497999,
+            "avg_inter": 0.9216019475678645
+        },
+        "subfamily_1_rank5": {
+            "avg_a": 0.8987933182237294,
+            "avg_b": 0.884345269710171,
+            "avg_inter": 0.8848178658305224
+        },
+        "subfamily_1_rank3": {
+            "avg_a": 0.8966117684410448,
+            "avg_b": 0.9084821179207749,
+            "avg_inter": 0.8847320787701077
+        },
+        "subfamily_1_rank7": {
+            "avg_a": 0.9256221354791305,
+            "avg_b": 0.8776612123380197,
+            "avg_inter": 0.8793760223971611
+        },
+        "subfamily_19_rank5": {
+            "avg_a": 0.9019202819605814,
+            "avg_b": 0.9440583366850334,
+            "avg_inter": 0.9141341765073172
+        },
+        "subfamily_19_rank4": {
+            "avg_a": 0.9250006133282769,
+            "avg_b": 0.9330226316787836,
+            "avg_inter": 0.9122917329058774
+        },
+        "subfamily_19_rank6": {
+            "avg_a": 0.9155534103413744,
+            "avg_b": 0.9582493987590652,
+            "avg_inter": 0.9304700505891049
+        },
+        "subfamily_12_rank2": {
+            "avg_a": 0.9577827635275019,
+            "avg_b": 0.9451114783454276,
+            "avg_inter": 0.9283946076268181
+        },
+        "subfamily_12_rank1": {
+            "avg_a": 0.9091429713028826,
+            "avg_b": 0.9502411012654323,
+            "avg_inter": 0.8865331652941557
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'This is a family of aromatic ring opening dioxygenases which catalyse the ring-opening reaction of protocatechuate and related compounds [[cite:PUB00011779]].', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

@@ -1,0 +1,20 @@
+[
+    {
+        "subfamily": 1,
+        "rank": 1,
+        "node": "0.564",
+        "lambda": 39271.046875,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF00446_outputs/structure_embeddings/subfamily_1/significant_splits/rank1"
+    },
+    {
+        "subfamily": 1,
+        "rank": 2,
+        "node": "",
+        "lambda": 35431.8125,
+        "p_adj": 0.000999000999000999,
+        "sig": true,
+        "folder": "/content/drive/MyDrive/Thesis/protein_data/PF00446_outputs/structure_embeddings/subfamily_1/significant_splits/rank2"
+    }
+]

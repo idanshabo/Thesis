@@ -1,0 +1,64 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.86,
+        "Calculations": 4.2,
+        "Split_Evaluation": 1552.02,
+        "Visualization_and_Analysis": 1240.6
+    },
+    "msa_stats": {
+        "num_sequences": 497,
+        "avg_sequence_length": 227.0,
+        "num_sequences_with_structure": 2,
+        "avg_sequence_similarity_pct": 49.77,
+        "normalized_total_branch_length": 0.2481,
+        "subfamily_1_avg_sequence_similarity_pct": 59.88,
+        "subfamily_1_normalized_total_branch_length": 0.1829,
+        "subfamily_2_avg_sequence_similarity_pct": 47.24,
+        "subfamily_2_normalized_total_branch_length": 0.3201
+    },
+    "pipeline_stats": {
+        "family_name": "PF02741",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 38,
+        "num_unique_candidate_splits": 12,
+        "subfamily_1_final_embedding_dim": 131,
+        "subfamily_2_final_embedding_dim": 103,
+        "num_significant_covariance_splits": 4
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.932",
+        "subfamily_2_history": "Global Root",
+        "subfamily_1_rank5": {
+            "avg_a": 0.6915925399700589,
+            "avg_b": 0.5822408920945585,
+            "avg_inter": 0.6178259559088257
+        },
+        "subfamily_2_rank5": {
+            "avg_a": 0.6256852738163261,
+            "avg_b": 0.6578443639142943,
+            "avg_inter": 0.630106309923324
+        },
+        "subfamily_2_rank3": {
+            "avg_a": 0.6824892800056037,
+            "avg_b": 0.6544788155262362,
+            "avg_inter": 0.6530919067980527
+        },
+        "subfamily_2_rank1": {
+            "avg_a": 0.6889180157877778,
+            "avg_b": 0.667474700191149,
+            "avg_inter": 0.6656023937566381
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'The FTR (Formylmethanofuran--tetrahydromethanopterin formyltransferase) enzyme [ec:2.3.1.101] is involved in archaebacteria in the formation of methane from carbon dioxide. C-terminal proximal lobe of alpha+beta ferredoxin-like fold. SCOP reports fold duplication with N-terminal distal lobe.', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

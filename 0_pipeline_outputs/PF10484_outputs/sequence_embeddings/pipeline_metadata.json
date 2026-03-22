@@ -1,0 +1,186 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 0.37,
+        "Calculations": 4.64,
+        "Split_Evaluation": 3814.14,
+        "Visualization_and_Analysis": 2120.71
+    },
+    "msa_stats": {
+        "num_sequences": 1135,
+        "avg_sequence_length": 443.0,
+        "num_sequences_with_structure": 1,
+        "avg_sequence_similarity_pct": 43.79,
+        "normalized_total_branch_length": 0.5619,
+        "subfamily_1_avg_sequence_similarity_pct": 85.87,
+        "subfamily_1_normalized_total_branch_length": 0.088,
+        "subfamily_2_avg_sequence_similarity_pct": 64.64,
+        "subfamily_2_normalized_total_branch_length": 0.2204,
+        "subfamily_3_avg_sequence_similarity_pct": 42.88,
+        "subfamily_3_normalized_total_branch_length": 0.9308,
+        "subfamily_4_avg_sequence_similarity_pct": 23.08,
+        "subfamily_4_normalized_total_branch_length": 2.4549,
+        "subfamily_5_avg_sequence_similarity_pct": 69.06,
+        "subfamily_5_normalized_total_branch_length": 0.4673,
+        "subfamily_6_avg_sequence_similarity_pct": 43.89,
+        "subfamily_6_normalized_total_branch_length": 1.3463,
+        "subfamily_7_avg_sequence_similarity_pct": 63.5,
+        "subfamily_7_normalized_total_branch_length": 0.6449,
+        "subfamily_8_avg_sequence_similarity_pct": 45.57,
+        "subfamily_8_normalized_total_branch_length": 1.0652,
+        "subfamily_9_avg_sequence_similarity_pct": 40.01,
+        "subfamily_9_normalized_total_branch_length": 1.4153,
+        "subfamily_10_avg_sequence_similarity_pct": 33.4,
+        "subfamily_10_normalized_total_branch_length": 1.5696
+    },
+    "pipeline_stats": {
+        "family_name": "PF10484",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 65,
+        "num_unique_candidate_splits": 22,
+        "subfamily_1_final_embedding_dim": 50,
+        "subfamily_2_final_embedding_dim": 50,
+        "subfamily_3_final_embedding_dim": 50,
+        "subfamily_4_final_embedding_dim": 34,
+        "subfamily_5_final_embedding_dim": 23,
+        "subfamily_6_final_embedding_dim": 20,
+        "subfamily_7_final_embedding_dim": 26,
+        "subfamily_8_final_embedding_dim": 50,
+        "subfamily_9_final_embedding_dim": 47,
+        "subfamily_10_final_embedding_dim": 50,
+        "num_significant_covariance_splits": 22
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node 0.798",
+        "subfamily_2_history": "node 0.972",
+        "subfamily_3_history": "node 0.117",
+        "subfamily_4_history": "node 0.828",
+        "subfamily_5_history": "node 0.562",
+        "subfamily_6_history": "node 0.782",
+        "subfamily_7_history": "node 1.000",
+        "subfamily_8_history": "node 0.151",
+        "subfamily_9_history": "node 0.785",
+        "subfamily_10_history": "Global Root",
+        "subfamily_1_rank2": {
+            "avg_a": 0.6820450034682971,
+            "avg_b": 0.6068260420994225,
+            "avg_inter": 0.6189618025288359
+        },
+        "subfamily_1_rank5": {
+            "avg_a": 0.6508225917024173,
+            "avg_b": 0.6266929847593028,
+            "avg_inter": 0.6260479412948382
+        },
+        "subfamily_1_rank4": {
+            "avg_a": 0.6336109202968496,
+            "avg_b": 0.6616680823914166,
+            "avg_inter": 0.6341538003813197
+        },
+        "subfamily_1_rank3": {
+            "avg_a": 0.566717865514303,
+            "avg_b": 0.6945259694825426,
+            "avg_inter": 0.5829363803495201
+        },
+        "subfamily_1_rank6": {
+            "avg_a": 0.6150611303842678,
+            "avg_b": 0.7388366920042386,
+            "avg_inter": 0.6554052519626977
+        },
+        "subfamily_1_rank1": {
+            "avg_a": 0.6339698813153607,
+            "avg_b": 0.6490302052558345,
+            "avg_inter": 0.6377347659824849
+        },
+        "subfamily_1_rank7": {
+            "avg_a": 0.732491685193112,
+            "avg_b": 0.6365346982239825,
+            "avg_inter": 0.6557101371217353
+        },
+        "subfamily_8_rank2": {
+            "avg_a": 0.7357139588849825,
+            "avg_b": 0.5679066766600512,
+            "avg_inter": 0.6169293319077307
+        },
+        "subfamily_8_rank3": {
+            "avg_a": 0.7217434901988193,
+            "avg_b": 0.5242910160779142,
+            "avg_inter": 0.5821813461057544
+        },
+        "subfamily_8_rank1": {
+            "avg_a": 0.7858389408916929,
+            "avg_b": 0.6174134119378867,
+            "avg_inter": 0.6695562656455378
+        },
+        "subfamily_10_rank2": {
+            "avg_a": 0.5493091993465834,
+            "avg_b": 0.5365446195337662,
+            "avg_inter": 0.5088758092777822
+        },
+        "subfamily_10_rank4": {
+            "avg_a": 0.5710722312455146,
+            "avg_b": 0.5208401264062315,
+            "avg_inter": 0.5249924945668233
+        },
+        "subfamily_10_rank3": {
+            "avg_a": 0.5999024513794979,
+            "avg_b": 0.5243587212525179,
+            "avg_inter": 0.5373556267302121
+        },
+        "subfamily_10_rank1": {
+            "avg_a": 0.5360470029392067,
+            "avg_b": 0.5636543602925829,
+            "avg_inter": 0.5103666009237898
+        },
+        "subfamily_2_rank2": {
+            "avg_a": 0.6922475713892777,
+            "avg_b": 0.6092298109229743,
+            "avg_inter": 0.600541474901472
+        },
+        "subfamily_2_rank4": {
+            "avg_a": 0.6886757432752708,
+            "avg_b": 0.5976775738933734,
+            "avg_inter": 0.6061863613901883
+        },
+        "subfamily_2_rank3": {
+            "avg_a": 0.6708498937794718,
+            "avg_b": 0.680017805685235,
+            "avg_inter": 0.614986846254792
+        },
+        "subfamily_2_rank1": {
+            "avg_a": 0.7364358416520098,
+            "avg_b": 0.6274977538455438,
+            "avg_inter": 0.6348937495756717
+        },
+        "subfamily_3_rank2": {
+            "avg_a": 0.6348997098365594,
+            "avg_b": 0.5155784712965534,
+            "avg_inter": 0.5236803630459254
+        },
+        "subfamily_3_rank4": {
+            "avg_a": 0.5360638382366216,
+            "avg_b": 0.5265234537514746,
+            "avg_inter": 0.5089655445555561
+        },
+        "subfamily_3_rank3": {
+            "avg_a": 0.5392495505023523,
+            "avg_b": 0.5732959926762087,
+            "avg_inter": 0.5178625410153056
+        },
+        "subfamily_3_rank1": {
+            "avg_a": 0.5978287613696236,
+            "avg_b": 0.5586812748990128,
+            "avg_inter": 0.5207851954467658
+        }
+    },
+    "family_info": {
+        "description": "{'text': 'MRP-S23 is one of the proteins that makes up the 55S ribosome in eukaryotes from nematodes to humans. It does not appear to carry any common motifs, either RNA binding or ribosomal protein motifs [[cite:PUB00019768]]. All of the mammalian MRPs are encoded in nuclear genes that are evolving more rapidly than those encoding cytoplasmic ribosomal proteins. The MRPs are imported into mitochondria where they assemble coordinately with mitochondrially transcribed rRNAs into ribosomes that are responsible for translating the 13 mRNAs for essential proteins of the oxidative phosphorylation system [[cite:PUB00044379]]. MRP-S23 is significantly up-regulated in uterine cancer cells [[cite:PUB00044380]].', 'llm': False, 'checked': False, 'updated': False}",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}

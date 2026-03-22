@@ -1,0 +1,64 @@
+{
+    "timings": {
+        "Setup_and_MSA_Stats": 1.67,
+        "Calculations": 59.8,
+        "Split_Evaluation": 17.75,
+        "Visualization_and_Analysis": 362.24
+    },
+    "msa_stats": {
+        "num_sequences": 720,
+        "avg_sequence_length": 11.0,
+        "num_sequences_with_structure": 0,
+        "avg_sequence_similarity_pct": 83.03,
+        "normalized_total_branch_length": 0.0028,
+        "subfamily_1_avg_sequence_similarity_pct": 95.06,
+        "subfamily_1_normalized_total_branch_length": 0.0041,
+        "subfamily_2_avg_sequence_similarity_pct": 83.98,
+        "subfamily_2_normalized_total_branch_length": 0.002
+    },
+    "pipeline_stats": {
+        "family_name": "PF00446",
+        "embedding_mode": "sequence",
+        "num_significant_splits": null,
+        "num_raw_candidate_splits": 8,
+        "num_unique_candidate_splits": 4,
+        "subfamily_1_final_embedding_dim": 50,
+        "subfamily_2_final_embedding_dim": 50,
+        "num_significant_covariance_splits": 4
+    },
+    "split_analysis": {
+        "subfamily_1_history": "node ",
+        "subfamily_2_history": "Global Root",
+        "subfamily_1_rank1": {
+            "avg_a": 0.9190171972709232,
+            "avg_b": 0.9304614761881285,
+            "avg_inter": 0.46574061178796167
+        },
+        "subfamily_2_rank1": {
+            "avg_a": 0.9003425826253781,
+            "avg_b": 0.7558494263840205,
+            "avg_inter": 0.4095887829543814
+        },
+        "subfamily_2_rank2": {
+            "avg_a": 0.9735940723056329,
+            "avg_b": 0.7025265672710804,
+            "avg_inter": 0.47460146720925367
+        },
+        "subfamily_2_rank3": {
+            "avg_a": 0.7872184484479839,
+            "avg_b": 0.9784217759750113,
+            "avg_inter": 0.4010800903366199
+        }
+    },
+    "family_info": {
+        "description": "No description available",
+        "is_membrane": false,
+        "is_kinase": false,
+        "is_disordered": false,
+        "is_allosteric": false,
+        "is_nucleic_binding": false,
+        "is_viral": false,
+        "is_receptor": false,
+        "is_chaperone": false
+    }
+}
