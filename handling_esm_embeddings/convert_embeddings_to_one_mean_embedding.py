@@ -2,7 +2,8 @@ import torch
 import os
 
 
-def convert_embeddings_to_one_mean_embedding(folder_path, output_path=None):
+def convert_embeddings_to_one_mean_embedding(folder_path, output_path=None,
+                                              save_per_residue=False):
     if not output_path:
         output_folder_path = folder_path + '/mean_embeddings_output'
         output_path = os.path.join(output_folder_path, 'mean_protein_embeddings.pt')
@@ -11,26 +12,36 @@ def convert_embeddings_to_one_mean_embedding(folder_path, output_path=None):
     file_names = []
 
     os.makedirs(output_folder_path, exist_ok=True)
-    
+
+    # === Optional: directory for per-residue embeddings ===
+    if save_per_residue:
+        per_residue_dir = os.path.join(output_folder_path, 'per_residue')
+        os.makedirs(per_residue_dir, exist_ok=True)
+
     # === Process each .pt file one at a time ===
     for filename in os.listdir(folder_path):
         if filename.endswith('.pt'):
             filepath = os.path.join(folder_path, filename)
-            
+
             with torch.no_grad():
                 # Load the embedding tensor
                 embedding = torch.load(filepath)  # assumes shape: (length, 960)
-                
+
                 # If it's a dict, get the actual tensor (adjust this if needed)
                 if isinstance(embedding, dict):
                     embedding = embedding["representations"][33]  # example: layer 33
-                
+
                 # Compute mean embedding
                 embedding = embedding.squeeze(0)
                 mean_embedding = embedding.mean(dim=0)
                 # Store the mean vector
                 mean_embeddings.append(mean_embedding)
                 file_names.append(filename[:-3])
+
+                # Save per-residue embeddings if requested
+                if save_per_residue:
+                    per_res_path = os.path.join(per_residue_dir, filename)
+                    torch.save(embedding, per_res_path)
 
                 # Free memory
                 del embedding
