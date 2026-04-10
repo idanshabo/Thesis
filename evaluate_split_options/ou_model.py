@@ -225,3 +225,78 @@ def compare_bm_ou(X, U_BM, alpha_bounds=(1e-4, 50.0)):
         "preferred_model_aic": "OU" if aic_ou < aic_bm else "BM",
         "preferred_model_bic": "OU" if bic_ou < bic_bm else "BM",
     }
+
+
+def compare_bm_ou_per_coordinate(X, U_BM, alpha_bounds=(1e-4, 50.0),
+                                  significance_level=0.05):
+    """
+    Run BM vs OU comparison independently on each column (coordinate) of X.
+
+    For each coordinate j, treats it as a univariate trait and runs the
+    standard BM vs OU LRT. This reveals which protein properties (PCA
+    dimensions) are under stabilizing selection vs neutral drift.
+
+    Parameters
+    ----------
+    X : torch.Tensor
+        (n, p) PCA-reduced embedding data matrix.
+    U_BM : torch.Tensor
+        (n, n) BM phylogenetic covariance matrix.
+    alpha_bounds : tuple of (float, float)
+        Bounds for alpha search.
+    significance_level : float
+        P-value threshold for declaring OU preference (default 0.05).
+
+    Returns
+    -------
+    result : dict
+        'per_coordinate': list of dicts (one per coordinate)
+        'n_significant_ou': int
+        'significant_coordinates': list of int
+        'fraction_ou': float
+        'summary': str
+    """
+    X = X.double()
+    U_BM = U_BM.double()
+    n, p = X.shape
+
+    per_coord = []
+    significant = []
+
+    for j in range(p):
+        x_j = X[:, j:j+1]  # (n, 1)
+        try:
+            res = compare_bm_ou(x_j, U_BM, alpha_bounds)
+            entry = {
+                'coordinate': j,
+                'alpha_hat': res['alpha_hat'],
+                'll_bm': res['ll_bm'],
+                'll_ou': res['ll_ou'],
+                'lrt_statistic': res['lrt_statistic'],
+                'p_value': res['lrt_pvalue'],
+                'prefers_ou': res['lrt_pvalue'] < significance_level,
+            }
+            if entry['prefers_ou']:
+                significant.append(j)
+        except Exception as e:
+            entry = {
+                'coordinate': j,
+                'alpha_hat': float('nan'),
+                'll_bm': float('nan'),
+                'll_ou': float('nan'),
+                'lrt_statistic': float('nan'),
+                'p_value': float('nan'),
+                'prefers_ou': False,
+                'error': str(e),
+            }
+        per_coord.append(entry)
+
+    frac = len(significant) / max(p, 1)
+    return {
+        'per_coordinate': per_coord,
+        'n_significant_ou': len(significant),
+        'significant_coordinates': significant,
+        'fraction_ou': frac,
+        'summary': (f"{len(significant)}/{p} coordinates ({frac:.1%}) "
+                    f"prefer OU over BM at p < {significance_level}"),
+    }
