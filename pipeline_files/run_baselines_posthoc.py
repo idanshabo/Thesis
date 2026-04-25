@@ -1,20 +1,17 @@
 import os
 import sys
+import json
 import pandas as pd
 from Bio import SeqIO
 from ete3 import Tree
 
 # --- DIRECTORY PATH RESOLUTION ---
-# Get the absolute path of the script's directory (pipeline_files)
 current_dir = os.path.dirname(os.path.abspath(__file__))
-# Get the parent directory (Thesis)
 parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
 
-# Add the parent directory to Python's path so it can find sibling folders like 'utils'
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-# Now we can safely import from the utils folder!
 from utils.phylogenetic_baselines import evaluate_strict_branch_baselines
 
 def load_fasta_to_dict(fasta_path):
@@ -25,35 +22,59 @@ def load_fasta_to_dict(fasta_path):
         id_to_seq[str(rec.id).replace('/', '_')] = str(rec.seq)
     return id_to_seq
 
+def get_k_from_json(json_path):
+    """
+    Parses results.json to calculate the total number of final groups (K).
+    K = (Number of Subfamilies) + (Number of Significant Splits)
+    """
+    if not os.path.exists(json_path):
+        return 1 # Default to 1 global group if no splits occurred
+        
+    try:
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+    except Exception:
+        return 1
+        
+    if not data:
+        return 1
+        
+    # Find the total number of subfamilies (Phase 1)
+    max_subfam = max([item.get('subfamily', 1) for item in data])
+    
+    # Count how many significant splits occurred (Phase 2)
+    sig_splits = sum([1 for item in data if item.get('sig') is True])
+    
+    return max_subfam + sig_splits
+
 def run_all_baselines(base_dir, output_csv):
     """
-    Loops through all PF*****_calculations directories, calculates the 
-    random baseline, and saves the results to a CSV.
+    Loops through outputs, determines specific K for Seq and Struct, 
+    and generates tailored baselines for both.
     """
     results = []
     
-    # List all items in the pipeline_outputs folder
+    # Iterate looking for the output folders
     for item in os.listdir(base_dir):
-        # We only care about folders that look like "PF00000_calculations"
-        if item.startswith("PF") and item.endswith("_calculations"):
-            calc_folder_path = os.path.join(base_dir, item)
+        if item.startswith("PF") and item.endswith("_outputs"):
+            family_name = item.replace("_outputs", "")
+            print(f"\nProcessing baselines for {family_name}...")
             
-            if not os.path.isdir(calc_folder_path):
-                continue
-                
-            # Extract the "PF01340" part from "PF01340_calculations"
-            family_name = item.replace("_calculations", "")
-            print(f"Processing baseline for {family_name}...")
+            # Resolve Paths
+            out_folder = os.path.join(base_dir, item)
+            calc_folder = os.path.join(base_dir, f"{family_name}_calculations")
             
-            # Construct the paths to the tree and fasta files
-            tree_path = os.path.join(calc_folder_path, f"{family_name}.tree")
-            fasta_path = os.path.join(calc_folder_path, f"{family_name}.fasta")
+            tree_path = os.path.join(calc_folder, f"{family_name}.tree")
+            fasta_path = os.path.join(calc_folder, f"{family_name}.fasta")
+            
+            seq_json = os.path.join(out_folder, "sequence_embeddings", "results.json")
+            struct_json = os.path.join(out_folder, "structure_embeddings", "results.json")
             
             if not os.path.exists(tree_path) or not os.path.exists(fasta_path):
-                print(f"  -> Skipping {family_name}: Missing tree or fasta file.")
+                print(f"  -> Skipping {family_name}: Missing tree or fasta.")
                 continue
                 
-            # 1. Load the Tree and Sequences
+            # 1. Load Tree and Sequences
             try:
                 tree = Tree(tree_path, format=1)
             except Exception:
@@ -61,36 +82,53 @@ def run_all_baselines(base_dir, output_csv):
                 
             id_to_seq = load_fasta_to_dict(fasta_path)
             
-            # 2. Run the strict baseline evaluator (100 random valid splits)
-            baselines = evaluate_strict_branch_baselines(
-                tree_node=tree, 
-                id_to_seq=id_to_seq, 
-                tree_alpha=0.10, 
-                min_absolute_size=20, 
-                num_trials=100
-            )
+            # 2. Determine K targets for this specific family
+            seq_k = get_k_from_json(seq_json)
+            struct_k = get_k_from_json(struct_json)
             
-            if baselines:
-                results.append({
-                    "Family": family_name,
-                    "Valid_Edges_Tested": baselines["total_valid_edges_tested"],
-                    "Random_Baseline_Similarity_Pct": round(baselines["mean_random_sim_pct"], 2),
-                    "Random_Baseline_Branch_Length": round(baselines["mean_random_branch_len"], 4)
-                })
-                print(f"  -> Baseline Similarity: {baselines['mean_random_sim_pct']:.2f}%")
+            print(f"  -> Target Groups: Seq (K={seq_k}), Struct (K={struct_k})")
+            
+            family_data = {
+                "Family": family_name,
+                "Seq_K_Groups": seq_k,
+                "Struct_K_Groups": struct_k,
+            }
+            
+            # 3. Evaluate Sequence Baseline
+            if seq_k > 1:
+                seq_base = evaluate_strict_branch_baselines(tree, id_to_seq, target_k=seq_k, min_absolute_size=10, num_trials=100)
+                if seq_base:
+                    family_data["Seq_Baseline_Sim_Pct"] = round(seq_base['mean_random_sim_pct'], 2)
+                else:
+                    family_data["Seq_Baseline_Sim_Pct"] = None
+                    print("     [Seq] Could not find enough valid random branch cuts.")
             else:
-                print(f"  -> No valid arbitrary splits found for {family_name} under strict rules.")
+                family_data["Seq_Baseline_Sim_Pct"] = "N/A (No Splits)"
+                
+            # 4. Evaluate Structure Baseline
+            if struct_k > 1:
+                # If Struct K is exactly the same as Seq K, we can just copy the result to save time!
+                if struct_k == seq_k and seq_base:
+                    family_data["Struct_Baseline_Sim_Pct"] = round(seq_base['mean_random_sim_pct'], 2)
+                else:
+                    struct_base = evaluate_strict_branch_baselines(tree, id_to_seq, target_k=struct_k, min_absolute_size=10, num_trials=100)
+                    if struct_base:
+                        family_data["Struct_Baseline_Sim_Pct"] = round(struct_base['mean_random_sim_pct'], 2)
+                    else:
+                        family_data["Struct_Baseline_Sim_Pct"] = None
+                        print("     [Struct] Could not find enough valid random branch cuts.")
+            else:
+                family_data["Struct_Baseline_Sim_Pct"] = "N/A (No Splits)"
 
-    # 3. Save everything to a CSV in the Thesis repo folder
+            results.append(family_data)
+
+    # 5. Save everything
     df = pd.DataFrame(results)
     df.to_csv(output_csv, index=False)
-    print(f"\nAll baselines completed! Results saved to {output_csv}")
+    print(f"\nAll tailored baselines completed! Results saved to {output_csv}")
 
 if __name__ == "__main__":
-    # Point to your calculation folders
     PIPELINE_OUTPUTS_DIR = os.path.expanduser("~/Documents/Thesis/pipeline_outputs")
-    
-    # Save the output CSV into the main Thesis folder
-    OUTPUT_CSV_PATH = os.path.join(parent_dir, "baseline_comparisons.csv")
+    OUTPUT_CSV_PATH = os.path.join(parent_dir, "dual_baseline_comparisons.csv")
     
     run_all_baselines(PIPELINE_OUTPUTS_DIR, OUTPUT_CSV_PATH)
