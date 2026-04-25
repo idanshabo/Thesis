@@ -1,8 +1,21 @@
 import os
+import sys
 import pandas as pd
 from Bio import SeqIO
 from ete3 import Tree
-from phylogenetic_baselines import evaluate_strict_branch_baselines
+
+# --- DIRECTORY PATH RESOLUTION ---
+# Get the absolute path of the script's directory (pipeline_files)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# Get the parent directory (Thesis)
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))
+
+# Add the parent directory to Python's path so it can find sibling folders like 'utils'
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+# Now we can safely import from the utils folder!
+from utils.phylogenetic_baselines import evaluate_strict_branch_baselines
 
 def load_fasta_to_dict(fasta_path):
     """Loads a FASTA file into an id_to_seq dictionary."""
@@ -74,10 +87,10 @@ def run_all_baselines(base_dir, output_csv):
     print(f"\nAll baselines completed! Results saved to {output_csv}")
 
 if __name__ == "__main__":
-    # Expanduser automatically resolves the '~' to your Mac's home directory (e.g., /Users/YourName/)
+    # Point to your calculation folders
     PIPELINE_OUTPUTS_DIR = os.path.expanduser("~/Documents/Thesis/pipeline_outputs")
     
-    # Save the output CSV right next to this script in the Thesis folder
-    OUTPUT_CSV_PATH = os.path.join(os.path.expanduser("~/Documents/Thesis/pipeline_outputs/Thesis"), "baseline_comparisons.csv")
+    # Save the output CSV into the main Thesis folder
+    OUTPUT_CSV_PATH = os.path.join(parent_dir, "baseline_comparisons.csv")
     
     run_all_baselines(PIPELINE_OUTPUTS_DIR, OUTPUT_CSV_PATH)
