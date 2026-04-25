@@ -29,74 +29,92 @@ def calc_exact_msa_similarity_in_memory(group_leaves, id_to_seq):
         len1 = len(seq1.replace('-', ''))
         len2 = len(seq2.replace('-', ''))
         denom = min(len1, len2)
-        
-        if denom == 0:
-            continue
+        if denom == 0: continue
             
         matches = sum(1 for a, b in zip(seq1, seq2) if a == b and a != '-')
         total_sim += (matches / denom) * 100.0
         
     return total_sim / len(pairs) if pairs else 0.0
 
+def generate_random_k_partition(tree_node, target_k, min_size=10, max_attempts=1000):
+    """
+    Randomly selects K-1 internal nodes to partition the tree into exactly K valid clades.
+    """
+    if target_k <= 1:
+        return [list(tree_node.get_leaf_names())]
 
-def evaluate_strict_branch_baselines(tree_node, id_to_seq, tree_alpha=0.1, min_absolute_size=20, num_trials=100):
+    internal_nodes = [n for n in tree_node.traverse() if not n.is_root() and not n.is_leaf()]
+    
+    if len(internal_nodes) < target_k - 1:
+        return None # Tree is too small to make this many cuts
+        
+    for _ in range(max_attempts):
+        # Pick K-1 random branches to cut
+        sampled_nodes = random.sample(internal_nodes, target_k - 1)
+        
+        groups = {n: [] for n in sampled_nodes}
+        groups["root"] = []
+        
+        # Assign every leaf to its lowest selected ancestor
+        for leaf in tree_node.get_leaves():
+            assigned = False
+            curr = leaf
+            while curr is not None:
+                if curr in sampled_nodes:
+                    groups[curr].append(leaf.name)
+                    assigned = True
+                    break
+                curr = curr.up
+            if not assigned:
+                groups["root"].append(leaf.name)
+                
+        # Filter out empty groups 
+        non_empty_groups = [g for g in groups.values() if len(g) > 0]
+        
+        # Check if we successfully made K groups, and all groups meet the minimum size
+        if len(non_empty_groups) == target_k and all(len(g) >= min_size for g in non_empty_groups):
+            return non_empty_groups
+            
+    return None # Failed to find a valid K-partition after max_attempts
+
+def evaluate_strict_branch_baselines(tree_node, id_to_seq, target_k=2, min_absolute_size=10, num_trials=100):
+    """
+    Evaluates baseline homogeneity by partitioning the tree into EXACTLY the same 
+    number of subfamilies (target_k) that the pipeline found.
+    """
     all_leaves = set(tree_node.get_leaf_names())
     total_size = len(all_leaves)
-    total_tree_length = sum(getattr(n, "dist", 0.0) for n in tree_node.traverse() if not n.is_root())
     
-    min_allowed_by_prop = tree_alpha * total_size
-    actual_min_allowed = max(min_allowed_by_prop, min_absolute_size)
-    
-    valid_splits = []
-    node_leaves_cache = {n: set(n.get_leaf_names()) for n in tree_node.traverse() if not n.is_root()}
-    
-    for child in tree_node.traverse("postorder"):
-        if child.is_leaf() or child == tree_node:
-            continue
-            
-        clade_leaves = node_leaves_cache[child]
-        clade_size = len(clade_leaves)
-        group_b_leaves = all_leaves - clade_leaves
+    baseline_results = {'sim_pct': [], 'group_sizes': []}
+    successful_trials = 0
+
+    for _ in range(num_trials):
+        # 1. Generate a random, valid phylogenetic K-partition
+        partition = generate_random_k_partition(tree_node, target_k, min_absolute_size)
         
-        if clade_size < actual_min_allowed or (total_size - clade_size) < actual_min_allowed:
+        if not partition:
             continue
             
-        clade_A_len = get_induced_branch_length(tree_node, clade_leaves, node_leaves_cache)
-        clade_B_len = get_induced_branch_length(tree_node, group_b_leaves, node_leaves_cache)
+        successful_trials += 1
         
-        if clade_A_len < tree_alpha * total_tree_length or clade_B_len < tree_alpha * total_tree_length:
-            continue
-            
-        valid_splits.append((clade_leaves, group_b_leaves))
-            
-    if not valid_splits:
+        # 2. Calculate size-weighted average similarity for this K-partition
+        trial_sim = 0.0
+        sizes = []
+        for group in partition:
+            group_size = len(group)
+            sizes.append(group_size)
+            if id_to_seq:
+                group_sim = calc_exact_msa_similarity_in_memory(group, id_to_seq)
+                trial_sim += (group_sim * group_size)
+                
+        baseline_results['sim_pct'].append(trial_sim / total_size)
+        baseline_results['group_sizes'].append(sizes)
+
+    if successful_trials == 0:
         return None
 
-    sampled_splits = valid_splits
-    if len(valid_splits) > num_trials:
-        sampled_splits = random.sample(valid_splits, num_trials)
-
-    baseline_results = {'sim_pct': [], 'branch_len': []}
-
-    for group_A, group_B in sampled_splits:
-        size_A, size_B = len(group_A), len(group_B)
-        
-        len_A = get_induced_branch_length(tree_node, group_A, node_leaves_cache)
-        len_B = get_induced_branch_length(tree_node, group_B, node_leaves_cache)
-        norm_len_A = len_A / max(size_A, 1)
-        norm_len_B = len_B / max(size_B, 1)
-        
-        avg_rand_branch_len = ((norm_len_A * size_A) + (norm_len_B * size_B)) / total_size
-        baseline_results['branch_len'].append(avg_rand_branch_len)
-
-        if id_to_seq:
-            sim_A = calc_exact_msa_similarity_in_memory(group_A, id_to_seq)
-            sim_B = calc_exact_msa_similarity_in_memory(group_B, id_to_seq)
-            avg_rand_sim = ((sim_A * size_A) + (sim_B * size_B)) / total_size
-            baseline_results['sim_pct'].append(avg_rand_sim)
-
     return {
-        'mean_random_sim_pct': np.mean(baseline_results['sim_pct']) if baseline_results['sim_pct'] else None,
-        'mean_random_branch_len': np.mean(baseline_results['branch_len']),
-        'total_valid_edges_tested': len(sampled_splits)
+        'mean_random_sim_pct': np.mean(baseline_results['sim_pct']),
+        'total_valid_edges_tested': successful_trials,
+        'example_group_sizes': baseline_results['group_sizes'][0] 
     }
