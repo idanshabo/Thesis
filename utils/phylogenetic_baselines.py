@@ -1,7 +1,6 @@
 import random
 import numpy as np
 from itertools import combinations
-from evaluate_split_options.recursive_tree_traversal import get_induced_branch_length
 
 def calc_exact_msa_similarity_in_memory(group_leaves, id_to_seq):
     seqs = []
@@ -36,21 +35,27 @@ def calc_exact_msa_similarity_in_memory(group_leaves, id_to_seq):
         
     return total_sim / len(pairs) if pairs else 0.0
 
-def generate_random_k_partition(tree_node, target_k, min_size=10, max_attempts=1000):
+def generate_robust_k_partition(tree_node, target_k):
     """
     Randomly selects K-1 internal nodes to partition the tree into exactly K valid clades.
+    This safely bypasses strict global size limits to allow for large K values.
     """
     if target_k <= 1:
         return [list(tree_node.get_leaf_names())]
 
-    internal_nodes = [n for n in tree_node.traverse() if not n.is_root() and not n.is_leaf()]
-    
-    if len(internal_nodes) < target_k - 1:
-        return None # Tree is too small to make this many cuts
-        
-    for _ in range(max_attempts):
-        # Pick K-1 random branches to cut
-        sampled_nodes = random.sample(internal_nodes, target_k - 1)
+    # Get all internal nodes that form a clade of at least 2 leaves
+    valid_nodes = []
+    for n in tree_node.traverse():
+        if not n.is_root() and not n.is_leaf():
+            if len(n.get_leaves()) >= 2:
+                valid_nodes.append(n)
+                
+    if len(valid_nodes) < target_k - 1:
+        return None # Literally not enough branches in the tree to make K groups!
+
+    # Try to find a valid K-partition
+    for _ in range(2000):
+        sampled_nodes = random.sample(valid_nodes, target_k - 1)
         
         groups = {n: [] for n in sampled_nodes}
         groups["root"] = []
@@ -58,7 +63,7 @@ def generate_random_k_partition(tree_node, target_k, min_size=10, max_attempts=1
         # Assign every leaf to its lowest selected ancestor
         for leaf in tree_node.get_leaves():
             assigned = False
-            curr = leaf
+            curr = leaf.up
             while curr is not None:
                 if curr in sampled_nodes:
                     groups[curr].append(leaf.name)
@@ -68,19 +73,18 @@ def generate_random_k_partition(tree_node, target_k, min_size=10, max_attempts=1
             if not assigned:
                 groups["root"].append(leaf.name)
                 
-        # Filter out empty groups 
+        # Filter out empty groups (happens if one node completely encompasses another)
         non_empty_groups = [g for g in groups.values() if len(g) > 0]
         
-        # Check if we successfully made K groups, and all groups meet the minimum size
-        if len(non_empty_groups) == target_k and all(len(g) >= min_size for g in non_empty_groups):
+        # If we successfully isolated exactly K non-empty phylogenetic groups, we are done!
+        if len(non_empty_groups) == target_k:
             return non_empty_groups
             
-    return None # Failed to find a valid K-partition after max_attempts
+    return None 
 
 def evaluate_strict_branch_baselines(tree_node, id_to_seq, target_k=2, min_absolute_size=10, num_trials=100):
     """
-    Evaluates baseline homogeneity by partitioning the tree into EXACTLY the same 
-    number of subfamilies (target_k) that the pipeline found.
+    Evaluates baseline homogeneity by partitioning the tree into exactly K subfamilies.
     """
     all_leaves = set(tree_node.get_leaf_names())
     total_size = len(all_leaves)
@@ -89,15 +93,15 @@ def evaluate_strict_branch_baselines(tree_node, id_to_seq, target_k=2, min_absol
     successful_trials = 0
 
     for _ in range(num_trials):
-        # 1. Generate a random, valid phylogenetic K-partition
-        partition = generate_random_k_partition(tree_node, target_k, min_absolute_size)
+        # Generate a random, valid phylogenetic K-partition
+        partition = generate_robust_k_partition(tree_node, target_k)
         
         if not partition:
             continue
             
         successful_trials += 1
         
-        # 2. Calculate size-weighted average similarity for this K-partition
+        # Calculate size-weighted average similarity for this K-partition
         trial_sim = 0.0
         sizes = []
         for group in partition:
