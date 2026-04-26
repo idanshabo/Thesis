@@ -89,7 +89,11 @@ def evaluate_strict_branch_baselines(tree_node, id_to_seq, target_k=2, min_absol
     all_leaves = set(tree_node.get_leaf_names())
     total_size = len(all_leaves)
     
-    baseline_results = {'sim_pct': [], 'group_sizes': []}
+    # Pre-cache leaves for fast branch length calculations
+    node_leaves_cache = {n: set(n.get_leaf_names()) for n in tree_node.traverse() if not n.is_root()}
+    
+    # ADDED 'branch_len' list here!
+    baseline_results = {'sim_pct': [], 'group_sizes': [], 'branch_len': []}
     successful_trials = 0
 
     for _ in range(num_trials):
@@ -101,17 +105,26 @@ def evaluate_strict_branch_baselines(tree_node, id_to_seq, target_k=2, min_absol
             
         successful_trials += 1
         
-        # Calculate size-weighted average similarity for this K-partition
         trial_sim = 0.0
+        trial_branch_len = 0.0
         sizes = []
+        
         for group in partition:
             group_size = len(group)
             sizes.append(group_size)
+            
+            # 1. Calculate Sequence Similarity
             if id_to_seq:
                 group_sim = calc_exact_msa_similarity_in_memory(group, id_to_seq)
                 trial_sim += (group_sim * group_size)
                 
+            # 2. Calculate Branch Length
+            g_len = get_induced_branch_length(tree_node, group, node_leaves_cache)
+            norm_g_len = g_len / max(group_size, 1)
+            trial_branch_len += (norm_g_len * group_size)
+                
         baseline_results['sim_pct'].append(trial_sim / total_size)
+        baseline_results['branch_len'].append(trial_branch_len / total_size)
         baseline_results['group_sizes'].append(sizes)
 
     if successful_trials == 0:
@@ -119,6 +132,7 @@ def evaluate_strict_branch_baselines(tree_node, id_to_seq, target_k=2, min_absol
 
     return {
         'mean_random_sim_pct': np.mean(baseline_results['sim_pct']),
+        'mean_random_branch_len': np.mean(baseline_results['branch_len']), # ADDED THIS BACK!
         'total_valid_edges_tested': successful_trials,
         'example_group_sizes': baseline_results['group_sizes'][0] 
     }
