@@ -1,3 +1,15 @@
+import os
+import sys
+import json
+from Bio import SeqIO
+
+# 1. Point Python to your Thesis repo so it can find your local modules
+repo_path = os.path.expanduser("~/Documents/Thesis/pipeline_outputs/Thesis")
+sys.path.append(repo_path)
+
+# Import your newly fixed plotting function
+from significant_split_evaluation.structures.plot_comparative_logos import generate_comparative_logos
+
 def rerun_just_the_plot():
     # =====================================================================
     # MAC DIRECTORY SETUP
@@ -56,3 +68,6 @@ def rerun_just_the_plot():
     )
     
     print(f"\nDone! Check your folder for the new image:\n  {output_png}")
+    
+if __name__ == "__main__":
+    rerun_just_the_plot()
