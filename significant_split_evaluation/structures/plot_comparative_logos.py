@@ -21,6 +21,17 @@ Q8_COLORS = {
     '-': '#FFFFFF'  # Gap
 }
 
+Q8_LABELS = {
+    'H': 'Alpha helix (H)',
+    'G': '3-10 helix (G)',
+    'I': 'Pi helix (I)',
+    'E': 'Extended strand (E)',
+    'B': 'Beta bridge (B)',
+    'T': 'Turn (T)',
+    'S': 'Bend (S)',
+    'C': 'Coil/Loop (C)'
+}
+
 def normalize_id(identifier):
     return identifier.replace("/", "_")
 
@@ -190,9 +201,9 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
 
         counts_a = counts_a.drop('-', axis=1, errors='ignore')
         counts_b = counts_b.drop('-', axis=1, errors='ignore')
-
-        info_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='information')
-        info_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='information')
+        # Force pseudocount=0.0 to prevent small-sample penalization
+        info_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='information', pseudocount=0.0)
+        info_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='information', pseudocount=0.0)
         global_max = max(info_a.sum(axis=1).max(), info_b.sum(axis=1).max()) * 1.1
 
         prob_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='probability')
@@ -233,9 +244,10 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
         plt.setp(ax_logo_a.get_xticklabels(), visible=False)
         plt.setp(ax_logo_b.get_xticklabels(), visible=False)
         plt.setp(ax_ss_a.get_xticklabels(), visible=False)
-        
-        handles = [patches.Patch(color=color, label=state) for state, color in Q8_COLORS.items() if state != '-']
-        fig.legend(handles=handles, loc='lower center', ncol=8, bbox_to_anchor=(0.5, -0.05), frameon=False)
+
+        # Create legend with full biological descriptions instead of just single letters
+        handles = [patches.Patch(color=color, label=Q8_LABELS[state]) for state, color in Q8_COLORS.items() if state != '-']
+        fig.legend(handles=handles, loc='lower center', ncol=4, bbox_to_anchor=(0.5, -0.05), frameon=False)
 
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close(fig)
