@@ -5,7 +5,7 @@ from Bio import SeqIO
 
 # 1. Point Python to your Thesis repo so it can find your local modules
 repo_path = os.path.expanduser("~/Documents/Thesis/pipeline_outputs/Thesis")
-sys.path.append(repo_path)
+sys.path.insert(0, repo_path)  # <--- Changed from append to insert(0)
 
 # Import your newly fixed plotting function
 from significant_split_evaluation.structures.plot_comparative_logos import generate_comparative_logos
