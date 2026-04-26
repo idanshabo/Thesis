@@ -220,6 +220,9 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
         prob_a = prob_a.multiply(occupancy_a, axis=0)
         prob_b = prob_b.multiply(occupancy_b, axis=0)
 
+        # Calculate the maximum y-axis limit based on the new scaled data
+        global_max = max(info_a.sum(axis=1).max(), info_b.sum(axis=1).max()) * 1.1
+        
         # 4. Calculate divergence based on the occupancy-scaled probabilities
         diff_score = np.sum(np.abs(prob_a - prob_b), axis=1)
         divergent_positions = diff_score[diff_score > highlight_threshold].index.tolist()
