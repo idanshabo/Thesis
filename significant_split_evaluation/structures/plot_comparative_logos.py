@@ -202,12 +202,13 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
         counts_a = counts_a.drop('-', axis=1, errors='ignore')
         counts_b = counts_b.drop('-', axis=1, errors='ignore')
         # Force pseudocount=0.0 to prevent small-sample penalization
-        info_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='information', pseudocount=0.0)
-        info_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='information', pseudocount=0.0)
+
+        info_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='information', pseudocount=0.0001)
+        info_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='information', pseudocount=0.0001)
         global_max = max(info_a.sum(axis=1).max(), info_b.sum(axis=1).max()) * 1.1
 
-        prob_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='probability')
-        prob_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='probability')
+        prob_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='probability', pseudocount=0.0001)
+        prob_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='probability', pseudocount=0.0001)
         diff_score = np.sum(np.abs(prob_a - prob_b), axis=1)
         divergent_positions = diff_score[diff_score > highlight_threshold].index.tolist()
 
