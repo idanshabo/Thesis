@@ -212,21 +212,16 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
         ax_logo_b = fig.add_subplot(gs[2], sharex=ax_logo_a)
         ax_ss_b = fig.add_subplot(gs[3], sharex=ax_logo_a)
 
-        # Plot probabilities instead of information content (bits)
-        logomaker.Logo(prob_a, ax=ax_logo_a, color_scheme='chemistry')
-        logomaker.Logo(prob_b, ax=ax_logo_b, color_scheme='chemistry')
-        
-        # Hardcode the Y-axis to 1.0 (100% probability)
-        ax_logo_a.set_ylim(0, 1.0)
-        ax_logo_b.set_ylim(0, 1.0)
+        logomaker.Logo(info_a, ax=ax_logo_a, color_scheme='chemistry')
+        logomaker.Logo(info_b, ax=ax_logo_b, color_scheme='chemistry')
+        ax_logo_a.set_ylim(0, global_max)
+        ax_logo_b.set_ylim(0, global_max)
         
         # Restore the title format
         ax_logo_a.set_title(f"Group A ({len(seqs_a)} sequences | SS Consensus: {num_a} structures)", fontsize=14, fontweight='bold')
         ax_logo_b.set_title(f"Group B ({len(seqs_b)} sequences | SS Consensus: {num_b} structures)", fontsize=14, fontweight='bold')
-        
-        # Update the Y-axis labels
-        ax_logo_a.set_ylabel("Probability")
-        ax_logo_b.set_ylabel("Probability")
+        ax_logo_a.set_ylabel("Bits")
+        ax_logo_b.set_ylabel("Bits")
 
         draw_biological_ss_track(ax_ss_a, ss_cons_a)
         draw_biological_ss_track(ax_ss_b, ss_cons_b)
