@@ -9,6 +9,8 @@ sys.path.insert(0, repo_path)  # <--- Changed from append to insert(0)
 
 # Import your newly fixed plotting function
 from significant_split_evaluation.structures.plot_comparative_logos import generate_comparative_logos
+from significant_split_evaluation.structures import plot_comparative_logos
+print(f"\n[DEBUG] Python is secretly loading the plotting code from here:\n{plot_comparative_logos.__file__}\n")
 
 def rerun_just_the_plot():
     # =====================================================================
