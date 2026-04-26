@@ -199,12 +199,22 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
         counts_b = logomaker.alignment_to_matrix(seqs_b)
         counts_a, counts_b = align_matrices(counts_a, counts_b)
 
+
         counts_a = counts_a.drop('-', axis=1, errors='ignore')
         counts_b = counts_b.drop('-', axis=1, errors='ignore')
-        # Force pseudocount=0.0 to prevent small-sample penalization
 
+        # 1. Calculate the occupancy (fraction of non-gap characters) for each position
+        occupancy_a = counts_a.sum(axis=1) / len(seqs_a)
+        occupancy_b = counts_b.sum(axis=1) / len(seqs_b)
+
+        # 2. Calculate the base information
         info_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='information', pseudocount=0.0001)
         info_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='information', pseudocount=0.0001)
+
+        # 3. Scale the information by the occupancy fraction
+        info_a = info_a.multiply(occupancy_a, axis=0)
+        info_b = info_b.multiply(occupancy_b, axis=0)
+
         global_max = max(info_a.sum(axis=1).max(), info_b.sum(axis=1).max()) * 1.1
 
         prob_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='probability', pseudocount=0.0001)
