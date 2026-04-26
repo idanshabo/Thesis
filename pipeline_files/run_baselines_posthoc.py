@@ -99,26 +99,32 @@ def run_all_baselines(base_dir, output_csv):
                 seq_base = evaluate_strict_branch_baselines(tree, id_to_seq, target_k=seq_k, min_absolute_size=10, num_trials=100)
                 if seq_base:
                     family_data["Seq_Baseline_Sim_Pct"] = round(seq_base['mean_random_sim_pct'], 2)
+                    family_data["Seq_Baseline_Branch_Len"] = round(seq_base['mean_random_branch_len'], 4) # <-- NEW LINE
                 else:
                     family_data["Seq_Baseline_Sim_Pct"] = None
+                    family_data["Seq_Baseline_Branch_Len"] = None # <-- NEW LINE
                     print("     [Seq] Could not find enough valid random branch cuts.")
             else:
                 family_data["Seq_Baseline_Sim_Pct"] = "N/A (No Splits)"
+                family_data["Seq_Baseline_Branch_Len"] = "N/A"
                 
             # 4. Evaluate Structure Baseline
             if struct_k > 1:
-                # If Struct K is exactly the same as Seq K, we can just copy the result to save time!
                 if struct_k == seq_k and seq_base:
                     family_data["Struct_Baseline_Sim_Pct"] = round(seq_base['mean_random_sim_pct'], 2)
+                    family_data["Struct_Baseline_Branch_Len"] = round(seq_base['mean_random_branch_len'], 4) # <-- NEW LINE
                 else:
                     struct_base = evaluate_strict_branch_baselines(tree, id_to_seq, target_k=struct_k, min_absolute_size=10, num_trials=100)
                     if struct_base:
                         family_data["Struct_Baseline_Sim_Pct"] = round(struct_base['mean_random_sim_pct'], 2)
+                        family_data["Struct_Baseline_Branch_Len"] = round(struct_base['mean_random_branch_len'], 4) # <-- NEW LINE
                     else:
                         family_data["Struct_Baseline_Sim_Pct"] = None
+                        family_data["Struct_Baseline_Branch_Len"] = None # <-- NEW LINE
                         print("     [Struct] Could not find enough valid random branch cuts.")
             else:
                 family_data["Struct_Baseline_Sim_Pct"] = "N/A (No Splits)"
+                family_data["Struct_Baseline_Branch_Len"] = "N/A"
 
             results.append(family_data)
 
