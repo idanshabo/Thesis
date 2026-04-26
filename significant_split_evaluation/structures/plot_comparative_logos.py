@@ -188,6 +188,9 @@ def generate_comparative_logos(records, group_a_ids, group_b_ids, dir_predicted,
         counts_b = logomaker.alignment_to_matrix(seqs_b)
         counts_a, counts_b = align_matrices(counts_a, counts_b)
 
+        counts_a = counts_a.drop('-', axis=1, errors='ignore')
+        counts_b = counts_b.drop('-', axis=1, errors='ignore')
+
         info_a = logomaker.transform_matrix(counts_a, from_type='counts', to_type='information')
         info_b = logomaker.transform_matrix(counts_b, from_type='counts', to_type='information')
         global_max = max(info_a.sum(axis=1).max(), info_b.sum(axis=1).max()) * 1.1
