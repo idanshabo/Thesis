@@ -2,6 +2,30 @@ import random
 import numpy as np
 from itertools import combinations
 
+# --- 1. BRANCH LENGTH HELPER (Now self-contained!) ---
+def get_induced_branch_length(tree, leaf_subset, node_leaves_cache=None):
+    if len(leaf_subset) <= 1:
+        return 0.0
+        
+    induced_length = 0.0
+    for node in tree.traverse():
+        if node.is_root():
+            continue
+            
+        if node_leaves_cache is not None:
+            node_leaves = node_leaves_cache[node]
+        else:
+            node_leaves = set(node.get_leaf_names())
+            
+        in_subset = len(node_leaves.intersection(leaf_subset))
+        out_subset = len(leaf_subset) - in_subset
+        
+        if in_subset > 0 and out_subset > 0:
+            induced_length += getattr(node, "dist", 0.0)
+            
+    return induced_length
+
+# --- 2. EXACT SIMILARITY MATH ---
 def calc_exact_msa_similarity_in_memory(group_leaves, id_to_seq):
     seqs = []
     for leaf in group_leaves:
@@ -35,15 +59,11 @@ def calc_exact_msa_similarity_in_memory(group_leaves, id_to_seq):
         
     return total_sim / len(pairs) if pairs else 0.0
 
+# --- 3. ROBUST K-PARTITIONING ---
 def generate_robust_k_partition(tree_node, target_k):
-    """
-    Randomly selects K-1 internal nodes to partition the tree into exactly K valid clades.
-    This safely bypasses strict global size limits to allow for large K values.
-    """
     if target_k <= 1:
         return [list(tree_node.get_leaf_names())]
 
-    # Get all internal nodes that form a clade of at least 2 leaves
     valid_nodes = []
     for n in tree_node.traverse():
         if not n.is_root() and not n.is_leaf():
@@ -51,16 +71,14 @@ def generate_robust_k_partition(tree_node, target_k):
                 valid_nodes.append(n)
                 
     if len(valid_nodes) < target_k - 1:
-        return None # Literally not enough branches in the tree to make K groups!
+        return None
 
-    # Try to find a valid K-partition
     for _ in range(2000):
         sampled_nodes = random.sample(valid_nodes, target_k - 1)
         
         groups = {n: [] for n in sampled_nodes}
         groups["root"] = []
         
-        # Assign every leaf to its lowest selected ancestor
         for leaf in tree_node.get_leaves():
             assigned = False
             curr = leaf.up
@@ -73,31 +91,25 @@ def generate_robust_k_partition(tree_node, target_k):
             if not assigned:
                 groups["root"].append(leaf.name)
                 
-        # Filter out empty groups (happens if one node completely encompasses another)
         non_empty_groups = [g for g in groups.values() if len(g) > 0]
         
-        # If we successfully isolated exactly K non-empty phylogenetic groups, we are done!
         if len(non_empty_groups) == target_k:
             return non_empty_groups
             
     return None 
 
+# --- 4. BASELINE EVALUATION (Sim + Branch Length) ---
 def evaluate_strict_branch_baselines(tree_node, id_to_seq, target_k=2, min_absolute_size=10, num_trials=100):
-    """
-    Evaluates baseline homogeneity by partitioning the tree into exactly K subfamilies.
-    """
     all_leaves = set(tree_node.get_leaf_names())
     total_size = len(all_leaves)
     
     # Pre-cache leaves for fast branch length calculations
     node_leaves_cache = {n: set(n.get_leaf_names()) for n in tree_node.traverse() if not n.is_root()}
     
-    # ADDED 'branch_len' list here!
     baseline_results = {'sim_pct': [], 'group_sizes': [], 'branch_len': []}
     successful_trials = 0
 
     for _ in range(num_trials):
-        # Generate a random, valid phylogenetic K-partition
         partition = generate_robust_k_partition(tree_node, target_k)
         
         if not partition:
@@ -113,12 +125,12 @@ def evaluate_strict_branch_baselines(tree_node, id_to_seq, target_k=2, min_absol
             group_size = len(group)
             sizes.append(group_size)
             
-            # 1. Calculate Sequence Similarity
+            # 1. Similarity
             if id_to_seq:
                 group_sim = calc_exact_msa_similarity_in_memory(group, id_to_seq)
                 trial_sim += (group_sim * group_size)
                 
-            # 2. Calculate Branch Length
+            # 2. Branch Length
             g_len = get_induced_branch_length(tree_node, group, node_leaves_cache)
             norm_g_len = g_len / max(group_size, 1)
             trial_branch_len += (norm_g_len * group_size)
@@ -132,7 +144,7 @@ def evaluate_strict_branch_baselines(tree_node, id_to_seq, target_k=2, min_absol
 
     return {
         'mean_random_sim_pct': np.mean(baseline_results['sim_pct']),
-        'mean_random_branch_len': np.mean(baseline_results['branch_len']), # ADDED THIS BACK!
+        'mean_random_branch_len': np.mean(baseline_results['branch_len']),
         'total_valid_edges_tested': successful_trials,
         'example_group_sizes': baseline_results['group_sizes'][0] 
     }
