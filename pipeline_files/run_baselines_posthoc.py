@@ -22,30 +22,41 @@ def load_fasta_to_dict(fasta_path):
         id_to_seq[str(rec.id).replace('/', '_')] = str(rec.seq)
     return id_to_seq
 
-def get_k_from_json(json_path):
+def get_k_from_json(out_folder):
     """
-    Parses results.json to calculate the total number of final groups (K).
-    K = (Number of Subfamilies) + (Number of Significant Splits)
+    Determines total number of groups (K) by checking both:
+    1. subfamilies_summary.json (Phase 1 clustering)
+    2. results.json (Phase 2 statistical splits)
     """
-    if not os.path.exists(json_path):
-        return 1 # Default to 1 global group if no splits occurred
-        
-    try:
-        with open(json_path, 'r') as f:
-            data = json.load(f)
-    except Exception:
-        return 1
-        
-    if not data:
-        return 1
-        
-    # Find the total number of subfamilies (Phase 1)
-    max_subfam = max([item.get('subfamily', 1) for item in data])
+    subfam_path = os.path.join(out_folder, "subfamilies_summary.json")
+    results_path = os.path.join(out_folder, "results.json")
     
-    # Count how many significant splits occurred (Phase 2)
-    sig_splits = sum([1 for item in data if item.get('sig') is True])
+    k_total = 1
     
-    return max_subfam + sig_splits
+    # Check Phase 1: Subfamily Clustering
+    if os.path.exists(subfam_path):
+        try:
+            with open(subfam_path, 'r') as f:
+                subfam_data = json.load(f)
+                if subfam_data:
+                    # Count keys like "subfamily_1", "subfamily_2"
+                    k_total = len(subfam_data.keys())
+        except Exception as e:
+            print(f"      Warning: Error reading subfamilies_summary.json: {e}")
+
+    # Check Phase 2: Statistical Splits (LRT)
+    if os.path.exists(results_path):
+        try:
+            with open(results_path, 'r') as f:
+                results_data = json.load(f)
+                if results_data:
+                    # Add any additional significant splits found in Phase 2
+                    sig_splits = sum([1 for item in results_data if item.get('sig') is True])
+                    k_total += sig_splits
+        except Exception as e:
+            print(f"      Warning: Error reading results.json: {e}")
+            
+    return max(k_total, 1)
 
 def run_all_baselines(base_dir, output_csv):
     """
@@ -83,8 +94,8 @@ def run_all_baselines(base_dir, output_csv):
             id_to_seq = load_fasta_to_dict(fasta_path)
             
             # 2. Determine K targets for this specific family
-            seq_k = get_k_from_json(seq_json)
-            struct_k = get_k_from_json(struct_json)
+            seq_k = get_k_from_json(os.path.join(out_folder, "sequence_embeddings"))
+            struct_k = get_k_from_json(os.path.join(out_folder, "structure_embeddings"))
             
             print(f"  -> Target Groups: Seq (K={seq_k}), Struct (K={struct_k})")
             
